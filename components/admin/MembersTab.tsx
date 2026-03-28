@@ -213,10 +213,16 @@ export default function MembersTab({ tournamentId }: Props) {
       }
     }
 
-    const codes = allMembers.map(m => m.member_code).filter(Boolean);
-    if (new Set(codes).size !== codes.length) {
-      setError('同日程内に会員番号の重複があります');
-      return;
+    // 重複チェック（具体的なメッセージ）
+    const codeMap = new Map<string, { group: number; position: number }>();
+    for (const m of allMembers) {
+      if (!m.member_code) continue;
+      const prev = codeMap.get(m.member_code);
+      if (prev) {
+        setError(`${m.group_number}組 ${m.position}番の会員番号「${m.member_code}」と${prev.group}組 ${prev.position}番の会員番号が重複しています`);
+        return;
+      }
+      codeMap.set(m.member_code, { group: m.group_number, position: m.position });
     }
 
     try {
@@ -515,16 +521,24 @@ export default function MembersTab({ tournamentId }: Props) {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 580 }}>
                 <thead>
                   <tr style={{ background: C.surface2 }}>
-                    {['番号', '会員番号', '氏名　審判フラグ', '所属', 'クラス', ''].map((h, i) => (
+                    {[
+                      { label: '番号', color: C.muted },
+                      { label: '会員番号', color: C.muted },
+                      { label: '氏名', color: C.muted },
+                      { label: '審判フラグ', color: C.muted },
+                      { label: '所属', color: C.muted },
+                      { label: 'クラス', color: C.muted },
+                      { label: '削除', color: '#e74c3c' },
+                    ].map((h, i) => (
                       <th key={i} style={{
                         padding: '8px 10px',
                         fontSize: 14,
-                        color: C.muted,
+                        color: h.color,
                         fontWeight: 600,
                         textAlign: 'left',
                         borderBottom: `1px solid ${C.border}`,
                         whiteSpace: 'nowrap',
-                      }}>{h}</th>
+                      }}>{h.label}</th>
                     ))}
                   </tr>
                 </thead>
@@ -542,25 +556,25 @@ export default function MembersTab({ tournamentId }: Props) {
                           placeholder="例: 12345"
                         />
                       </td>
-                      <td style={{ padding: '4px 6px', minWidth: 160 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <td style={{ padding: '4px 6px', minWidth: 140 }}>
+                        <input
+                          type="text"
+                          value={row.name}
+                          onChange={e => updateRow(idx, 'name', e.target.value)}
+                          style={{ ...inputStyle }}
+                          placeholder="氏名"
+                        />
+                      </td>
+                      <td style={{ padding: '4px 6px', width: 60, textAlign: 'center' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'pointer' }}>
                           <input
-                            type="text"
-                            value={row.name}
-                            onChange={e => updateRow(idx, 'name', e.target.value)}
-                            style={{ ...inputStyle, flex: 1 }}
-                            placeholder="氏名"
+                            type="checkbox"
+                            checked={row.is_judge}
+                            onChange={e => updateRow(idx, 'is_judge', e.target.checked)}
+                            style={{ width: 14, height: 14, cursor: 'pointer', accentColor: C.gold }}
                           />
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                            <input
-                              type="checkbox"
-                              checked={row.is_judge}
-                              onChange={e => updateRow(idx, 'is_judge', e.target.checked)}
-                              style={{ width: 14, height: 14, cursor: 'pointer', accentColor: C.gold }}
-                            />
-                            <span style={{ fontSize: 15, color: row.is_judge ? C.gold : C.muted }}>⚑</span>
-                          </label>
-                        </div>
+                          <span style={{ fontSize: 15, color: row.is_judge ? C.gold : C.muted }}>⚑</span>
+                        </label>
                       </td>
                       <td style={{ padding: '4px 6px', minWidth: 120 }}>
                         <input
@@ -595,7 +609,7 @@ export default function MembersTab({ tournamentId }: Props) {
 
           {/* 選手組替 button */}
           {dayMembers.length > 0 && (
-            <div style={{ marginTop: 20, marginBottom: 4, display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ marginTop: 20, marginBottom: 4, display: 'flex', justifyContent: 'flex-start' }}>
               <button
                 onClick={() => {
                   if (reorderMode) {
