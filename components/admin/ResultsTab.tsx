@@ -73,7 +73,7 @@ export default function ResultsTab({ tournamentId }: Props) {
     <div style={{ padding: '20px 16px', maxWidth: 1100, margin: '0 auto' }}>
       {/* Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-        <h3 style={{ margin: 0, fontSize: 16, color: C.text }}>成績一覧</h3>
+        <h3 style={{ margin: 0, fontSize: 18, color: C.text }}>成績一覧</h3>
         <button
           onClick={fetchResults}
           style={{
@@ -82,7 +82,7 @@ export default function ResultsTab({ tournamentId }: Props) {
             border: `1px solid ${C.gold}`,
             borderRadius: 6,
             padding: '6px 14px',
-            fontSize: 13,
+            fontSize: 15,
             cursor: 'pointer',
             fontWeight: 600,
           }}
@@ -95,7 +95,7 @@ export default function ResultsTab({ tournamentId }: Props) {
       {error && (
         <div style={{
           background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 13,
+          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 15,
         }}>{error}</div>
       )}
 
@@ -109,7 +109,7 @@ export default function ResultsTab({ tournamentId }: Props) {
             padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
           }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: C.muted }}>クラス:</span>
+              <span style={{ fontSize: 14, color: C.muted }}>クラス:</span>
               {(['all', 'A', 'B', 'C', 'D'] as const).map(c => (
                 <button
                   key={c}
@@ -118,7 +118,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                     background: classFilter === c ? classBadgeBg(c) : 'transparent',
                     color: classFilter === c ? classBadgeColor(c) : C.muted,
                     border: `1px solid ${classFilter === c ? classBadgeColor(c) : C.border}`,
-                    borderRadius: 4, padding: '3px 10px', fontSize: 12,
+                    borderRadius: 4, padding: '3px 10px', fontSize: 14,
                     fontWeight: classFilter === c ? 700 : 400, cursor: 'pointer',
                   }}
                 >
@@ -127,14 +127,14 @@ export default function ResultsTab({ tournamentId }: Props) {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, color: C.muted }}>所属:</span>
+              <span style={{ fontSize: 14, color: C.muted }}>所属:</span>
               <button
                 onClick={() => setBelongFilter('all')}
                 style={{
                   background: belongFilter === 'all' ? `${C.gold}22` : 'transparent',
                   color: belongFilter === 'all' ? C.gold : C.muted,
                   border: `1px solid ${belongFilter === 'all' ? C.gold : C.border}`,
-                  borderRadius: 4, padding: '3px 10px', fontSize: 12,
+                  borderRadius: 4, padding: '3px 10px', fontSize: 14,
                   fontWeight: belongFilter === 'all' ? 700 : 400, cursor: 'pointer',
                 }}
               >
@@ -148,7 +148,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                     background: belongFilter === b ? `${C.gold}22` : 'transparent',
                     color: belongFilter === b ? C.gold : C.muted,
                     border: `1px solid ${belongFilter === b ? C.gold : C.border}`,
-                    borderRadius: 4, padding: '3px 10px', fontSize: 12,
+                    borderRadius: 4, padding: '3px 10px', fontSize: 14,
                     fontWeight: belongFilter === b ? 700 : 400, cursor: 'pointer',
                   }}
                 >
@@ -164,22 +164,22 @@ export default function ResultsTab({ tournamentId }: Props) {
               background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
               padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
             }}>
-              <span style={{ fontSize: 11, color: C.muted }}>全体平均</span>
-              <span style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{overallAvg}</span>
+              <span style={{ fontSize: 13, color: C.muted }}>全体平均</span>
+              <span style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{overallAvg}</span>
             </div>
             <div style={{
               background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
               padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
             }}>
-              <span style={{ fontSize: 11, color: C.muted }}>上位6名平均</span>
-              <span style={{ fontSize: 20, fontWeight: 700, color: C.gold }}>{top6Avg}</span>
+              <span style={{ fontSize: 13, color: C.muted }}>上位6名平均</span>
+              <span style={{ fontSize: 22, fontWeight: 700, color: C.gold }}>{top6Avg}</span>
             </div>
             <div style={{
               background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
               padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
             }}>
-              <span style={{ fontSize: 11, color: C.muted }}>表示件数</span>
-              <span style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{filtered.length}名</span>
+              <span style={{ fontSize: 13, color: C.muted }}>表示件数</span>
+              <span style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{filtered.length}名</span>
             </div>
           </div>
 
@@ -239,16 +239,16 @@ export default function ResultsTab({ tournamentId }: Props) {
                             {r.is_judge ? <span style={{ color: C.gold }}>⚑ </span> : ''}
                             {r.name}
                           </td>
-                          <td style={{ ...tdS, color: C.muted, fontSize: 12 }}>
+                          <td style={{ ...tdS, color: C.muted, fontSize: 14 }}>
                             {r.group1}{r.group2 ? `/${r.group2}` : ''}組
                           </td>
-                          <td style={{ ...tdS, textAlign: 'left', color: C.muted, fontSize: 12 }}>{r.belong ?? '-'}</td>
+                          <td style={{ ...tdS, textAlign: 'left', color: C.muted, fontSize: 14 }}>{r.belong ?? '-'}</td>
                           <td style={{ ...tdS }}>
                             {r.class ? (
                               <span style={{
                                 background: classBadgeBg(r.class),
                                 color: classBadgeColor(r.class),
-                                borderRadius: 4, padding: '1px 7px', fontSize: 11, fontWeight: 700,
+                                borderRadius: 4, padding: '1px 7px', fontSize: 13, fontWeight: 700,
                               }}>{r.class}</span>
                             ) : '-'}
                           </td>
@@ -264,7 +264,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                             <td style={tdS}>{scoreCell(r.r8)}</td>
                             <td style={{ ...tdS, fontWeight: 600, color: C.blue2 }}>{r.day2_total || '-'}</td>
                           </>}
-                          <td style={{ ...tdS, fontWeight: 700, color: C.gold, fontSize: 14 }}>{r.total || '-'}</td>
+                          <td style={{ ...tdS, fontWeight: 700, color: C.gold, fontSize: 16 }}>{r.total || '-'}</td>
                           <td style={{ ...tdS, color: C.muted }}>{r.average !== null && r.average !== undefined ? Number(r.average).toFixed(2) : '-'}</td>
                         </tr>
                       );
@@ -276,7 +276,7 @@ export default function ResultsTab({ tournamentId }: Props) {
           )}
 
           {highlightedCode && (
-            <p style={{ fontSize: 12, color: C.muted, marginTop: 8, textAlign: 'center' }}>
+            <p style={{ fontSize: 14, color: C.muted, marginTop: 8, textAlign: 'center' }}>
               行をクリックしてハイライトを解除できます
             </p>
           )}
@@ -288,7 +288,7 @@ export default function ResultsTab({ tournamentId }: Props) {
 
 const thS: React.CSSProperties = {
   padding: '8px 8px',
-  fontSize: 12,
+  fontSize: 14,
   color: C.muted,
   fontWeight: 600,
   textAlign: 'center',
@@ -298,7 +298,7 @@ const thS: React.CSSProperties = {
 
 const tdS: React.CSSProperties = {
   padding: '7px 8px',
-  fontSize: 13,
+  fontSize: 15,
   textAlign: 'center',
   whiteSpace: 'nowrap',
 };

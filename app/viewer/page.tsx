@@ -31,7 +31,7 @@ export default function ViewerListPage() {
         className="flex items-center gap-4 px-6 py-4 border-b"
         style={{ background: C.surface, borderColor: C.border }}
       >
-        <Link href="/" style={{ color: C.gold, fontSize: 14 }}>← トップへ</Link>
+        <Link href="/" style={{ color: C.gold, fontSize: 16 }}>← トップへ</Link>
         <span className="font-bold text-lg tracking-wide" style={{ color: C.gold }}>成績閲覧 — 大会選択</span>
       </header>
 
@@ -73,12 +73,12 @@ export default function ViewerListPage() {
                     {eventLabel(t.event_type)}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-xs" style={{ color: C.muted }}>
+                <div className="flex items-center gap-4 text-xs" style={{ color: '#ffffff' }}>
                   {t.venue && <span>📍 {t.venue}</span>}
                   {t.day1_date && <span>📅 {fmtDate(t.day1_date)}</span>}
                 </div>
               </div>
-              <span style={{ color: C.gold, fontSize: 18 }}>→</span>
+              <span style={{ color: C.gold, fontSize: 20 }}>→</span>
             </Link>
           ))}
         </div>

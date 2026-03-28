@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
 import type { Tournament, EventType } from '@/lib/types';
 
@@ -26,6 +29,8 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [adminCopied, setAdminCopied] = useState(false);
+  const [viewerCopied, setViewerCopied] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -111,13 +116,13 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     borderRadius: 5,
     color: C.text,
     padding: '8px 10px',
-    fontSize: 14,
+    fontSize: 16,
     boxSizing: 'border-box',
   };
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontSize: 12,
+    fontSize: 14,
     color: C.muted,
     marginBottom: 5,
   };
@@ -128,13 +133,13 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       {error && (
         <div style={{
           background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '8px 12px', marginBottom: 16, fontSize: 13,
+          borderRadius: 6, padding: '8px 12px', marginBottom: 16, fontSize: 15,
         }}>{error}</div>
       )}
       {success && (
         <div style={{
           background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,
-          borderRadius: 6, padding: '8px 12px', marginBottom: 16, fontSize: 13,
+          borderRadius: 6, padding: '8px 12px', marginBottom: 16, fontSize: 15,
         }}>{success}</div>
       )}
 
@@ -143,7 +148,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
         padding: '20px', marginBottom: 20,
       }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 15, color: C.gold }}>大会情報</h3>
+        <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>大会情報</h3>
         <form onSubmit={handleSave}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div style={{ gridColumn: '1 / -1' }}>
@@ -177,20 +182,24 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
             </div>
             <div>
               <label style={labelStyle}>1日目日付</label>
-              <input
-                type="date"
-                value={form.day1_date}
-                onChange={e => setForm(f => ({ ...f, day1_date: e.target.value }))}
-                style={inputStyle}
+              <DatePicker
+                selected={form.day1_date ? new Date(form.day1_date) : null}
+                onChange={(date: Date | null) => setForm(f => ({ ...f, day1_date: date ? date.toISOString().slice(0, 10) : '' }))}
+                dateFormat="yyyy/MM/dd"
+                locale={ja}
+                placeholderText="日付を選択"
+                customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const }} />}
               />
             </div>
             <div>
               <label style={labelStyle}>2日目日付</label>
-              <input
-                type="date"
-                value={form.day2_date}
-                onChange={e => setForm(f => ({ ...f, day2_date: e.target.value }))}
-                style={inputStyle}
+              <DatePicker
+                selected={form.day2_date ? new Date(form.day2_date) : null}
+                onChange={(date: Date | null) => setForm(f => ({ ...f, day2_date: date ? date.toISOString().slice(0, 10) : '' }))}
+                dateFormat="yyyy/MM/dd"
+                locale={ja}
+                placeholderText="日付を選択"
+                customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const }} />}
               />
             </div>
             <div>
@@ -225,7 +234,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 borderRadius: 5,
                 padding: '9px 24px',
                 fontWeight: 700,
-                fontSize: 14,
+                fontSize: 16,
                 cursor: saving ? 'not-allowed' : 'pointer',
                 opacity: saving ? 0.7 : 1,
               }}
@@ -241,32 +250,40 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
         padding: '20px', marginBottom: 20,
       }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 15, color: C.gold }}>QRコード確認</h3>
+        <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>QRコード確認</h3>
         {origin ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             {/* Admin QR */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <p style={{ margin: 0, fontSize: 13, color: C.muted }}>管理者用QR</p>
+              <p style={{ margin: 0, fontSize: 15, color: C.muted }}>管理者用QR</p>
               <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
                 <QRCodeSVG value={`${origin}/admin/${tournamentId}`} size={140} />
               </div>
-              <p style={{ margin: 0, fontSize: 11, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+              <p style={{ margin: 0, fontSize: 13, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
                 {origin}/admin/{tournamentId}
               </p>
+              <button onClick={() => { navigator.clipboard.writeText(`${origin}/admin/${tournamentId}`); setAdminCopied(true); setTimeout(() => setAdminCopied(false), 2000); }}
+                style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '8px 16px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
+                {adminCopied ? 'コピーしました！' : 'URLをコピー'}
+              </button>
             </div>
             {/* Viewer QR */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <p style={{ margin: 0, fontSize: 13, color: C.muted }}>閲覧者用QR</p>
+              <p style={{ margin: 0, fontSize: 15, color: C.muted }}>閲覧者用QR</p>
               <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
-                <QRCodeSVG value={`${origin}/viewer/${tournamentId}`} size={140} />
+                <QRCodeSVG value={`${origin}/viewer`} size={140} />
               </div>
-              <p style={{ margin: 0, fontSize: 11, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
-                {origin}/viewer/{tournamentId}
+              <p style={{ margin: 0, fontSize: 13, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+                {origin}/viewer
               </p>
+              <button onClick={() => { navigator.clipboard.writeText(`${origin}/viewer`); setViewerCopied(true); setTimeout(() => setViewerCopied(false), 2000); }}
+                style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '8px 16px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
+                {viewerCopied ? 'コピーしました！' : 'URLをコピー'}
+              </button>
             </div>
           </div>
         ) : (
-          <p style={{ color: C.muted, fontSize: 13 }}>読み込み中...</p>
+          <p style={{ color: C.muted, fontSize: 15 }}>読み込み中...</p>
         )}
       </section>
 
@@ -277,16 +294,16 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         borderRadius: 8,
         padding: '20px',
       }}>
-        <h3 style={{ margin: '0 0 8px', fontSize: 15, color: C.red }}>危険ゾーン</h3>
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: C.muted }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: 17, color: C.red }}>危険ゾーン</h3>
+        <p style={{ margin: '0 0 16px', fontSize: 15, color: C.muted }}>
           以下の操作は取り消せません。十分注意して実行してください。
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <p style={{ margin: '0 0 4px', fontSize: 13, color: C.text, fontWeight: 600 }}>
+            <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>
               メンバー・点数をリセット
             </p>
-            <p style={{ margin: 0, fontSize: 12, color: C.muted }}>
+            <p style={{ margin: 0, fontSize: 14, color: C.muted }}>
               大会情報・QRコードは保持されます
             </p>
           </div>
@@ -299,7 +316,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               border: `1px solid ${C.red}`,
               borderRadius: 5,
               padding: '8px 18px',
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 600,
               cursor: resetting ? 'not-allowed' : 'pointer',
               opacity: resetting ? 0.7 : 1,

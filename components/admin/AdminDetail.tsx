@@ -42,7 +42,7 @@ export default function AdminDetail({ tournamentId }: Props) {
   }
 
   const tabs: { key: TabType; label: string }[] = [
-    { key: 'members', label: 'メンバー登録' },
+    { key: 'members', label: '選手登録' },
     { key: 'scores', label: '点数登録' },
     { key: 'results', label: '成績確認' },
     { key: 'settings', label: '設定' },
@@ -68,7 +68,7 @@ export default function AdminDetail({ tournamentId }: Props) {
             border: `1px solid ${C.border}`,
             borderRadius: 5,
             padding: '6px 12px',
-            fontSize: 13,
+            fontSize: 15,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -80,16 +80,16 @@ export default function AdminDetail({ tournamentId }: Props) {
         </button>
         <div style={{ flex: 1 }}>
           {loading ? (
-            <span style={{ color: C.muted, fontSize: 16 }}>読み込み中...</span>
+            <span style={{ color: C.muted, fontSize: 18 }}>読み込み中...</span>
           ) : error ? (
-            <span style={{ color: C.red, fontSize: 16 }}>{error}</span>
+            <span style={{ color: C.red, fontSize: 18 }}>{error}</span>
           ) : tournament ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.gold }}>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.gold }}>
                 {tournament.name}
               </h1>
               {tournament.venue && (
-                <span style={{ fontSize: 13, color: C.muted }}>{tournament.venue}</span>
+                <span style={{ fontSize: 15, color: C.muted }}>{tournament.venue}</span>
               )}
               <span style={{
                 background: tournament.event_type === 'trap' ? `${C.gold}33` : `${C.blue2}33`,
@@ -97,7 +97,7 @@ export default function AdminDetail({ tournamentId }: Props) {
                 border: `1px solid ${tournament.event_type === 'trap' ? C.gold : C.blue2}`,
                 borderRadius: 4,
                 padding: '2px 8px',
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 600,
               }}>
                 {tournament.event_type === 'trap' ? 'トラップ' : 'スキート'}
@@ -105,7 +105,7 @@ export default function AdminDetail({ tournamentId }: Props) {
             </div>
           ) : null}
         </div>
-        <span style={{ fontSize: 12, color: C.muted }}>管理者画面</span>
+        <span style={{ fontSize: 14, color: C.muted }}>管理者画面</span>
       </header>
 
       {/* Tabs */}
@@ -126,7 +126,7 @@ export default function AdminDetail({ tournamentId }: Props) {
               border: 'none',
               borderBottom: activeTab === tab.key ? `2px solid ${C.gold}` : '2px solid transparent',
               padding: '12px 20px',
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: activeTab === tab.key ? 700 : 400,
               cursor: 'pointer',
               whiteSpace: 'nowrap',

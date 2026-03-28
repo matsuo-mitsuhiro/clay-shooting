@@ -13,6 +13,48 @@ type ScoreMap = { [memberCode: string]: { r1: string; r2: string; r3: string; r4
 
 const emptyScoreEntry = () => ({ r1: '', r2: '', r3: '', r4: '', r5: '', r6: '', r7: '', r8: '' });
 
+function NumPad({ member, value, onChange, onConfirm, onClose }: {
+  member: { name: string; round: string };
+  value: string;
+  onChange: (v: string) => void;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const numColor = value !== '' && Number(value) >= 23 ? '#e74c3c' : '#3498db';
+
+  function handleKey(k: string) {
+    if (k === 'C') { onChange(''); return; }
+    if (k === '決定') { onConfirm(); return; }
+    const next = value + k;
+    if (Number(next) > 25) return;
+    onChange(next);
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, minWidth: 220, position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 10, right: 10, background: 'transparent', border: 'none', color: C.muted, fontSize: 20, cursor: 'pointer' }}>×</button>
+        <div style={{ textAlign: 'center', marginBottom: 12 }}>
+          <div style={{ fontSize: 17, color: C.text, fontWeight: 600 }}>{member.name}</div>
+          <div style={{ fontSize: 36, fontWeight: 700, color: numColor, minHeight: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {value === '' ? '　' : value}
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', 'C', '決定'].map(k => (
+            <button key={k} onClick={() => handleKey(k)} style={{
+              background: k === '決定' ? C.gold : C.surface2,
+              color: k === '決定' ? '#000' : C.text,
+              border: `1px solid ${k === '決定' ? C.gold : C.border}`,
+              borderRadius: 6, padding: '14px 8px', fontSize: 17, fontWeight: 600, cursor: 'pointer',
+            }}>{k}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ScoresTab({ tournamentId }: Props) {
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
   const [groupFilter, setGroupFilter] = useState<'all' | number>('all');
@@ -22,6 +64,11 @@ export default function ScoresTab({ tournamentId }: Props) {
   const [saving, setSaving] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Numpad state
+  const [numpadOpen, setNumpadOpen] = useState(false);
+  const [numpadMember, setNumpadMember] = useState<{ code: string; name: string; round: RoundKey; groupIdx: number; memberIdx: number } | null>(null);
+  const [numpadValue, setNumpadValue] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
@@ -98,6 +145,31 @@ export default function ScoresTab({ tournamentId }: Props) {
     return hasAny ? String(total) : '-';
   }
 
+  function openNumpad(member: Member, round: RoundKey, groupIdx: number, memberIdx: number) {
+    const code = member.member_code ?? '';
+    setNumpadMember({ code, name: member.name, round, groupIdx, memberIdx });
+    setNumpadValue(scoreMap[code]?.[round] ?? '');
+    setNumpadOpen(true);
+  }
+
+  function confirmNumpad() {
+    if (!numpadMember) return;
+    updateScore(numpadMember.code, numpadMember.round, numpadValue);
+
+    // Find next member in same round (vertical navigation)
+    const allGroupMembers = filteredGroups.flatMap(g => dayMembers.filter(m => m.group_number === g));
+    const currentIdx = allGroupMembers.findIndex(m => m.member_code === numpadMember.code);
+    const next = allGroupMembers[currentIdx + 1];
+
+    if (next && next.member_code) {
+      setNumpadMember({ code: next.member_code, name: next.name, round: numpadMember.round, groupIdx: numpadMember.groupIdx, memberIdx: numpadMember.memberIdx + 1 });
+      setNumpadValue(scoreMap[next.member_code]?.[numpadMember.round] ?? '');
+    } else {
+      setNumpadOpen(false);
+      setNumpadMember(null);
+    }
+  }
+
   async function handleSaveGroup(groupNum: number) {
     setError(null);
     setSuccess(null);
@@ -111,7 +183,6 @@ export default function ScoresTab({ tournamentId }: Props) {
       .map(m => {
         const entry = scoreMap[m.member_code!] ?? emptyScoreEntry();
         const toNum = (v: string) => v === '' ? null : Number(v);
-        // For day 1, preserve existing r5-r8; for day 2, preserve r1-r4
         const existing = scoreMap[m.member_code!] ?? emptyScoreEntry();
         return {
           member_code: m.member_code!,
@@ -127,7 +198,6 @@ export default function ScoresTab({ tournamentId }: Props) {
         };
       });
 
-    // Validate
     for (const s of scores) {
       for (const r of rounds) {
         const v = s[r as keyof typeof s];
@@ -166,21 +236,19 @@ export default function ScoresTab({ tournamentId }: Props) {
     ? ['R1', 'R2', 'R3', 'R4']
     : ['R5', 'R6', 'R7', 'R8'];
 
-  const inputStyle = (value: string): React.CSSProperties => ({
-    background: C.inputBg,
-    border: `1px solid ${isInvalid(value) ? C.red : C.border}`,
-    borderRadius: 4,
-    color: value !== '' && Number(value) >= 23 ? '#e74c3c' : C.text,
-    padding: '4px 6px',
-    fontSize: 13,
-    width: 66,
-    textAlign: 'center',
-    boxSizing: 'border-box',
-    fontWeight: value !== '' && Number(value) >= 23 ? 700 : 400,
-  });
-
   return (
     <div style={{ padding: '20px 16px', maxWidth: 960, margin: '0 auto' }}>
+      {/* Numpad Popup */}
+      {numpadOpen && numpadMember && (
+        <NumPad
+          member={{ name: numpadMember.name, round: numpadMember.round }}
+          value={numpadValue}
+          onChange={setNumpadValue}
+          onConfirm={confirmNumpad}
+          onClose={() => { setNumpadOpen(false); setNumpadMember(null); }}
+        />
+      )}
+
       {/* Day Tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
         {([1, 2] as const).map(day => (
@@ -193,7 +261,7 @@ export default function ScoresTab({ tournamentId }: Props) {
               border: `1px solid ${selectedDay === day ? (day === 1 ? C.gold : C.blue2) : C.border}`,
               borderRadius: 6,
               padding: '7px 18px',
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: selectedDay === day ? 700 : 400,
               cursor: 'pointer',
             }}
@@ -209,7 +277,7 @@ export default function ScoresTab({ tournamentId }: Props) {
             border: `1px solid ${C.border}`,
             borderRadius: 6,
             padding: '7px 12px',
-            fontSize: 13,
+            fontSize: 15,
             cursor: 'pointer',
             marginLeft: 8,
           }}
@@ -222,13 +290,13 @@ export default function ScoresTab({ tournamentId }: Props) {
       {error && (
         <div style={{
           background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 13,
+          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 15,
         }}>{error}</div>
       )}
       {success && (
         <div style={{
           background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,
-          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 13,
+          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 15,
         }}>{success}</div>
       )}
 
@@ -239,7 +307,7 @@ export default function ScoresTab({ tournamentId }: Props) {
           background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
           padding: '40px 24px', textAlign: 'center', color: C.muted,
         }}>
-          {selectedDay}日目のメンバーが登録されていません。先にメンバー登録を行ってください。
+          {selectedDay}日目の選手が登録されていません。先に選手登録を行ってください。
         </div>
       ) : (
         <>
@@ -251,7 +319,7 @@ export default function ScoresTab({ tournamentId }: Props) {
                 background: groupFilter === 'all' ? C.surface2 : C.surface,
                 color: groupFilter === 'all' ? C.gold : C.muted,
                 border: `1px solid ${groupFilter === 'all' ? C.gold : C.border}`,
-                borderRadius: 5, padding: '5px 14px', fontSize: 13,
+                borderRadius: 5, padding: '5px 14px', fontSize: 15,
                 fontWeight: groupFilter === 'all' ? 700 : 400, cursor: 'pointer',
               }}
             >
@@ -265,7 +333,7 @@ export default function ScoresTab({ tournamentId }: Props) {
                   background: groupFilter === g ? C.surface2 : C.surface,
                   color: groupFilter === g ? C.gold : C.muted,
                   border: `1px solid ${groupFilter === g ? C.gold : C.border}`,
-                  borderRadius: 5, padding: '5px 14px', fontSize: 13,
+                  borderRadius: 5, padding: '5px 14px', fontSize: 15,
                   fontWeight: groupFilter === g ? 700 : 400, cursor: 'pointer',
                 }}
               >
@@ -275,7 +343,7 @@ export default function ScoresTab({ tournamentId }: Props) {
           </div>
 
           {/* Score Tables per group */}
-          {filteredGroups.map(groupNum => {
+          {filteredGroups.map((groupNum, groupIdx) => {
             const gMembers = dayMembers.filter(m => m.group_number === groupNum);
             return (
               <div key={groupNum} style={{
@@ -287,7 +355,7 @@ export default function ScoresTab({ tournamentId }: Props) {
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   background: C.surface2,
                 }}>
-                  <span style={{ fontWeight: 600, color: C.text, fontSize: 14 }}>
+                  <span style={{ fontWeight: 600, color: C.text, fontSize: 16 }}>
                     {selectedDay}日目 {groupNum}組
                   </span>
                   <button
@@ -297,7 +365,7 @@ export default function ScoresTab({ tournamentId }: Props) {
                       background: selectedDay === 1 ? C.gold : C.blue2,
                       color: selectedDay === 1 ? '#000' : '#fff',
                       border: 'none', borderRadius: 5,
-                      padding: '6px 16px', fontSize: 13, fontWeight: 700,
+                      padding: '6px 16px', fontSize: 15, fontWeight: 700,
                       cursor: saving === groupNum ? 'not-allowed' : 'pointer',
                       opacity: saving === groupNum ? 0.7 : 1,
                     }}
@@ -317,37 +385,46 @@ export default function ScoresTab({ tournamentId }: Props) {
                       </tr>
                     </thead>
                     <tbody>
-                      {gMembers.map(m => {
+                      {gMembers.map((m, memberIdx) => {
                         const code = m.member_code ?? '';
                         const entry = scoreMap[code] ?? emptyScoreEntry();
                         const subtotal = calcSubtotal(code, rounds);
                         return (
                           <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}33` }}>
-                            <td style={{ padding: '6px 10px', fontSize: 13, color: C.text, whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, whiteSpace: 'nowrap' }}>
                               {m.is_judge ? <span style={{ color: C.gold }}>⚑ </span> : ''}
                               {m.name}
                               {!code && (
-                                <span style={{ fontSize: 11, color: C.red, marginLeft: 6 }}>(会員番号なし)</span>
+                                <span style={{ fontSize: 13, color: C.red, marginLeft: 6 }}>(会員番号なし)</span>
                               )}
                             </td>
                             {rounds.map(r => (
                               <td key={r} style={{ padding: '4px 6px', textAlign: 'center' }}>
                                 {code ? (
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    max={25}
-                                    value={entry[r]}
-                                    onChange={e => updateScore(code, r, e.target.value)}
-                                    style={inputStyle(entry[r])}
-                                  />
+                                  <button
+                                    onClick={() => openNumpad(m, r, groupIdx, memberIdx)}
+                                    style={{
+                                      background: C.inputBg,
+                                      border: `1px solid ${isInvalid(entry[r]) ? C.red : C.border}`,
+                                      borderRadius: 4,
+                                      color: entry[r] !== '' && Number(entry[r]) >= 23 ? '#e74c3c' : C.text,
+                                      padding: '6px 8px',
+                                      fontSize: 15,
+                                      width: 66,
+                                      textAlign: 'center',
+                                      cursor: 'pointer',
+                                      fontWeight: entry[r] !== '' && Number(entry[r]) >= 23 ? 700 : 400,
+                                    }}
+                                  >
+                                    {entry[r] === '' ? '　' : entry[r]}
+                                  </button>
                                 ) : (
-                                  <span style={{ color: C.muted, fontSize: 12 }}>-</span>
+                                  <span style={{ color: C.muted, fontSize: 13 }}>-</span>
                                 )}
                               </td>
                             ))}
                             <td style={{
-                              padding: '6px 10px', textAlign: 'center', fontSize: 13,
+                              padding: '6px 10px', textAlign: 'center', fontSize: 15,
                               color: subtotal !== '-' ? C.text : C.muted,
                               fontWeight: 600,
                             }}>
@@ -370,7 +447,7 @@ export default function ScoresTab({ tournamentId }: Props) {
 
 const thStyle: React.CSSProperties = {
   padding: '7px 10px',
-  fontSize: 12,
+  fontSize: 14,
   color: C.muted,
   fontWeight: 600,
   textAlign: 'center',

@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
 import type { Tournament, EventType } from '@/lib/types';
 
@@ -88,18 +91,17 @@ export default function AdminPage() {
         justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 24, color: C.gold }}>🎯</span>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.gold }}>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.gold }}>
             クレー射撃 成績管理システム
           </h1>
         </div>
-        <span style={{ fontSize: 13, color: C.muted }}>管理者画面</span>
+        <span style={{ fontSize: 15, color: C.muted }}>管理者画面</span>
       </header>
 
       <main style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px' }}>
         {/* Title + Create Button */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <h2 style={{ margin: 0, fontSize: 22, color: C.text }}>大会一覧</h2>
+          <h2 style={{ margin: 0, fontSize: 24, color: C.text }}>大会一覧</h2>
           <button
             onClick={() => { setShowForm(!showForm); setError(null); }}
             style={{
@@ -109,7 +111,7 @@ export default function AdminPage() {
               borderRadius: 6,
               padding: '9px 20px',
               fontWeight: 700,
-              fontSize: 14,
+              fontSize: 16,
               cursor: 'pointer',
             }}
           >
@@ -126,7 +128,7 @@ export default function AdminPage() {
             borderRadius: 6,
             padding: '10px 14px',
             marginBottom: 16,
-            fontSize: 14,
+            fontSize: 16,
           }}>
             {error}
           </div>
@@ -141,11 +143,11 @@ export default function AdminPage() {
             padding: 24,
             marginBottom: 28,
           }}>
-            <h3 style={{ margin: '0 0 18px', fontSize: 16, color: C.gold }}>新規大会作成</h3>
+            <h3 style={{ margin: '0 0 18px', fontSize: 18, color: C.gold }}>新規大会作成</h3>
             <form onSubmit={handleCreate}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 5 }}>
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>
                     大会名 <span style={{ color: C.red }}>*</span>
                   </label>
                   <input
@@ -160,13 +162,13 @@ export default function AdminPage() {
                       borderRadius: 5,
                       color: C.text,
                       padding: '8px 10px',
-                      fontSize: 14,
+                      fontSize: 16,
                       boxSizing: 'border-box',
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 5 }}>射撃場名</label>
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>射撃場名</label>
                   <input
                     type="text"
                     value={form.venue}
@@ -179,31 +181,24 @@ export default function AdminPage() {
                       borderRadius: 5,
                       color: C.text,
                       padding: '8px 10px',
-                      fontSize: 14,
+                      fontSize: 16,
                       boxSizing: 'border-box',
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 5 }}>1日目日付</label>
-                  <input
-                    type="date"
-                    value={form.day1_date}
-                    onChange={e => setForm(f => ({ ...f, day1_date: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      background: C.inputBg,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 5,
-                      color: C.text,
-                      padding: '8px 10px',
-                      fontSize: 14,
-                      boxSizing: 'border-box',
-                    }}
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>1日目日付</label>
+                  <DatePicker
+                    selected={form.day1_date ? new Date(form.day1_date) : null}
+                    onChange={(date: Date | null) => setForm(f => ({ ...f, day1_date: date ? date.toISOString().slice(0, 10) : '' }))}
+                    dateFormat="yyyy/MM/dd"
+                    locale={ja}
+                    placeholderText="日付を選択"
+                    customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const }} />}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 5 }}>種目</label>
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>種目</label>
                   <select
                     value={form.event_type}
                     onChange={e => setForm(f => ({ ...f, event_type: e.target.value as EventType }))}
@@ -214,7 +209,7 @@ export default function AdminPage() {
                       borderRadius: 5,
                       color: C.text,
                       padding: '8px 10px',
-                      fontSize: 14,
+                      fontSize: 16,
                       boxSizing: 'border-box',
                     }}
                   >
@@ -234,7 +229,7 @@ export default function AdminPage() {
                     borderRadius: 5,
                     padding: '9px 22px',
                     fontWeight: 700,
-                    fontSize: 14,
+                    fontSize: 16,
                     cursor: creating ? 'not-allowed' : 'pointer',
                     opacity: creating ? 0.7 : 1,
                   }}
@@ -250,7 +245,7 @@ export default function AdminPage() {
                     border: `1px solid ${C.border}`,
                     borderRadius: 5,
                     padding: '9px 18px',
-                    fontSize: 14,
+                    fontSize: 16,
                     cursor: 'pointer',
                   }}
                 >
@@ -296,20 +291,20 @@ export default function AdminPage() {
               >
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{t.name}</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{t.name}</span>
                     <span style={{
                       background: t.event_type === 'trap' ? `${C.gold}33` : `${C.blue2}33`,
                       color: t.event_type === 'trap' ? C.gold : C.blue2,
                       border: `1px solid ${t.event_type === 'trap' ? C.gold : C.blue2}`,
                       borderRadius: 4,
                       padding: '2px 8px',
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: 600,
                     }}>
                       {t.event_type === 'trap' ? 'トラップ' : 'スキート'}
                     </span>
                   </div>
-                  <div style={{ fontSize: 13, color: C.muted, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 15, color: '#ffffff', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     {t.venue && <span>📍 {t.venue}</span>}
                     {t.day1_date && <span>📅 {formatDate(t.day1_date)}</span>}
                     {t.day2_date && <span>~ {formatDate(t.day2_date)}</span>}
@@ -323,7 +318,7 @@ export default function AdminPage() {
                     border: `1px solid ${C.gold}`,
                     borderRadius: 6,
                     padding: '8px 18px',
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: 600,
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',

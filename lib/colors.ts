@@ -8,7 +8,7 @@ export const C = {
   blue2: '#2a7a9a',
   red: '#c0392b',
   green: '#27ae60',
-  text: '#e8eaf0',
-  muted: '#7a8099',
+  text: '#f0f2f8',
+  muted: '#a8b4cc',
   inputBg: '#0d0f14',
 } as const;
