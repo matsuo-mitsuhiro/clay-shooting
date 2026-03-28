@@ -348,7 +348,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                               <td style={{ ...tdS, fontWeight: 600, color: C.blue2 }}>{r.day2_total || '-'}</td>
                             </>}
                             <td style={{ ...tdS, fontWeight: 700, color: C.gold, fontSize: 14 }}>{r.total || '-'}</td>
-                            <td style={{ ...tdS, color: C.muted }}>{r.average?.toFixed(2) ?? '-'}</td>
+                            <td style={{ ...tdS, color: C.muted }}>{r.average !== null && r.average !== undefined ? Number(r.average).toFixed(2) : '-'}</td>
                           </tr>
                         );
                       })}
