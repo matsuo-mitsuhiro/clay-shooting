@@ -1,0 +1,9 @@
+●GitHubアカウント
+matsuo-mitsuhiro、Googleでログインしている
+
+●Neonのプロジェクト「Clay-shooting」
+・DATABASE_URL
+postgresql://neondb_owner:npg_zZ0kIE4VibgB@ep-withered-mode-a1xeazjb-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+●Vercel
+GitHubアカウント（matsuo-mitsuhiro）で連携
