@@ -328,7 +328,7 @@ export default function MembersTab({ tournamentId }: Props) {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 580 }}>
                 <thead>
                   <tr style={{ background: C.surface2 }}>
-                    {['番号', '会員番号', '氏名', '所属', 'クラス', '審判'].map(h => (
+                    {['番号', '会員番号', '氏名　審判フラグ', '所属', 'クラス'].map(h => (
                       <th key={h} style={{
                         padding: '8px 10px',
                         fontSize: 12,
@@ -350,18 +350,30 @@ export default function MembersTab({ tournamentId }: Props) {
                           type="text"
                           value={row.member_code}
                           onChange={e => updateRow(idx, 'member_code', e.target.value)}
+                          onBlur={e => updateRow(idx, 'member_code', normalizeCode(e.target.value))}
                           style={inputStyle}
                           placeholder="例: 12345"
                         />
                       </td>
-                      <td style={{ padding: '4px 6px', minWidth: 120 }}>
-                        <input
-                          type="text"
-                          value={row.name}
-                          onChange={e => updateRow(idx, 'name', e.target.value)}
-                          style={inputStyle}
-                          placeholder="氏名"
-                        />
+                      <td style={{ padding: '4px 6px', minWidth: 160 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            type="text"
+                            value={row.name}
+                            onChange={e => updateRow(idx, 'name', e.target.value)}
+                            style={{ ...inputStyle, flex: 1 }}
+                            placeholder="氏名"
+                          />
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                            <input
+                              type="checkbox"
+                              checked={row.is_judge}
+                              onChange={e => updateRow(idx, 'is_judge', e.target.checked)}
+                              style={{ width: 14, height: 14, cursor: 'pointer', accentColor: C.gold }}
+                            />
+                            <span style={{ fontSize: 13, color: row.is_judge ? C.gold : C.muted }}>⚑</span>
+                          </label>
+                        </div>
                       </td>
                       <td style={{ padding: '4px 6px', minWidth: 120 }}>
                         <input
@@ -384,14 +396,6 @@ export default function MembersTab({ tournamentId }: Props) {
                           ))}
                         </select>
                       </td>
-                      <td style={{ padding: '4px 10px', width: 48, textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={row.is_judge}
-                          onChange={e => updateRow(idx, 'is_judge', e.target.checked)}
-                          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: C.gold }}
-                        />
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -410,7 +414,7 @@ export default function MembersTab({ tournamentId }: Props) {
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
                     <thead>
                       <tr style={{ background: C.surface2 }}>
-                        {['組', '番', '会員番号', '氏名', '所属', 'クラス', '審判'].map(h => (
+                        {['組', '番', '会員番号', '氏名　審判フラグ', '所属', 'クラス'].map(h => (
                           <th key={h} style={{
                             padding: '7px 10px', fontSize: 11, color: C.muted, fontWeight: 600,
                             textAlign: 'left', borderBottom: `1px solid ${C.border}`,
@@ -425,7 +429,7 @@ export default function MembersTab({ tournamentId }: Props) {
                           <td style={{ padding: '5px 10px', fontSize: 13, color: C.muted }}>{m.position}</td>
                           <td style={{ padding: '5px 10px', fontSize: 13, color: C.text }}>{m.member_code ?? '-'}</td>
                           <td style={{ padding: '5px 10px', fontSize: 13, color: C.text, fontWeight: m.is_judge ? 600 : 400 }}>
-                            {m.is_judge ? '⚑ ' : ''}{m.name}
+                            {m.name}{m.is_judge ? <span style={{ color: C.gold, marginLeft: 4 }}>⚑</span> : ''}
                           </td>
                           <td style={{ padding: '5px 10px', fontSize: 13, color: C.muted }}>{m.belong ?? '-'}</td>
                           <td style={{ padding: '5px 10px', fontSize: 13 }}>
@@ -439,9 +443,6 @@ export default function MembersTab({ tournamentId }: Props) {
                                 fontWeight: 700,
                               }}>{m.class}</span>
                             ) : '-'}
-                          </td>
-                          <td style={{ padding: '5px 10px', fontSize: 13, color: m.is_judge ? C.gold : C.muted }}>
-                            {m.is_judge ? '✓' : ''}
                           </td>
                         </tr>
                       ))}

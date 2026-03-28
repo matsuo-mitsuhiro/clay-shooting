@@ -132,7 +132,7 @@ export default function ScoresTab({ tournamentId }: Props) {
       for (const r of rounds) {
         const v = s[r as keyof typeof s];
         if (v !== null && (Number(v) < 0 || Number(v) > 25)) {
-          setError(`点数は0〜25の範囲で入力してください`);
+          setError(`${groupNum}組、${s.name}、${r.toUpperCase()} は現在 ${v} です。0〜25 以内の数字を入力してください`);
           return;
         }
       }
@@ -173,7 +173,7 @@ export default function ScoresTab({ tournamentId }: Props) {
     color: value !== '' && Number(value) >= 23 ? '#e74c3c' : C.text,
     padding: '4px 6px',
     fontSize: 13,
-    width: 44,
+    width: 66,
     textAlign: 'center',
     boxSizing: 'border-box',
     fontWeight: value !== '' && Number(value) >= 23 ? 700 : 400,

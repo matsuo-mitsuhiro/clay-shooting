@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { C } from '@/lib/colors';
 import type { Tournament, EventType } from '@/lib/types';
 
@@ -20,26 +21,23 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     day1_set: '',
     day2_set: '',
   });
-  const [adminQrPreview, setAdminQrPreview] = useState<string | null>(null);
-  const [viewerQrPreview, setViewerQrPreview] = useState<string | null>(null);
+  const [origin, setOrigin] = useState('');
   const [saving, setSaving] = useState(false);
-  const [savingQr, setSavingQr] = useState<'admin' | 'viewer' | null>(null);
   const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
+    setOrigin(window.location.origin);
     setForm({
       name: tournament.name ?? '',
       venue: tournament.venue ?? '',
-      day1_date: tournament.day1_date ?? '',
-      day2_date: tournament.day2_date ?? '',
+      day1_date: tournament.day1_date ? tournament.day1_date.slice(0, 10) : '',
+      day2_date: tournament.day2_date ? tournament.day2_date.slice(0, 10) : '',
       event_type: tournament.event_type ?? 'trap',
       day1_set: tournament.day1_set ?? '',
       day2_set: tournament.day2_set ?? '',
     });
-    setAdminQrPreview(tournament.admin_qr ?? null);
-    setViewerQrPreview(tournament.viewer_qr ?? null);
   }, [tournament]);
 
   async function handleSave(e: React.FormEvent) {
@@ -74,45 +72,6 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       setError(e instanceof Error ? e.message : '保存に失敗しました');
     } finally {
       setSaving(false);
-    }
-  }
-
-  function handleFileChange(type: 'admin' | 'viewer', file: File | null) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      const base64 = e.target?.result as string;
-      if (type === 'admin') setAdminQrPreview(base64);
-      else setViewerQrPreview(base64);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  async function handleSaveQr(type: 'admin' | 'viewer') {
-    const qrData = type === 'admin' ? adminQrPreview : viewerQrPreview;
-    if (!qrData) {
-      setError('QR画像を選択してください');
-      return;
-    }
-    setError(null);
-    setSuccess(null);
-    try {
-      setSavingQr(type);
-      const body = type === 'admin' ? { admin_qr: qrData } : { viewer_qr: qrData };
-      const res = await fetch(`/api/tournaments/${tournamentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      setSuccess(`${type === 'admin' ? '管理者' : '閲覧者'}用QRコードを保存しました`);
-      onUpdated();
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'QRコードの保存に失敗しました');
-    } finally {
-      setSavingQr(null);
     }
   }
 
@@ -240,7 +199,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 type="text"
                 value={form.day1_set}
                 onChange={e => setForm(f => ({ ...f, day1_set: e.target.value }))}
-                placeholder="例: 第1回"
+                placeholder="例: 1番セット"
                 style={inputStyle}
               />
             </div>
@@ -250,7 +209,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 type="text"
                 value={form.day2_set}
                 onChange={e => setForm(f => ({ ...f, day2_set: e.target.value }))}
-                placeholder="例: 第2回"
+                placeholder="例: 1番セット"
                 style={inputStyle}
               />
             </div>
@@ -282,81 +241,33 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
         padding: '20px', marginBottom: 20,
       }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 15, color: C.gold }}>QRコード登録</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-          {/* Admin QR */}
-          <div>
-            <p style={{ margin: '0 0 10px', fontSize: 13, color: C.muted }}>管理者用QR</p>
-            {adminQrPreview && (
-              <div style={{ marginBottom: 10 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={adminQrPreview}
-                  alt="管理者用QR"
-                  style={{ width: 120, height: 120, border: `1px solid ${C.border}`, borderRadius: 6 }}
-                />
+        <h3 style={{ margin: '0 0 16px', fontSize: 15, color: C.gold }}>QRコード確認</h3>
+        {origin ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+            {/* Admin QR */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <p style={{ margin: 0, fontSize: 13, color: C.muted }}>管理者用QR</p>
+              <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
+                <QRCodeSVG value={`${origin}/admin/${tournamentId}`} size={140} />
               </div>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={e => handleFileChange('admin', e.target.files?.[0] ?? null)}
-              style={{ fontSize: 13, color: C.text, marginBottom: 8, width: '100%' }}
-            />
-            <button
-              onClick={() => handleSaveQr('admin')}
-              disabled={savingQr === 'admin' || !adminQrPreview}
-              style={{
-                background: C.surface2,
-                color: C.gold,
-                border: `1px solid ${C.gold}`,
-                borderRadius: 5,
-                padding: '6px 14px',
-                fontSize: 13,
-                cursor: (savingQr === 'admin' || !adminQrPreview) ? 'not-allowed' : 'pointer',
-                opacity: (savingQr === 'admin' || !adminQrPreview) ? 0.6 : 1,
-              }}
-            >
-              {savingQr === 'admin' ? '保存中...' : 'QRを保存'}
-            </button>
-          </div>
-          {/* Viewer QR */}
-          <div>
-            <p style={{ margin: '0 0 10px', fontSize: 13, color: C.muted }}>閲覧者用QR</p>
-            {viewerQrPreview && (
-              <div style={{ marginBottom: 10 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={viewerQrPreview}
-                  alt="閲覧者用QR"
-                  style={{ width: 120, height: 120, border: `1px solid ${C.border}`, borderRadius: 6 }}
-                />
+              <p style={{ margin: 0, fontSize: 11, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+                {origin}/admin/{tournamentId}
+              </p>
+            </div>
+            {/* Viewer QR */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <p style={{ margin: 0, fontSize: 13, color: C.muted }}>閲覧者用QR</p>
+              <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
+                <QRCodeSVG value={`${origin}/viewer/${tournamentId}`} size={140} />
               </div>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={e => handleFileChange('viewer', e.target.files?.[0] ?? null)}
-              style={{ fontSize: 13, color: C.text, marginBottom: 8, width: '100%' }}
-            />
-            <button
-              onClick={() => handleSaveQr('viewer')}
-              disabled={savingQr === 'viewer' || !viewerQrPreview}
-              style={{
-                background: C.surface2,
-                color: C.gold,
-                border: `1px solid ${C.gold}`,
-                borderRadius: 5,
-                padding: '6px 14px',
-                fontSize: 13,
-                cursor: (savingQr === 'viewer' || !viewerQrPreview) ? 'not-allowed' : 'pointer',
-                opacity: (savingQr === 'viewer' || !viewerQrPreview) ? 0.6 : 1,
-              }}
-            >
-              {savingQr === 'viewer' ? '保存中...' : 'QRを保存'}
-            </button>
+              <p style={{ margin: 0, fontSize: 11, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+                {origin}/viewer/{tournamentId}
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <p style={{ color: C.muted, fontSize: 13 }}>読み込み中...</p>
+        )}
       </section>
 
       {/* Danger Zone */}

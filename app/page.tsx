@@ -13,6 +13,8 @@ const viewerMenuItems = [
   { href: "/viewer", icon: "📅", label: "大会情報", desc: "大会スケジュールと詳細" },
 ];
 
+// ↑ hrefが重複するためlabelをkeyとして使用
+
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
@@ -20,7 +22,6 @@ export default function Home() {
       <header className="border-b" style={{ borderColor: "var(--gold-dark)" }}>
         <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col items-center gap-2">
           <div className="flex items-center gap-3">
-            <span className="text-5xl">🎯</span>
             <h1
               className="text-3xl sm:text-4xl font-bold tracking-widest"
               style={{ color: "var(--gold-light)" }}
@@ -55,7 +56,7 @@ export default function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {adminMenuItems.map((item) => (
               <Link
-                key={item.href}
+                key={item.label}
                 href={item.href}
                 className="flex flex-col items-center gap-3 rounded-xl border p-6 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                 style={{
@@ -100,7 +101,7 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {viewerMenuItems.map((item) => (
               <Link
-                key={item.href}
+                key={item.label}
                 href={item.href}
                 className="flex flex-col items-center gap-3 rounded-xl border p-6 transition-all duration-200 hover:scale-105 hover:shadow-lg"
                 style={{

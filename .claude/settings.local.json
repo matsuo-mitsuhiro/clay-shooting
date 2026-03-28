@@ -41,7 +41,22 @@
       "Bash(git init:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(git remote:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(grep -v \"^$\")",
+      "Bash(tr '>' '\\\\n')",
+      "Bash(ls /c/projects/clay-shooting/.env*)",
+      "Bash(curl -s http://localhost:3000/api/tournaments)",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='''''''';process.stdin.on\\(''''data'''',c=>d+=c\\);process.stdin.on\\(''''end'''',\\(\\)=>console.log\\(JSON.parse\\(d\\)\\)\\);\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/tournaments -H \"Content-Type: application/json\" -d '{\"\"\"\"name\"\"\"\":\"\"\"\"第1回テスト大会\"\"\"\",\"\"\"\"venue\"\"\"\":\"\"\"\"大阪射撃場\"\"\"\",\"\"\"\"day1_date\"\"\"\":\"\"\"\"2025-05-01\"\"\"\",\"\"\"\"event_type\"\"\"\":\"\"\"\"trap\"\"\"\",\"\"\"\"day1_set\"\"\"\":\"\"\"\"1番セット\"\"\"\"}')",
+      "Bash(ls /c/projects/clay-shooting/app/api/tournaments/[id]/)",
+      "Bash(mkdir -p \"/c/projects/clay-shooting/app/admin/[id]\")",
+      "Bash(mkdir -p \"/c/projects/clay-shooting/app/viewer/[id]\")",
+      "Bash(npx tsc:*)",
+      "Bash(curl -s -X PUT \"http://localhost:3000/api/tournaments/1\" -H \"Content-Type: application/json\" -d \"{\"\"name\"\":\"\"第1回テスト大会\"\",\"\"venue\"\":\"\"テスト射撃場\"\",\"\"event_type\"\":\"\"trap\"\",\"\"day1_date\"\":\"\"2025-05-01\"\",\"\"day1_set\"\":\"\"第1回\"\"}\")"
     ]
   }
 }
