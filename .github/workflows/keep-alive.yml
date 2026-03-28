@@ -1,0 +1,24 @@
+name: Keep Database Alive
+
+on:
+  schedule:
+    # 毎週水曜日 3:00 JST（= 火曜日 18:00 UTC）
+    - cron: '0 18 * * 2'
+  workflow_dispatch:
+    # 手動実行も可能
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API to prevent database inactivity pause
+        run: |
+          echo "Pinging clay-shooting app at $(date)"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://clay-shooting.vercel.app/api/tournaments)
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Success - database is active"
+          else
+            echo "⚠️ Unexpected status: $STATUS"
+            exit 1
+          fi
