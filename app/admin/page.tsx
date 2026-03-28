@@ -1,0 +1,341 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { C } from '@/lib/colors';
+import type { Tournament, EventType } from '@/lib/types';
+
+export default function AdminPage() {
+  const router = useRouter();
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  const [form, setForm] = useState({
+    name: '',
+    venue: '',
+    day1_date: '',
+    event_type: 'trap' as EventType,
+  });
+
+  useEffect(() => {
+    fetchTournaments();
+  }, []);
+
+  async function fetchTournaments() {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch('/api/tournaments');
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setTournaments(json.data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'データの取得に失敗しました');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) {
+      setError('大会名を入力してください');
+      return;
+    }
+    try {
+      setCreating(true);
+      setError(null);
+      const res = await fetch('/api/tournaments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          venue: form.venue.trim() || undefined,
+          day1_date: form.day1_date || undefined,
+          event_type: form.event_type,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setForm({ name: '', venue: '', day1_date: '', event_type: 'trap' });
+      setShowForm(false);
+      await fetchTournaments();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '大会の作成に失敗しました');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
+      {/* Header */}
+      <header style={{
+        background: C.surface,
+        borderBottom: `1px solid ${C.border}`,
+        padding: '16px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 24, color: C.gold }}>🎯</span>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.gold }}>
+            クレー射撃 成績管理システム
+          </h1>
+        </div>
+        <span style={{ fontSize: 13, color: C.muted }}>管理者画面</span>
+      </header>
+
+      <main style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px' }}>
+        {/* Title + Create Button */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <h2 style={{ margin: 0, fontSize: 22, color: C.text }}>大会一覧</h2>
+          <button
+            onClick={() => { setShowForm(!showForm); setError(null); }}
+            style={{
+              background: C.gold,
+              color: '#000',
+              border: 'none',
+              borderRadius: 6,
+              padding: '9px 20px',
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: 'pointer',
+            }}
+          >
+            ＋ 新規大会作成
+          </button>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div style={{
+            background: `${C.red}22`,
+            border: `1px solid ${C.red}`,
+            color: '#e74c3c',
+            borderRadius: 6,
+            padding: '10px 14px',
+            marginBottom: 16,
+            fontSize: 14,
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Create Form */}
+        {showForm && (
+          <div style={{
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 8,
+            padding: 24,
+            marginBottom: 28,
+          }}>
+            <h3 style={{ margin: '0 0 18px', fontSize: 16, color: C.gold }}>新規大会作成</h3>
+            <form onSubmit={handleCreate}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 5 }}>
+                    大会名 <span style={{ color: C.red }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="例: 第○回○○大会"
+                    style={{
+                      width: '100%',
+                      background: C.inputBg,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 5,
+                      color: C.text,
+                      padding: '8px 10px',
+                      fontSize: 14,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 5 }}>射撃場名</label>
+                  <input
+                    type="text"
+                    value={form.venue}
+                    onChange={e => setForm(f => ({ ...f, venue: e.target.value }))}
+                    placeholder="例: ○○射撃場"
+                    style={{
+                      width: '100%',
+                      background: C.inputBg,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 5,
+                      color: C.text,
+                      padding: '8px 10px',
+                      fontSize: 14,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 5 }}>1日目日付</label>
+                  <input
+                    type="date"
+                    value={form.day1_date}
+                    onChange={e => setForm(f => ({ ...f, day1_date: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      background: C.inputBg,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 5,
+                      color: C.text,
+                      padding: '8px 10px',
+                      fontSize: 14,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 5 }}>種目</label>
+                  <select
+                    value={form.event_type}
+                    onChange={e => setForm(f => ({ ...f, event_type: e.target.value as EventType }))}
+                    style={{
+                      width: '100%',
+                      background: C.inputBg,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 5,
+                      color: C.text,
+                      padding: '8px 10px',
+                      fontSize: 14,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="trap">トラップ</option>
+                    <option value="skeet">スキート</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  style={{
+                    background: C.gold,
+                    color: '#000',
+                    border: 'none',
+                    borderRadius: 5,
+                    padding: '9px 22px',
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: creating ? 'not-allowed' : 'pointer',
+                    opacity: creating ? 0.7 : 1,
+                  }}
+                >
+                  {creating ? '作成中...' : '作成する'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); setError(null); }}
+                  style={{
+                    background: 'transparent',
+                    color: C.muted,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 5,
+                    padding: '9px 18px',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                  }}
+                >
+                  キャンセル
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Tournament List */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: C.muted }}>
+            読み込み中...
+          </div>
+        ) : tournaments.length === 0 ? (
+          <div style={{
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 8,
+            padding: '48px 24px',
+            textAlign: 'center',
+            color: C.muted,
+          }}>
+            大会が登録されていません。「＋ 新規大会作成」から作成してください。
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {tournaments.map(t => (
+              <div
+                key={t.id}
+                style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 8,
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{t.name}</span>
+                    <span style={{
+                      background: t.event_type === 'trap' ? `${C.gold}33` : `${C.blue2}33`,
+                      color: t.event_type === 'trap' ? C.gold : C.blue2,
+                      border: `1px solid ${t.event_type === 'trap' ? C.gold : C.blue2}`,
+                      borderRadius: 4,
+                      padding: '2px 8px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}>
+                      {t.event_type === 'trap' ? 'トラップ' : 'スキート'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, color: C.muted, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    {t.venue && <span>📍 {t.venue}</span>}
+                    {t.day1_date && <span>📅 {formatDate(t.day1_date)}</span>}
+                    {t.day2_date && <span>~ {formatDate(t.day2_date)}</span>}
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push(`/admin/${t.id}`)}
+                  style={{
+                    background: C.surface2,
+                    color: C.gold,
+                    border: `1px solid ${C.gold}`,
+                    borderRadius: 6,
+                    padding: '8px 18px',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  管理する →
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
