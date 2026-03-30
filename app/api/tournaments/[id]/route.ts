@@ -27,16 +27,17 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const rows = await sql`
       UPDATE tournaments SET
-        name       = COALESCE(${body.name       ?? null}, name),
-        venue      = COALESCE(${body.venue      ?? null}, venue),
-        day1_date  = COALESCE(${body.day1_date  ?? null}::date, day1_date),
-        day2_date  = ${body.day2_date !== undefined ? (body.day2_date || null) : sql`day2_date`},
-        event_type = COALESCE(${body.event_type ?? null}, event_type),
-        day1_set   = COALESCE(${body.day1_set   ?? null}, day1_set),
-        day2_set   = COALESCE(${body.day2_set   ?? null}, day2_set),
-        admin_qr   = COALESCE(${body.admin_qr   ?? null}, admin_qr),
-        viewer_qr  = COALESCE(${body.viewer_qr  ?? null}, viewer_qr),
-        updated_at = NOW()
+        name         = COALESCE(${body.name         ?? null}, name),
+        venue        = COALESCE(${body.venue        ?? null}, venue),
+        day1_date    = COALESCE(${body.day1_date    ?? null}::date, day1_date),
+        day2_date    = ${body.day2_date !== undefined ? (body.day2_date || null) : sql`day2_date`},
+        event_type   = COALESCE(${body.event_type   ?? null}, event_type),
+        day1_set     = COALESCE(${body.day1_set     ?? null}, day1_set),
+        day2_set     = COALESCE(${body.day2_set     ?? null}, day2_set),
+        organizer_cd = COALESCE(${body.organizer_cd ?? null}, organizer_cd),
+        admin_qr     = COALESCE(${body.admin_qr     ?? null}, admin_qr),
+        viewer_qr    = COALESCE(${body.viewer_qr    ?? null}, viewer_qr),
+        updated_at   = NOW()
       WHERE id = ${Number(id)}
       RETURNING *
     `;

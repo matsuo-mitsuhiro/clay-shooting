@@ -8,6 +8,15 @@ import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
 import type { Tournament, EventType } from '@/lib/types';
 
+const ORGANIZERS = [
+  { cd: 27, name: '大阪' },
+  { cd: 26, name: '京都' },
+  { cd: 30, name: '和歌山' },
+  { cd: 29, name: '奈良' },
+  { cd: 25, name: '滋賀' },
+  { cd: 28, name: '兵庫' },
+];
+
 export default function AdminPage() {
   const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -21,6 +30,7 @@ export default function AdminPage() {
     venue: '',
     day1_date: '',
     event_type: 'trap' as EventType,
+    organizer_cd: 27,
   });
 
   useEffect(() => {
@@ -59,11 +69,12 @@ export default function AdminPage() {
           venue: form.venue.trim() || undefined,
           day1_date: form.day1_date || undefined,
           event_type: form.event_type,
+          organizer_cd: form.organizer_cd,
         }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      setForm({ name: '', venue: '', day1_date: '', event_type: 'trap' });
+      setForm({ name: '', venue: '', day1_date: '', event_type: 'trap', organizer_cd: 27 });
       setShowForm(false);
       await fetchTournaments();
     } catch (e) {
@@ -146,6 +157,18 @@ export default function AdminPage() {
             <h3 style={{ margin: '0 0 18px', fontSize: 18, color: C.gold }}>新規大会作成</h3>
             <form onSubmit={handleCreate}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>主催</label>
+                  <select
+                    value={form.organizer_cd}
+                    onChange={e => setForm(f => ({ ...f, organizer_cd: Number(e.target.value) }))}
+                    style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' }}
+                  >
+                    {ORGANIZERS.map(o => (
+                      <option key={o.cd} value={o.cd}>{o.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>
                     大会名 <span style={{ color: C.red }}>*</span>

@@ -15,6 +15,7 @@ export interface Tournament {
   event_type: EventType;
   day1_set: string | null;
   day2_set: string | null;
+  organizer_cd: number | null;
   admin_qr: string | null;
   viewer_qr: string | null;
   created_at: string;
@@ -29,6 +30,7 @@ export interface TournamentInput {
   event_type?: EventType;
   day1_set?: string;
   day2_set?: string;
+  organizer_cd?: number | null;
   admin_qr?: string;
   viewer_qr?: string;
 }

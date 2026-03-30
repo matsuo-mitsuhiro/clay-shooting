@@ -14,6 +14,15 @@ interface Props {
   onUpdated: () => void;
 }
 
+const ORGANIZERS = [
+  { cd: 27, name: '大阪' },
+  { cd: 26, name: '京都' },
+  { cd: 30, name: '和歌山' },
+  { cd: 29, name: '奈良' },
+  { cd: 25, name: '滋賀' },
+  { cd: 28, name: '兵庫' },
+];
+
 export default function SettingsTab({ tournamentId, tournament, onUpdated }: Props) {
   const [form, setForm] = useState({
     name: '',
@@ -23,6 +32,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     event_type: 'trap' as EventType,
     day1_set: '',
     day2_set: '',
+    organizer_cd: 27,
   });
   const [origin, setOrigin] = useState('');
   const [saving, setSaving] = useState(false);
@@ -42,6 +52,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       event_type: tournament.event_type ?? 'trap',
       day1_set: tournament.day1_set ?? '',
       day2_set: tournament.day2_set ?? '',
+      organizer_cd: tournament.organizer_cd ?? 27,
     });
   }, [tournament]);
 
@@ -66,6 +77,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
           event_type: form.event_type,
           day1_set: form.day1_set.trim() || undefined,
           day2_set: form.day2_set.trim() || undefined,
+          organizer_cd: form.organizer_cd,
         }),
       });
       const json = await res.json();
@@ -151,6 +163,18 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>大会情報</h3>
         <form onSubmit={handleSave}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <label style={labelStyle}>主催</label>
+              <select
+                value={form.organizer_cd}
+                onChange={e => setForm(f => ({ ...f, organizer_cd: Number(e.target.value) }))}
+                style={inputStyle}
+              >
+                {ORGANIZERS.map(o => (
+                  <option key={o.cd} value={o.cd}>{o.name}</option>
+                ))}
+              </select>
+            </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>大会名 <span style={{ color: C.red }}>*</span></label>
               <input

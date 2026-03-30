@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { QRCodeSVG } from 'qrcode.react';
 import { C } from '@/lib/colors';
 import type { Result, Tournament, ClassType } from '@/lib/types';
 
@@ -21,6 +22,7 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [highlightedCode, setHighlightedCode] = useState<string | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [origin, setOrigin] = useState('');
 
   const fetchResults = useCallback(async () => {
     try {
@@ -41,6 +43,7 @@ export default function ViewerPage({ tournamentId }: Props) {
 
   useEffect(() => {
     fetchResults();
+    setOrigin(window.location.origin);
   }, [fetchResults]);
 
   function handleHiddenClick() {
@@ -107,7 +110,6 @@ export default function ViewerPage({ tournamentId }: Props) {
               {tournament ? (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 22, color: C.gold }}>🎯</span>
                     <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.gold }}>
                       {tournament.name}
                     </h1>
@@ -148,7 +150,7 @@ export default function ViewerPage({ tournamentId }: Props) {
               >
                 ↺ 更新
               </button>
-              {tournament?.viewer_qr && (
+              {tournament && (
                 <button
                   onClick={() => setShowQrModal(true)}
                   style={{
@@ -161,7 +163,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                     cursor: 'pointer',
                   }}
                 >
-                  閲覧用QR
+                  閲覧用QRコード表示
                 </button>
               )}
             </div>
@@ -380,7 +382,7 @@ export default function ViewerPage({ tournamentId }: Props) {
       />
 
       {/* QR Modal */}
-      {showQrModal && tournament?.viewer_qr && (
+      {showQrModal && origin && (
         <div
           onClick={() => setShowQrModal(false)}
           style={{
@@ -406,12 +408,12 @@ export default function ViewerPage({ tournamentId }: Props) {
             }}
           >
             <h3 style={{ margin: 0, fontSize: 18, color: C.gold }}>閲覧用QRコード</h3>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={tournament.viewer_qr}
-              alt="閲覧用QR"
-              style={{ width: 220, height: 220, border: `1px solid ${C.border}`, borderRadius: 8 }}
-            />
+            <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
+              <QRCodeSVG value={`${origin}/viewer/${tournamentId}`} size={200} />
+            </div>
+            <p style={{ margin: 0, fontSize: 13, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+              {origin}/viewer/{tournamentId}
+            </p>
             <div style={{ display: 'flex', gap: 8, width: '100%' }}>
               <button
                 onClick={handleCopyUrl}

@@ -42,10 +42,10 @@ export default function AdminDetail({ tournamentId }: Props) {
   }
 
   const tabs: { key: TabType; label: string }[] = [
+    { key: 'settings', label: '大会設定' },
     { key: 'members', label: '選手登録' },
     { key: 'scores', label: '点数登録' },
     { key: 'results', label: '成績確認' },
-    { key: 'settings', label: '設定' },
   ];
 
   return (
@@ -115,6 +115,7 @@ export default function AdminDetail({ tournamentId }: Props) {
         display: 'flex',
         gap: 0,
         overflowX: 'auto',
+        alignItems: 'center',
       }}>
         {tabs.map(tab => (
           <button
@@ -136,6 +137,26 @@ export default function AdminDetail({ tournamentId }: Props) {
             {tab.label}
           </button>
         ))}
+        {tournament && (
+          <button
+            onClick={() => window.open(`/viewer/${tournamentId}`, '_blank')}
+            style={{
+              marginLeft: 'auto',
+              marginRight: 12,
+              background: `${C.blue2}22`,
+              color: C.blue2,
+              border: `1px solid ${C.blue2}`,
+              borderRadius: 5,
+              padding: '6px 14px',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            閲覧用確認 ↗
+          </button>
+        )}
       </div>
 
       {/* Tab Content */}

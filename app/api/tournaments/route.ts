@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     const rows = await sql`
-      INSERT INTO tournaments (name, venue, day1_date, day2_date, event_type, day1_set, day2_set)
+      INSERT INTO tournaments (name, venue, day1_date, day2_date, event_type, day1_set, day2_set, organizer_cd)
       VALUES (
         ${body.name.trim()},
         ${body.venue ?? null},
@@ -32,7 +32,8 @@ export async function POST(req: NextRequest) {
         ${body.day2_date ?? null},
         ${body.event_type ?? 'trap'},
         ${body.day1_set ?? null},
-        ${body.day2_set ?? null}
+        ${body.day2_set ?? null},
+        ${body.organizer_cd ?? 27}
       )
       RETURNING *
     `;

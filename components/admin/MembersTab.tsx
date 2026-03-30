@@ -629,7 +629,7 @@ export default function MembersTab({ tournamentId }: Props) {
           {reorderMode && (
             <div style={{ marginTop: 12, background: C.surface, border: `1px solid ${C.gold}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
               <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.surface2 }}>
-                <span style={{ fontWeight: 600, color: C.gold, fontSize: 16 }}>選手組替モード — ドラッグして並び替え</span>
+                <span style={{ fontWeight: 600, color: C.gold, fontSize: 16 }}>選手組替モード — ⠿ アイコンをドラッグして移動</span>
                 <button
                   onClick={handleSaveReorder}
                   disabled={saving}
