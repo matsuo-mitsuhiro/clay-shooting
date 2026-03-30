@@ -135,21 +135,6 @@ export default function ViewerPage({ tournamentId }: Props) {
               )}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button
-                onClick={fetchResults}
-                style={{
-                  background: C.surface2,
-                  color: C.gold,
-                  border: `1px solid ${C.gold}`,
-                  borderRadius: 6,
-                  padding: '7px 14px',
-                  fontSize: 15,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-              >
-                ↺ 更新
-              </button>
               {tournament && (
                 <button
                   onClick={() => setShowQrModal(true)}
@@ -166,6 +151,21 @@ export default function ViewerPage({ tournamentId }: Props) {
                   閲覧用QRコード表示
                 </button>
               )}
+              <button
+                onClick={fetchResults}
+                style={{
+                  background: C.surface2,
+                  color: C.gold,
+                  border: `1px solid ${C.gold}`,
+                  borderRadius: 6,
+                  padding: '7px 14px',
+                  fontSize: 15,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                ↺ 更新
+              </button>
             </div>
           </div>
         </div>
