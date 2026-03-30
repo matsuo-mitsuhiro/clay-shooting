@@ -198,7 +198,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                   <thead>
                     <tr style={{ background: C.surface2 }}>
                       <th style={thS}>順位</th>
-                      <th style={{ ...thS, textAlign: 'left' }}>氏名</th>
+                      <th style={{ ...thS, textAlign: 'left' }}>氏名　審判フラグ</th>
                       <th style={thS}>組</th>
                       <th style={{ ...thS, textAlign: 'left' }}>所属</th>
                       <th style={thS}>クラス</th>
@@ -236,8 +236,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                             {r.rank}
                           </td>
                           <td style={{ ...tdS, textAlign: 'left', color: C.text, fontWeight: 500, whiteSpace: 'nowrap' }}>
-                            {r.is_judge ? <span style={{ color: C.gold }}>⚑ </span> : ''}
-                            {r.name}
+                            {r.name}{r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
                           </td>
                           <td style={{ ...tdS, color: C.muted, fontSize: 14 }}>
                             {r.group1}{r.group2 ? `/${r.group2}` : ''}組
