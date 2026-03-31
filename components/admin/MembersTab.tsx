@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { C } from '@/lib/colors';
+import { PREFECTURES, DEFAULT_AFFILIATION } from '@/lib/prefectures';
 import type { Member, ClassType } from '@/lib/types';
 
 interface Props {
@@ -40,7 +41,7 @@ interface SlotItem {
 }
 
 const POSITIONS = 6;
-const emptyRow = (): MemberRow => ({ member_code: '', name: '', belong: '', class: '', is_judge: false });
+const emptyRow = (): MemberRow => ({ member_code: '', name: '', belong: DEFAULT_AFFILIATION, class: '', is_judge: false });
 
 function SortablePlayerRow({ slot }: { slot: SlotItem }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -174,6 +175,31 @@ export default function MembersTab({ tournamentId }: Props) {
   const normalizeCode = (v: string) =>
     v.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).trim();
 
+  async function lookupPlayer(idx: number, rawCode: string) {
+    const code = normalizeCode(rawCode);
+    if (!code) return;
+    updateRow(idx, 'member_code', code);
+    try {
+      const res = await fetch(`/api/players?code=${encodeURIComponent(code)}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.success) return;
+      const p = json.data;
+      const rows = [...getRows(selectedDay, selectedGroup)];
+      rows[idx] = {
+        ...rows[idx],
+        member_code: code,
+        name: p.name,
+        belong: p.affiliation ?? DEFAULT_AFFILIATION,
+        is_judge: p.is_judge,
+        class: (p.class ?? '') as ClassType | '',
+      };
+      setRows(selectedDay, selectedGroup, rows);
+    } catch {
+      // マスター未登録の場合はそのまま手入力
+    }
+  }
+
   async function handleSave() {
     setError(null);
     setSuccess(null);
@@ -238,6 +264,20 @@ export default function MembersTab({ tournamentId }: Props) {
         const other = prev.filter(m => m.day !== selectedDay);
         return [...other, ...json.data];
       });
+
+      // player_master のクラス・審判フラグを更新（member_codeがある選手のみ）
+      await Promise.allSettled(
+        allMembers
+          .filter(m => m.member_code)
+          .map(m =>
+            fetch(`/api/players/${m.member_code}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ is_judge: m.is_judge, class: m.class ?? null }),
+            })
+          )
+      );
+
       setSuccess('保存しました');
       setTimeout(() => setSuccess(null), 3000);
     } catch (e) {
@@ -551,7 +591,7 @@ export default function MembersTab({ tournamentId }: Props) {
                           type="text"
                           value={row.member_code}
                           onChange={e => updateRow(idx, 'member_code', e.target.value)}
-                          onBlur={e => updateRow(idx, 'member_code', normalizeCode(e.target.value))}
+                          onBlur={e => lookupPlayer(idx, e.target.value)}
                           style={inputStyle}
                           placeholder="例: 12345"
                         />
@@ -576,14 +616,16 @@ export default function MembersTab({ tournamentId }: Props) {
                           <span style={{ fontSize: 15, color: row.is_judge ? C.gold : C.muted }}>⚑</span>
                         </label>
                       </td>
-                      <td style={{ padding: '4px 6px', minWidth: 120 }}>
-                        <input
-                          type="text"
+                      <td style={{ padding: '4px 6px', minWidth: 110 }}>
+                        <select
                           value={row.belong}
                           onChange={e => updateRow(idx, 'belong', e.target.value)}
-                          style={inputStyle}
-                          placeholder="所属"
-                        />
+                          style={{ ...inputStyle, width: '100%' }}
+                        >
+                          {PREFECTURES.map(p => (
+                            <option key={p.cd} value={p.name}>{p.name}</option>
+                          ))}
+                        </select>
                       </td>
                       <td style={{ padding: '4px 6px', width: 72 }}>
                         <select

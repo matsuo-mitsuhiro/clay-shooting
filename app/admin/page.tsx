@@ -110,6 +110,35 @@ export default function AdminPage() {
       </header>
 
       <main style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px' }}>
+        {/* 選手マスター管理ボタン */}
+        <div style={{ marginBottom: 20 }}>
+          <button
+            onClick={() => router.push('/admin/players')}
+            style={{
+              background: C.surface,
+              color: C.text,
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              padding: '14px 20px',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              width: '100%',
+              textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: 20 }}>👤</span>
+            <div>
+              <div>選手マスター管理</div>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>会員番号・氏名・所属・クラス・審判フラグを管理</div>
+            </div>
+            <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
+          </button>
+        </div>
+
         {/* Title + Create Button */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <h2 style={{ margin: 0, fontSize: 24, color: C.text }}>大会一覧</h2>
