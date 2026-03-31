@@ -1,11 +1,16 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? 'noreply@clay-shooting.vercel.app';
 const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://clay-shooting.vercel.app';
 
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error('RESEND_API_KEY is not set');
+  return new Resend(key);
+}
+
 export async function sendRegistrationComplete(to: string, name: string) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: '【クレー射撃 成績管理システム】大会管理者登録完了',
@@ -22,7 +27,7 @@ export async function sendRegistrationComplete(to: string, name: string) {
 
 export async function sendPasswordReset(to: string, name: string, token: string) {
   const url = `${BASE_URL}/admin/reset-password/${token}`;
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: '【クレー射撃 成績管理システム】パスワードリセット',
