@@ -177,6 +177,11 @@ function AdminLoginContent() {
             >
               ログイン
             </button>
+            <div style={{ textAlign: 'center', marginTop: 12 }}>
+              <a href="/admin/forgot-password" style={{ color: C.muted, fontSize: 13, textDecoration: 'underline' }}>
+                パスワードをお忘れの方はこちら
+              </a>
+            </div>
           </form>
         </div>
       </div>

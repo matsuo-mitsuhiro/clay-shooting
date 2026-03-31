@@ -22,6 +22,17 @@ function normalizeSpaces(s: string): string {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+
+    // 所属一覧取得
+    if (searchParams.get('affiliations') === '1') {
+      const rows = await sql`
+        SELECT DISTINCT affiliation FROM player_master
+        WHERE affiliation IS NOT NULL AND affiliation != ''
+        ORDER BY affiliation
+      `;
+      return NextResponse.json({ affiliations: rows.map(r => r.affiliation as string) });
+    }
+
     const code = searchParams.get('code');
 
     // 1件検索（会員番号完全一致）
