@@ -8,8 +8,9 @@ import MembersTab from './MembersTab';
 import ScoresTab from './ScoresTab';
 import ResultsTab from './ResultsTab';
 import SettingsTab from './SettingsTab';
+import ViewerHistoryTab from './ViewerHistoryTab';
 
-type TabType = 'members' | 'scores' | 'results' | 'settings';
+type TabType = 'members' | 'scores' | 'results' | 'settings' | 'history';
 
 interface Props {
   tournamentId: number;
@@ -46,6 +47,7 @@ export default function AdminDetail({ tournamentId }: Props) {
     { key: 'members', label: '選手登録' },
     { key: 'scores', label: '点数登録' },
     { key: 'results', label: '成績確認' },
+    { key: 'history', label: '閲覧履歴' },
   ];
 
   return (
@@ -178,6 +180,9 @@ export default function AdminDetail({ tournamentId }: Props) {
                 tournament={tournament}
                 onUpdated={fetchTournament}
               />
+            )}
+            {activeTab === 'history' && (
+              <ViewerHistoryTab tournamentId={tournamentId} />
             )}
           </>
         )}

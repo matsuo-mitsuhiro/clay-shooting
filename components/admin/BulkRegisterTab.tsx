@@ -2,23 +2,26 @@
 
 import { useState, useRef } from 'react';
 import { C } from '@/lib/colors';
-import { PREFECTURES, DEFAULT_AFFILIATION } from '@/lib/prefectures';
-import type { ClassType } from '@/lib/types';
+import { PREFECTURES } from '@/lib/prefectures';
+import type { ClassType, Member } from '@/lib/types';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface Props {
   tournamentId: number;
   onSaved?: () => void;
 }
 
+type SearchStatus = 'idle' | 'found' | 'not_found';
+
 interface BulkRow {
   id: number;
-  groupNum: number;
-  position: number;
+  seq: number;          // 人数（連番 1, 2, 3...）
   member_code: string;
   name: string;
-  belong: string;
+  belong: string;       // '' = ブランク
   class: ClassType | '';
   is_judge: boolean;
+  searchStatus: SearchStatus;
 }
 
 interface PlayerMaster {
@@ -29,27 +32,24 @@ interface PlayerMaster {
   class: string | null;
 }
 
-const INITIAL_GROUPS = 4;
+const INIT_COUNT = 24;
 const POSITIONS_PER_GROUP = 6;
 
+function normalizeSpaces(s: string): string {
+  return s.replace(/[\s\u3000]/g, '');
+}
+
 function generateInitialRows(): BulkRow[] {
-  const rows: BulkRow[] = [];
-  let id = 0;
-  for (let g = 1; g <= INITIAL_GROUPS; g++) {
-    for (let p = 1; p <= POSITIONS_PER_GROUP; p++) {
-      rows.push({
-        id: id++,
-        groupNum: g,
-        position: p,
-        member_code: '',
-        name: '',
-        belong: DEFAULT_AFFILIATION,
-        class: '',
-        is_judge: false,
-      });
-    }
-  }
-  return rows;
+  return Array.from({ length: INIT_COUNT }, (_, i) => ({
+    id: i,
+    seq: i + 1,
+    member_code: '',
+    name: '',
+    belong: '',
+    class: '',
+    is_judge: false,
+    searchStatus: 'idle' as SearchStatus,
+  }));
 }
 
 export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
@@ -60,12 +60,15 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const idCounterRef = useRef(INITIAL_GROUPS * POSITIONS_PER_GROUP);
+  const idCounterRef = useRef(INIT_COUNT);
 
   const nextId = () => idCounterRef.current++;
 
   function updateRow(id: number, field: keyof BulkRow, value: string | boolean) {
-    setBulkRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    setBulkRows(prev => prev.map(r =>
+      r.id === id ? { ...r, [field]: value, searchStatus: 'idle' as SearchStatus } : r
+    ));
+    setSearched(false);
   }
 
   function deleteRow(id: number) {
@@ -73,23 +76,17 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
   }
 
   function handleAddRows() {
-    const maxGroup = bulkRows.length > 0
-      ? Math.max(...bulkRows.map(r => r.groupNum))
-      : 0;
-    const newGroup = maxGroup + 1;
-    const newRows: BulkRow[] = [];
-    for (let p = 1; p <= POSITIONS_PER_GROUP; p++) {
-      newRows.push({
-        id: nextId(),
-        groupNum: newGroup,
-        position: p,
-        member_code: '',
-        name: '',
-        belong: DEFAULT_AFFILIATION,
-        class: '',
-        is_judge: false,
-      });
-    }
+    const maxSeq = bulkRows.length > 0 ? Math.max(...bulkRows.map(r => r.seq)) : 0;
+    const newRows: BulkRow[] = Array.from({ length: POSITIONS_PER_GROUP }, (_, i) => ({
+      id: nextId(),
+      seq: maxSeq + i + 1,
+      member_code: '',
+      name: '',
+      belong: '',
+      class: '',
+      is_judge: false,
+      searchStatus: 'idle' as SearchStatus,
+    }));
     setBulkRows(prev => [...prev, ...newRows]);
   }
 
@@ -101,18 +98,45 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
     const newRows: BulkRow[] = [];
 
     for (const row of bulkRows) {
-      const query = row.member_code.trim();
+      const code = row.member_code.trim();
+      const name = row.name.trim();
 
-      if (!query) {
-        // 会員番号欄が空の場合はそのまま保持
-        newRows.push(row);
+      // 両方空 → そのまま
+      if (!code && !name) {
+        newRows.push({ ...row, searchStatus: 'idle' });
         continue;
       }
 
       try {
-        if (/^\d+$/.test(query)) {
-          // 数字 → 会員番号の完全一致検索
-          const res = await fetch(`/api/players?code=${encodeURIComponent(query)}`);
+        if (code && name) {
+          // 会員番号 + 氏名 → 会員番号で検索し、氏名が一致するか確認
+          const res = await fetch(`/api/players?code=${encodeURIComponent(code)}`);
+          const json = await res.json();
+          if (json.success && json.data) {
+            const p: PlayerMaster = json.data;
+            const normInput = normalizeSpaces(name);
+            const normDB = normalizeSpaces(p.name);
+            if (normDB.includes(normInput) || normInput.includes(normDB)) {
+              newRows.push({
+                ...row,
+                member_code: p.member_code,
+                name: p.name,
+                belong: p.affiliation ?? '',
+                class: (p.class ?? '') as ClassType | '',
+                is_judge: p.is_judge,
+                searchStatus: 'found',
+              });
+            } else {
+              // 会員番号は存在するが氏名不一致
+              newRows.push({ ...row, searchStatus: 'not_found' });
+            }
+          } else {
+            // 会員番号が見つからない
+            newRows.push({ ...row, searchStatus: 'not_found' });
+          }
+        } else if (code) {
+          // 会員番号のみ → 完全一致
+          const res = await fetch(`/api/players?code=${encodeURIComponent(code)}`);
           const json = await res.json();
           if (json.success && json.data) {
             const p: PlayerMaster = json.data;
@@ -120,41 +144,45 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
               ...row,
               member_code: p.member_code,
               name: p.name,
-              belong: p.affiliation ?? DEFAULT_AFFILIATION,
+              belong: p.affiliation ?? '',
               class: (p.class ?? '') as ClassType | '',
               is_judge: p.is_judge,
+              searchStatus: 'found',
             });
-            continue;
+          } else {
+            newRows.push({ ...row, searchStatus: 'not_found' });
           }
-          // マスター未登録 → そのまま保持
-          newRows.push(row);
         } else {
-          // 文字列 → 氏名の部分一致検索
-          const res = await fetch(`/api/players?q=${encodeURIComponent(query)}`);
+          // 氏名のみ → スペース正規化検索（所属がある場合は絞り込み）
+          const normName = normalizeSpaces(name);
+          const params = new URLSearchParams({ q_name: normName });
+          if (row.belong) params.set('q_belong', row.belong);
+          const res = await fetch(`/api/players?${params}`);
           const json = await res.json();
+
           if (json.success && Array.isArray(json.data) && json.data.length > 0) {
             const players: PlayerMaster[] = json.data;
-            // 複数ヒット → 同じ番号に複数行展開
+            // 複数ヒット → 同じ seq に複数行展開
             for (let i = 0; i < players.length; i++) {
               const p = players[i];
               newRows.push({
                 id: i === 0 ? row.id : nextId(),
-                groupNum: row.groupNum,
-                position: row.position,
+                seq: row.seq,
                 member_code: p.member_code,
                 name: p.name,
-                belong: p.affiliation ?? DEFAULT_AFFILIATION,
+                belong: p.affiliation ?? '',
                 class: (p.class ?? '') as ClassType | '',
                 is_judge: p.is_judge,
+                searchStatus: 'found',
               });
             }
-            continue;
+          } else {
+            // 0件 → 「該当者なし」（行は保持・保存は可能）
+            newRows.push({ ...row, searchStatus: 'not_found' });
           }
-          // 0件 → そのまま保持
-          newRows.push(row);
         }
       } catch {
-        newRows.push(row);
+        newRows.push({ ...row, searchStatus: 'idle' });
       }
     }
 
@@ -169,37 +197,72 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
 
     // 氏名が空欄の行をスキップ
     const validRows = bulkRows.filter(r => r.name.trim());
-
     if (validRows.length === 0) {
       setError('登録する選手がいません（氏名を入力してください）');
       return;
     }
 
-    // 番号重複チェック
-    const seen = new Map<string, BulkRow>();
-    for (const row of validRows) {
-      const key = `${row.groupNum}_${row.position}`;
-      const prev = seen.get(key);
-      if (prev) {
-        setError(`${row.groupNum}組 ${row.position}番が重複しています。どちらかを削除してください。`);
+    // seq 重複チェック（同じ人数番号に複数行）
+    const seqCount = new Map<number, number>();
+    for (const r of validRows) {
+      seqCount.set(r.seq, (seqCount.get(r.seq) ?? 0) + 1);
+    }
+    for (const [seq, count] of seqCount) {
+      if (count > 1) {
+        setError(`人数 ${seq} が重複しています。どちらかを削除してください。`);
         return;
       }
-      seen.set(key, row);
     }
-
-    const allMembers = validRows.map(r => ({
-      day: bulkDay,
-      group_number: r.groupNum,
-      position: r.position,
-      member_code: r.member_code || undefined,
-      name: r.name.trim(),
-      belong: r.belong || undefined,
-      class: (r.class || undefined) as ClassType | undefined,
-      is_judge: r.is_judge,
-    }));
 
     try {
       setSaving(true);
+
+      // 既存の登録済み選手を取得して空きスロットを特定
+      const membersRes = await fetch(`/api/tournaments/${tournamentId}/members`);
+      const membersJson = await membersRes.json();
+      if (!membersJson.success) throw new Error(membersJson.error);
+
+      const existingMembers = (membersJson.data as Member[]).filter(m => m.day === bulkDay);
+      const occupied = new Set<string>(
+        existingMembers.map(m => `${m.group_number}_${m.position}`)
+      );
+
+      // 空きスロットに順番に割り当て
+      let curGroup = 1;
+      let curPos = 1;
+
+      function findNextSlot() {
+        while (occupied.has(`${curGroup}_${curPos}`)) {
+          curPos++;
+          if (curPos > POSITIONS_PER_GROUP) {
+            curPos = 1;
+            curGroup++;
+          }
+        }
+      }
+
+      const allMembers = validRows.map(r => {
+        findNextSlot();
+        const group = curGroup;
+        const pos = curPos;
+        occupied.add(`${group}_${pos}`);
+        curPos++;
+        if (curPos > POSITIONS_PER_GROUP) {
+          curPos = 1;
+          curGroup++;
+        }
+        return {
+          day: bulkDay,
+          group_number: group,
+          position: pos,
+          member_code: r.member_code || undefined,
+          name: r.name.trim(),
+          belong: r.belong || undefined,
+          class: (r.class || undefined) as ClassType | undefined,
+          is_judge: r.is_judge,
+        };
+      });
+
       const res = await fetch(`/api/tournaments/${tournamentId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -222,9 +285,10 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
       );
 
       const skipped = bulkRows.length - validRows.length;
+      const maxGroup = Math.max(...allMembers.map(m => m.group_number));
       setSuccess(
-        `${validRows.length}名を登録しました` +
-        (skipped > 0 ? `（氏名空欄 ${skipped}行はスキップ）` : '')
+        `${validRows.length}名を登録しました（${bulkDay}日目 1〜${maxGroup}組へ自動割り当て）` +
+        (skipped > 0 ? ` ／ 氏名空欄${skipped}行はスキップ` : '')
       );
       onSaved?.();
     } catch (e) {
@@ -234,17 +298,16 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
     }
   }
 
-  // 重複している (groupNum, position) を特定
-  const dupKeys = new Set<string>();
+  // 重複している seq を特定
+  const dupSeqs = new Set<number>();
   {
-    const countMap = new Map<string, number>();
+    const countMap = new Map<number, number>();
     for (const row of bulkRows) {
       if (!row.name.trim()) continue;
-      const key = `${row.groupNum}_${row.position}`;
-      countMap.set(key, (countMap.get(key) ?? 0) + 1);
+      countMap.set(row.seq, (countMap.get(row.seq) ?? 0) + 1);
     }
-    for (const [k, count] of countMap) {
-      if (count > 1) dupKeys.add(k);
+    for (const [seq, count] of countMap) {
+      if (count > 1) dupSeqs.add(seq);
     }
   }
 
@@ -261,6 +324,8 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
 
   return (
     <div>
+      <LoadingOverlay show={searching || saving} message={searching ? '検索中...' : '保存中...'} />
+
       {/* 登録先（日付）選択 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
         <span style={{ color: C.muted, fontSize: 14 }}>登録先：</span>
@@ -272,11 +337,8 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
               background: bulkDay === d ? C.gold : C.surface,
               color: bulkDay === d ? '#000' : C.muted,
               border: `1px solid ${bulkDay === d ? C.gold : C.border}`,
-              borderRadius: 6,
-              padding: '5px 14px',
-              fontSize: 14,
-              fontWeight: bulkDay === d ? 700 : 400,
-              cursor: 'pointer',
+              borderRadius: 6, padding: '5px 14px', fontSize: 14,
+              fontWeight: bulkDay === d ? 700 : 400, cursor: 'pointer',
             }}
           >
             {d}日目
@@ -284,22 +346,18 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
         ))}
       </div>
 
-      {/* エラー / 成功メッセージ */}
+      {/* エラー / 成功 */}
       {error && (
         <div style={{
           background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
           borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 14,
-        }}>
-          ⚠ {error}
-        </div>
+        }}>⚠ {error}</div>
       )}
       {success && (
         <div style={{
           background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,
           borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 14,
-        }}>
-          ✔ {success}
-        </div>
+        }}>✔ {success}</div>
       )}
 
       {/* ツールバー */}
@@ -319,11 +377,10 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
           style={{
             background: '#2a7a9a', color: '#fff', border: 'none',
             borderRadius: 6, padding: '8px 16px', fontSize: 14, fontWeight: 700,
-            cursor: searching ? 'not-allowed' : 'pointer',
-            opacity: searching ? 0.7 : 1,
+            cursor: searching ? 'not-allowed' : 'pointer', opacity: searching ? 0.7 : 1,
           }}
         >
-          {searching ? '検索中...' : '🔍 検索・設定'}
+          🔍 検索・設定
         </button>
         <button
           onClick={handleSave}
@@ -346,64 +403,55 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
         )}
       </div>
 
-      {/* 入力テーブル */}
+      {/* テーブル */}
       <div style={{ overflowX: 'auto', border: `1px solid ${C.border}`, borderRadius: 6 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
           <thead>
             <tr style={{ background: C.surface2 }}>
               {[
-                { label: '番号',   w: 76  },
-                { label: '会員番号', w: 105 },
+                { label: '人数',   w: 52  },
+                { label: '会員番号', w: 100 },
                 { label: '氏名',   w: undefined },
                 { label: '所属',   w: 110 },
                 { label: 'クラス', w: 68  },
                 { label: '審判',   w: 52  },
                 { label: '削除',   w: 52, red: true },
               ].map(h => (
-                <th
-                  key={h.label}
-                  style={{
-                    padding: '8px 8px',
-                    fontSize: 12,
-                    color: h.red ? C.red : C.muted,
-                    fontWeight: 600,
-                    textAlign: 'center',
-                    borderBottom: `2px solid ${C.border}`,
-                    whiteSpace: 'nowrap',
-                    width: h.w,
-                  }}
-                >
+                <th key={h.label} style={{
+                  padding: '8px 8px', fontSize: 12,
+                  color: h.red ? C.red : C.muted,
+                  fontWeight: 600, textAlign: 'center',
+                  borderBottom: `2px solid ${C.border}`,
+                  whiteSpace: 'nowrap', width: h.w,
+                }}>
                   {h.label}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {bulkRows.map((row, idx) => {
-              const isDup = dupKeys.has(`${row.groupNum}_${row.position}`);
-              const isGroupStart = idx === 0 || bulkRows[idx - 1].groupNum !== row.groupNum;
+            {bulkRows.map((row) => {
+              const isDup = dupSeqs.has(row.seq);
+              const isNotFound = row.searchStatus === 'not_found';
+              const rowBg = isDup ? `${C.red}11` : 'transparent';
+
               return (
-                <tr
-                  key={row.id}
-                  style={{
-                    borderBottom: `1px solid ${C.border}33`,
-                    borderTop: isGroupStart && idx > 0 ? `2px solid ${C.border}` : undefined,
-                    background: isDup ? `${C.red}11` : 'transparent',
-                  }}
-                >
-                  {/* 番号 */}
+                <tr key={row.id} style={{
+                  borderBottom: `1px solid ${C.border}33`,
+                  background: rowBg,
+                }}>
+                  {/* 人数 */}
                   <td style={{ padding: '4px 8px', textAlign: 'center' }}>
                     <span style={{
                       display: 'inline-block',
                       background: isDup ? `${C.red}22` : C.surface2,
                       border: `1px solid ${isDup ? C.red : C.border}`,
-                      borderRadius: 4,
-                      padding: '2px 6px',
+                      borderRadius: 4, padding: '2px 6px',
                       fontSize: 12,
                       color: isDup ? C.red : C.muted,
-                      whiteSpace: 'nowrap',
+                      minWidth: 32, textAlign: 'center',
                     }}>
-                      {row.groupNum}組 {row.position}番
+                      {row.seq}
                     </span>
                   </td>
 
@@ -414,7 +462,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
                       value={row.member_code}
                       onChange={e => updateRow(row.id, 'member_code', e.target.value)}
                       style={{ ...inputStyle, borderColor: isDup ? C.red : C.border }}
-                      placeholder="番号 / 氏名"
+                      placeholder="番号"
                     />
                   </td>
 
@@ -436,6 +484,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
                       onChange={e => updateRow(row.id, 'belong', e.target.value)}
                       style={inputStyle}
                     >
+                      <option value="">—</option>
                       {PREFECTURES.map(p => (
                         <option key={p.cd} value={p.name}>{p.name}</option>
                       ))}
@@ -469,8 +518,8 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
                     </label>
                   </td>
 
-                  {/* 削除 */}
-                  <td style={{ padding: '3px 6px', textAlign: 'center' }}>
+                  {/* 削除 + 該当者なし */}
+                  <td style={{ padding: '3px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     <button
                       onClick={() => deleteRow(row.id)}
                       style={{
@@ -481,6 +530,14 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
                     >
                       ×
                     </button>
+                    {isNotFound && (
+                      <span style={{
+                        marginLeft: 6, fontSize: 11, color: '#e74c3c',
+                        fontWeight: 700, whiteSpace: 'nowrap',
+                      }}>
+                        該当者なし
+                      </span>
+                    )}
                   </td>
                 </tr>
               );
@@ -491,9 +548,9 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
 
       <div style={{ marginTop: 8, fontSize: 12, color: C.muted, lineHeight: 1.8 }}>
         <span style={{ color: C.gold }}>●</span>{' '}
-        会員番号欄に「会員番号（数字）」または「氏名（部分一致）」を入力して「検索・設定」を押すと自動補完されます<br />
+        会員番号（数字）を入力→DBから自動補完　氏名のみ入力→氏名＋所属で検索　両方入力→両方一致で補完<br />
         <span style={{ color: C.gold }}>●</span>{' '}
-        氏名が空欄の行は保存しません（NULLデータは無視）
+        氏名が空欄の行は保存しません　保存時は空きスロットへ順番に自動割り当て（必要な組は自動追加）
       </div>
     </div>
   );

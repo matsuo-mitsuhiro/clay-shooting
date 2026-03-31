@@ -19,9 +19,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { C } from '@/lib/colors';
-import { PREFECTURES, DEFAULT_AFFILIATION } from '@/lib/prefectures';
+import { PREFECTURES } from '@/lib/prefectures';
 import type { Member, ClassType } from '@/lib/types';
 import BulkRegisterTab from './BulkRegisterTab';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface Props {
   tournamentId: number;
@@ -42,7 +43,7 @@ interface SlotItem {
 }
 
 const POSITIONS = 6;
-const emptyRow = (): MemberRow => ({ member_code: '', name: '', belong: DEFAULT_AFFILIATION, class: '', is_judge: false });
+const emptyRow = (): MemberRow => ({ member_code: '', name: '', belong: '', class: '', is_judge: false });
 
 function SortablePlayerRow({ slot }: { slot: SlotItem }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -192,7 +193,7 @@ export default function MembersTab({ tournamentId }: Props) {
         ...rows[idx],
         member_code: code,
         name: p.name,
-        belong: p.affiliation ?? DEFAULT_AFFILIATION,
+        belong: p.affiliation ?? '',
         is_judge: p.is_judge,
         class: (p.class ?? '') as ClassType | '',
       };
@@ -442,6 +443,7 @@ export default function MembersTab({ tournamentId }: Props) {
 
   return (
     <div style={{ padding: '20px 16px', maxWidth: 900, margin: '0 auto' }}>
+      <LoadingOverlay show={loading || saving} message={loading ? '読み込み中...' : '保存中...'} />
       {/* Day Tabs（選手一括登録 / 1日目 / 2日目） */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
         <button
@@ -633,6 +635,7 @@ export default function MembersTab({ tournamentId }: Props) {
                           onChange={e => updateRow(idx, 'belong', e.target.value)}
                           style={{ ...inputStyle, width: '100%' }}
                         >
+                          <option value="">—</option>
                           {PREFECTURES.map(p => (
                             <option key={p.cd} value={p.name}>{p.name}</option>
                           ))}

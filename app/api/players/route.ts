@@ -10,14 +10,21 @@ export interface PlayerMaster {
   updated_at: string | null;
 }
 
-// GET /api/players?code=xxxxx  — 1件検索（自動補完用）
-// GET /api/players              — 全件一覧（管理画面用）
+// スペース正規化（半角・全角スペースを除去）
+function normalizeSpaces(s: string): string {
+  return s.replace(/[\s\u3000]/g, '');
+}
+
+// GET /api/players?code=xxxxx       — 1件検索（自動補完用）
+// GET /api/players?q_name=松尾&q_belong=大阪 — 氏名+所属スペース正規化検索（一括登録用）
+// GET /api/players                  — 全件一覧（管理画面用）
 // GET /api/players?affiliation=大阪&class=A&is_judge=true  — フィルタ
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
 
+    // 1件検索（会員番号完全一致）
     if (code) {
       const rows = await sql`
         SELECT * FROM player_master WHERE member_code = ${code} LIMIT 1
@@ -26,6 +33,30 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: 'not_found' }, { status: 404 });
       }
       return NextResponse.json({ success: true, data: rows[0] as PlayerMaster });
+    }
+
+    // 氏名スペース正規化検索（一括登録用）
+    const qName = searchParams.get('q_name');
+    if (qName) {
+      const normName = normalizeSpaces(qName);
+      const pattern = '%' + normName + '%';
+      const qBelong = searchParams.get('q_belong');
+      let rows;
+      if (qBelong) {
+        rows = await sql`
+          SELECT * FROM player_master
+          WHERE REPLACE(REPLACE(name, ' ', ''), '　', '') ILIKE ${pattern}
+            AND affiliation = ${qBelong}
+          ORDER BY member_code
+        `;
+      } else {
+        rows = await sql`
+          SELECT * FROM player_master
+          WHERE REPLACE(REPLACE(name, ' ', ''), '　', '') ILIKE ${pattern}
+          ORDER BY member_code
+        `;
+      }
+      return NextResponse.json({ success: true, data: rows as PlayerMaster[] });
     }
 
     // フィルタ条件（neonはnullの型推論ができないため条件分岐で組み立て）

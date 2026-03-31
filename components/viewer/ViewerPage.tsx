@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { C } from '@/lib/colors';
 import type { Result, Tournament, ClassType } from '@/lib/types';
+import ViewerLoginForm from './ViewerLoginForm';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface Props {
   tournamentId: number;
@@ -12,6 +14,8 @@ interface Props {
 
 export default function ViewerPage({ tournamentId }: Props) {
   const router = useRouter();
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [loginName, setLoginName] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [has2ndDay, setHas2ndDay] = useState(false);
@@ -96,8 +100,23 @@ export default function ViewerPage({ tournamentId }: Props) {
     return `${dt.getFullYear()}年${dt.getMonth() + 1}月${dt.getDate()}日`;
   };
 
+  // ログイン前はログインフォームを表示
+  if (!loggedIn) {
+    return (
+      <ViewerLoginForm
+        tournamentId={tournamentId}
+        tournamentName={tournament?.name ?? ''}
+        onLoginSuccess={(name) => {
+          setLoginName(name);
+          setLoggedIn(true);
+        }}
+      />
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif', position: 'relative' }}>
+      <LoadingOverlay show={loading} message="読み込み中..." />
       {/* Header / Banner */}
       <header style={{
         background: `linear-gradient(135deg, ${C.surface} 0%, ${C.surface2} 100%)`,
@@ -180,11 +199,7 @@ export default function ViewerPage({ tournamentId }: Props) {
           }}>{error}</div>
         )}
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: C.muted, fontSize: 18 }}>
-            読み込み中...
-          </div>
-        ) : (
+        {!loading && (
           <>
             {/* Filter Bar */}
             <div style={{

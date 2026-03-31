@@ -117,6 +117,17 @@ export interface Result {
   rank: number;
 }
 
+// ---------- ViewerLog ----------
+export interface ViewerLog {
+  id: number;
+  tournament_id: number;
+  logged_at: string;
+  belong: string | null;
+  name_input: string | null;
+  matched_name: string | null;
+  user_agent: string | null;
+}
+
 // ---------- API Response ----------
 export interface ApiResponse<T = unknown> {
   success: boolean;
