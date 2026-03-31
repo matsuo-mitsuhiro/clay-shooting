@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { C } from '@/lib/colors';
@@ -16,7 +16,9 @@ export default function ViewerPage({ tournamentId }: Props) {
   const router = useRouter();
   const [loggedIn, setLoggedIn] = useState(false);
   const [loginName, setLoginName] = useState('');
+  const [loginBelong, setLoginBelong] = useState('');
   const [results, setResults] = useState<Result[]>([]);
+  const highlightedRowRef = useRef<HTMLTableRowElement>(null);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [has2ndDay, setHas2ndDay] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,28 @@ export default function ViewerPage({ tournamentId }: Props) {
     fetchResults();
     setOrigin(window.location.origin);
   }, [fetchResults]);
+
+  // ログイン選手の行を自動ハイライト
+  useEffect(() => {
+    if (!loggedIn || results.length === 0 || !loginName) return;
+    const normalize = (s: string) => s.replace(/[\s\u3000]/g, '');
+    const normLogin = normalize(loginName);
+    const match = results.find(r => {
+      const normName = normalize(r.name ?? '');
+      const nameMatch = normName.includes(normLogin) || normLogin.includes(normName);
+      if (!nameMatch) return false;
+      if (loginBelong && r.belong !== loginBelong) return false;
+      return true;
+    });
+    if (match) setHighlightedCode(match.member_code);
+  }, [loggedIn, results, loginName, loginBelong]);
+
+  // ハイライト行へ自動スクロール
+  useEffect(() => {
+    if (highlightedCode && highlightedRowRef.current) {
+      highlightedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightedCode]);
 
   function handleHiddenClick() {
     const pw = window.prompt('パスワードを入力してください');
@@ -108,8 +132,9 @@ export default function ViewerPage({ tournamentId }: Props) {
         tournamentName={tournament?.name ?? ''}
         tournamentDay1Date={tournament?.day1_date}
         tournamentDay2Date={tournament?.day2_date}
-        onLoginSuccess={(name) => {
+        onLoginSuccess={(name, belong) => {
           setLoginName(name);
+          setLoginBelong(belong);
           setLoggedIn(true);
         }}
       />
@@ -326,10 +351,11 @@ export default function ViewerPage({ tournamentId }: Props) {
                         return (
                           <tr
                             key={r.member_code}
+                            ref={isHighlighted ? highlightedRowRef : undefined}
                             onClick={() => setHighlightedCode(prev => prev === r.member_code ? null : r.member_code)}
                             style={{
                               borderBottom: `1px solid ${C.border}33`,
-                              background: isHighlighted ? `${C.green}22` : 'transparent',
+                              background: isHighlighted ? `${C.gold}22` : 'transparent',
                               cursor: 'pointer',
                               transition: 'background 0.15s',
                             }}
