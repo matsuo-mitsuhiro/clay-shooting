@@ -28,25 +28,46 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: rows[0] as PlayerMaster });
     }
 
-    // フィルタ条件
+    // フィルタ条件（neonはnullの型推論ができないため条件分岐で組み立て）
     const affiliation = searchParams.get('affiliation');
     const classFilter = searchParams.get('class');
     const isJudge = searchParams.get('is_judge');
-    const q = searchParams.get('q'); // 氏名・会員番号のキーワード検索
+    const q = searchParams.get('q');
 
-    const rows = await sql`
-      SELECT * FROM player_master
-      WHERE
-        (${affiliation} IS NULL OR affiliation = ${affiliation})
-        AND (${classFilter} IS NULL OR class = ${classFilter})
-        AND (${isJudge} IS NULL OR is_judge = ${isJudge === 'true'})
-        AND (
-          ${q} IS NULL
-          OR member_code ILIKE ${'%' + (q ?? '') + '%'}
-          OR name ILIKE ${'%' + (q ?? '') + '%'}
-        )
-      ORDER BY member_code
-    `;
+    let rows;
+    if (affiliation && classFilter && isJudge !== null && q) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+    } else if (affiliation && classFilter && isJudge !== null) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (affiliation && classFilter && q) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+    } else if (affiliation && isJudge !== null && q) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+    } else if (classFilter && isJudge !== null && q) {
+      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+    } else if (affiliation && classFilter) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} ORDER BY member_code`;
+    } else if (affiliation && isJudge !== null) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (affiliation && q) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+    } else if (classFilter && isJudge !== null) {
+      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (classFilter && q) {
+      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+    } else if (isJudge !== null && q) {
+      rows = await sql`SELECT * FROM player_master WHERE is_judge=${isJudge==='true'} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+    } else if (affiliation) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} ORDER BY member_code`;
+    } else if (classFilter) {
+      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} ORDER BY member_code`;
+    } else if (isJudge !== null) {
+      rows = await sql`SELECT * FROM player_master WHERE is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (q) {
+      rows = await sql`SELECT * FROM player_master WHERE member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'} ORDER BY member_code`;
+    } else {
+      rows = await sql`SELECT * FROM player_master ORDER BY member_code`;
+    }
     return NextResponse.json({ success: true, data: rows as PlayerMaster[] });
   } catch (e) {
     console.error(e);
