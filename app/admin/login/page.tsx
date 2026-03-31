@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
-export default function AdminLoginPage() {
+function AdminLoginContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -181,5 +181,13 @@ export default function AdminLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<LoadingOverlay show message="読み込み中..." />}>
+      <AdminLoginContent />
+    </Suspense>
   );
 }
