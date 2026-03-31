@@ -358,8 +358,9 @@ export default function AdminPage() {
                   </div>
                   <div style={{ fontSize: 15, color: '#ffffff', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     {t.venue && <span>📍 {t.venue}</span>}
-                    {t.day1_date && <span>📅 {formatDate(t.day1_date)}</span>}
-                    {t.day2_date && <span>~ {formatDate(t.day2_date)}</span>}
+                    {t.day1_date && (
+                      <span>📅 {formatDate(t.day1_date)}{t.day2_date ? ` / ${formatDate(t.day2_date)}` : ''}</span>
+                    )}
                   </div>
                 </div>
                 <button

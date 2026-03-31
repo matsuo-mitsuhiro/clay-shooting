@@ -7,18 +7,36 @@ import LoadingOverlay from '@/components/LoadingOverlay';
 interface Props {
   tournamentId: number;
   tournamentName: string;
+  tournamentDay1Date?: string | null;
+  tournamentDay2Date?: string | null;
   onLoginSuccess: (name: string, belong: string) => void;
 }
 
-export default function ViewerLoginForm({ tournamentId, tournamentName, onLoginSuccess }: Props) {
+const LS_KEY = 'viewer_login_info';
+
+export default function ViewerLoginForm({
+  tournamentId, tournamentName, tournamentDay1Date, tournamentDay2Date, onLoginSuccess,
+}: Props) {
   const [affiliations, setAffiliations] = useState<string[]>([]);
   const [belong, setBelong] = useState('');
   const [name, setName] = useState('');
+  const [saveInfo, setSaveInfo] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingAff, setLoadingAff] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // localStorageから保存済み情報を復元
+    try {
+      const saved = localStorage.getItem(LS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { belong?: string; name?: string };
+        if (parsed.belong) setBelong(parsed.belong);
+        if (parsed.name) setName(parsed.name);
+        setSaveInfo(true);
+      }
+    } catch { /* ignore */ }
+
     fetch(`/api/tournaments/${tournamentId}/members`)
       .then(r => r.json())
       .then(j => {
@@ -37,6 +55,10 @@ export default function ViewerLoginForm({ tournamentId, tournamentName, onLoginS
   }, [tournamentId]);
 
   async function handleLogin() {
+    if (!belong) {
+      setError('所属を選択してください');
+      return;
+    }
     if (!name.trim()) {
       setError('氏名を入力してください');
       return;
@@ -55,6 +77,11 @@ export default function ViewerLoginForm({ tournamentId, tournamentName, onLoginS
       });
       const json = await res.json();
       if (json.success) {
+        if (saveInfo) {
+          localStorage.setItem(LS_KEY, JSON.stringify({ belong, name: name.trim() }));
+        } else {
+          localStorage.removeItem(LS_KEY);
+        }
         onLoginSuccess(name.trim(), belong);
       } else {
         setError('該当者が存在しないため閲覧できません');
@@ -65,6 +92,19 @@ export default function ViewerLoginForm({ tournamentId, tournamentName, onLoginS
       setLoading(false);
     }
   }
+
+  const formatDate = (d: string | null | undefined) => {
+    if (!d) return '';
+    const dt = new Date(d);
+    return `${dt.getFullYear()}年${dt.getMonth() + 1}月${dt.getDate()}日`;
+  };
+
+  const dateLabel = (() => {
+    const d1 = formatDate(tournamentDay1Date);
+    const d2 = formatDate(tournamentDay2Date);
+    if (d1 && d2) return `${d1} / ${d2}`;
+    return d1 || d2;
+  })();
 
   const inputStyle: React.CSSProperties = {
     background: C.inputBg,
@@ -95,28 +135,34 @@ export default function ViewerLoginForm({ tournamentId, tournamentName, onLoginS
         maxWidth: 440,
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
       }}>
-        <h1 style={{ margin: '0 0 6px', fontSize: 22, color: C.gold, fontWeight: 700 }}>
+        <h1 style={{ margin: '0 0 4px', fontSize: 22, color: C.gold, fontWeight: 700 }}>
           成績確認
         </h1>
-        <p style={{ margin: '0 0 28px', fontSize: 14, color: C.muted }}>
+        <p style={{ margin: '0 0 2px', fontSize: 14, color: C.muted }}>
           {tournamentName}
         </p>
+        {dateLabel && (
+          <p style={{ margin: '0 0 24px', fontSize: 13, color: C.muted }}>
+            {dateLabel}
+          </p>
+        )}
+        {!dateLabel && <div style={{ marginBottom: 24 }} />}
 
         <p style={{ margin: '0 0 20px', fontSize: 15, color: C.text }}>
-          以下を入力してログインしてください
+          所属と氏名を登録して成績を確認してください。
         </p>
 
-        {/* 所属 */}
+        {/* 所属（必須） */}
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 6 }}>
-            所属
+            所属 <span style={{ color: C.red }}>*</span>
           </label>
           {loadingAff ? (
             <div style={{ color: C.muted, fontSize: 14 }}>読み込み中...</div>
           ) : (
             <select
               value={belong}
-              onChange={e => setBelong(e.target.value)}
+              onChange={e => { setBelong(e.target.value); setError(null); }}
               style={inputStyle}
             >
               <option value="">— 選択してください —</option>
@@ -127,8 +173,8 @@ export default function ViewerLoginForm({ tournamentId, tournamentName, onLoginS
           )}
         </div>
 
-        {/* 氏名 */}
-        <div style={{ marginBottom: 24 }}>
+        {/* 氏名（必須） */}
+        <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 6 }}>
             氏名 <span style={{ color: C.red }}>*</span>
           </label>
@@ -138,12 +184,21 @@ export default function ViewerLoginForm({ tournamentId, tournamentName, onLoginS
             onChange={e => { setName(e.target.value); setError(null); }}
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
             style={inputStyle}
-            placeholder="例：松尾"
             autoFocus
           />
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: C.muted }}>
-            名前の一部でも入力できます（例：「松尾」→「松尾 充泰」にマッチ）
-          </p>
+        </div>
+
+        {/* 保存チェックボックス */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: C.muted }}>
+            <input
+              type="checkbox"
+              checked={saveInfo}
+              onChange={e => setSaveInfo(e.target.checked)}
+              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: C.gold }}
+            />
+            所属と氏名を保存する
+          </label>
         </div>
 
         {/* エラー */}

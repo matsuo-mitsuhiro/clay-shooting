@@ -75,7 +75,9 @@ export default function ViewerListPage() {
                 </div>
                 <div className="flex items-center gap-4 text-xs" style={{ color: '#ffffff' }}>
                   {t.venue && <span>📍 {t.venue}</span>}
-                  {t.day1_date && <span>📅 {fmtDate(t.day1_date)}</span>}
+                  {t.day1_date && (
+                    <span>📅 {fmtDate(t.day1_date)}{t.day2_date ? ` / ${fmtDate(t.day2_date)}` : ''}</span>
+                  )}
                 </div>
               </div>
               <span style={{ color: C.gold, fontSize: 20 }}>→</span>

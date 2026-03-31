@@ -106,6 +106,8 @@ export default function ViewerPage({ tournamentId }: Props) {
       <ViewerLoginForm
         tournamentId={tournamentId}
         tournamentName={tournament?.name ?? ''}
+        tournamentDay1Date={tournament?.day1_date}
+        tournamentDay2Date={tournament?.day2_date}
         onLoginSuccess={(name) => {
           setLoginName(name);
           setLoggedIn(true);
