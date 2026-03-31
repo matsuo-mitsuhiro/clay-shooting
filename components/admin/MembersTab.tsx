@@ -21,6 +21,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { C } from '@/lib/colors';
 import { PREFECTURES, DEFAULT_AFFILIATION } from '@/lib/prefectures';
 import type { Member, ClassType } from '@/lib/types';
+import BulkRegisterTab from './BulkRegisterTab';
 
 interface Props {
   tournamentId: number;
@@ -83,6 +84,7 @@ function SortablePlayerRow({ slot }: { slot: SlotItem }) {
 }
 
 export default function MembersTab({ tournamentId }: Props) {
+  const [showBulk, setShowBulk] = useState(false);
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
   const [groupCount, setGroupCount] = useState<{ 1: number; 2: number }>({ 1: 1, 2: 1 });
   const [selectedGroup, setSelectedGroup] = useState(1);
@@ -440,27 +442,42 @@ export default function MembersTab({ tournamentId }: Props) {
 
   return (
     <div style={{ padding: '20px 16px', maxWidth: 900, margin: '0 auto' }}>
-      {/* Day Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      {/* Day Tabs（選手一括登録 / 1日目 / 2日目） */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button
+          onClick={() => { setShowBulk(true); setReorderMode(false); }}
+          style={{
+            background: showBulk ? C.gold : C.surface,
+            color: showBulk ? '#000' : C.muted,
+            border: `1px solid ${showBulk ? C.gold : C.border}`,
+            borderRadius: 6,
+            padding: '7px 18px',
+            fontSize: 16,
+            fontWeight: showBulk ? 700 : 400,
+            cursor: 'pointer',
+          }}
+        >
+          選手一括登録
+        </button>
         {([1, 2] as const).map(day => (
           <button
             key={day}
-            onClick={() => { setSelectedDay(day); setSelectedGroup(1); setReorderMode(false); }}
+            onClick={() => { setShowBulk(false); setSelectedDay(day); setSelectedGroup(1); setReorderMode(false); }}
             style={{
-              background: selectedDay === day ? C.gold : C.surface,
-              color: selectedDay === day ? '#000' : C.muted,
-              border: `1px solid ${selectedDay === day ? C.gold : C.border}`,
+              background: !showBulk && selectedDay === day ? C.gold : C.surface,
+              color: !showBulk && selectedDay === day ? '#000' : C.muted,
+              border: `1px solid ${!showBulk && selectedDay === day ? C.gold : C.border}`,
               borderRadius: 6,
               padding: '7px 18px',
               fontSize: 16,
-              fontWeight: selectedDay === day ? 700 : 400,
+              fontWeight: !showBulk && selectedDay === day ? 700 : 400,
               cursor: 'pointer',
             }}
           >
             {day}日目
           </button>
         ))}
-        {selectedDay === 2 && (
+        {!showBulk && selectedDay === 2 && (
           <button
             onClick={handleCopyDay1}
             style={{
@@ -493,9 +510,14 @@ export default function MembersTab({ tournamentId }: Props) {
         }}>{success}</div>
       )}
 
-      {loading ? (
+      {/* 選手一括登録タブ */}
+      {showBulk && (
+        <BulkRegisterTab tournamentId={tournamentId} onSaved={fetchMembers} />
+      )}
+
+      {!showBulk && loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.muted }}>読み込み中...</div>
-      ) : (
+      ) : !showBulk ? (
         <>
           {/* Group Tabs */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -565,9 +587,9 @@ export default function MembersTab({ tournamentId }: Props) {
                       { label: '番号', color: C.muted },
                       { label: '会員番号', color: C.muted },
                       { label: '氏名', color: C.muted },
-                      { label: '審判フラグ', color: C.muted },
                       { label: '所属', color: C.muted },
                       { label: 'クラス', color: C.muted },
+                      { label: '審判フラグ', color: C.muted },
                       { label: '削除', color: '#e74c3c' },
                     ].map((h, i) => (
                       <th key={i} style={{
@@ -605,17 +627,6 @@ export default function MembersTab({ tournamentId }: Props) {
                           placeholder="氏名"
                         />
                       </td>
-                      <td style={{ padding: '4px 6px', width: 60, textAlign: 'center' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={row.is_judge}
-                            onChange={e => updateRow(idx, 'is_judge', e.target.checked)}
-                            style={{ width: 14, height: 14, cursor: 'pointer', accentColor: C.gold }}
-                          />
-                          <span style={{ fontSize: 15, color: row.is_judge ? C.gold : C.muted }}>⚑</span>
-                        </label>
-                      </td>
                       <td style={{ padding: '4px 6px', minWidth: 110 }}>
                         <select
                           value={row.belong}
@@ -638,6 +649,17 @@ export default function MembersTab({ tournamentId }: Props) {
                             <option key={c} value={c}>{c}</option>
                           ))}
                         </select>
+                      </td>
+                      <td style={{ padding: '4px 6px', width: 60, textAlign: 'center' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={row.is_judge}
+                            onChange={e => updateRow(idx, 'is_judge', e.target.checked)}
+                            style={{ width: 14, height: 14, cursor: 'pointer', accentColor: C.gold }}
+                          />
+                          <span style={{ fontSize: 15, color: row.is_judge ? C.gold : C.muted }}>⚑</span>
+                        </label>
                       </td>
                       <td style={{ padding: '4px 6px', width: 36, textAlign: 'center' }}>
                         <button onClick={() => clearRow(idx)} style={{ background: 'transparent', color: C.muted, border: 'none', fontSize: 16, cursor: 'pointer' }}>✕</button>
@@ -762,7 +784,7 @@ export default function MembersTab({ tournamentId }: Props) {
             </div>
           )}
         </>
-      )}
+      ) : null}
     </div>
   );
 }
