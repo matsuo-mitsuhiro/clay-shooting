@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
@@ -18,6 +19,9 @@ const ORGANIZERS = [
 ];
 
 export default function AdminPage() {
+  const { data: session } = useSession();
+  const isSystem = session?.user?.role === 'system';
+  const userAffiliation = session?.user?.affiliation ?? null;
   const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,12 +110,45 @@ export default function AdminPage() {
             クレー射撃 成績管理システム
           </h1>
         </div>
-        <span style={{ fontSize: 15, color: C.muted }}>管理者画面</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {session?.user && (
+            <>
+              <span style={{ fontSize: 14, color: C.muted }}>
+                {session.user.name ?? session.user.email}
+              </span>
+              <span style={{
+                background: isSystem ? `${C.gold}33` : `${C.blue2}33`,
+                color: isSystem ? C.gold : C.blue2,
+                border: `1px solid ${isSystem ? C.gold : C.blue2}`,
+                borderRadius: 4,
+                padding: '2px 8px',
+                fontSize: 12,
+                fontWeight: 600,
+              }}>
+                {isSystem ? 'システム管理者' : '大会管理者'}
+              </span>
+            </>
+          )}
+          <button
+            onClick={() => signOut({ callbackUrl: '/admin/login' })}
+            style={{
+              background: 'transparent',
+              color: C.muted,
+              border: `1px solid ${C.border}`,
+              borderRadius: 5,
+              padding: '5px 12px',
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            ログアウト
+          </button>
+        </div>
       </header>
 
       <main style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px' }}>
-        {/* 選手マスター管理ボタン */}
-        <div style={{ marginBottom: 20 }}>
+        {/* 管理ボタン群 */}
+        <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button
             onClick={() => router.push('/admin/players')}
             style={{
@@ -137,6 +174,33 @@ export default function AdminPage() {
             </div>
             <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
           </button>
+          {isSystem && (
+            <button
+              onClick={() => router.push('/admin/admins')}
+              style={{
+                background: C.surface,
+                color: C.text,
+                border: `1px solid ${C.border}`,
+                borderRadius: 8,
+                padding: '14px 20px',
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                width: '100%',
+                textAlign: 'left',
+              }}
+            >
+              <span style={{ fontSize: 20 }}>🔑</span>
+              <div>
+                <div>大会管理者マスター</div>
+                <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>大会管理者のアカウント・パスワードを管理</div>
+              </div>
+              <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
+            </button>
+          )}
         </div>
 
         {/* Title + Create Button */}
@@ -309,11 +373,14 @@ export default function AdminPage() {
         )}
 
         {/* Tournament List */}
-        {loading ? (
+        {(() => {
+          const userOrganizerCd = isSystem ? null : (ORGANIZERS.find(o => o.name === userAffiliation)?.cd ?? null);
+          const filteredTournaments = isSystem ? tournaments : tournaments.filter(t => t.organizer_cd === userOrganizerCd);
+          return loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: C.muted }}>
             読み込み中...
           </div>
-        ) : tournaments.length === 0 ? (
+          ) : filteredTournaments.length === 0 ? (
           <div style={{
             background: C.surface,
             border: `1px solid ${C.border}`,
@@ -324,9 +391,9 @@ export default function AdminPage() {
           }}>
             大会が登録されていません。「＋ 新規大会作成」から作成してください。
           </div>
-        ) : (
+          ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {tournaments.map(t => (
+            {filteredTournaments.map(t => (
               <div
                 key={t.id}
                 style={{
@@ -382,7 +449,8 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
-        )}
+          );
+        })()}
       </main>
     </div>
   );

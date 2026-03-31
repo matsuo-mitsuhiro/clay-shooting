@@ -16,6 +16,7 @@ export interface Tournament {
   day1_set: string | null;
   day2_set: string | null;
   organizer_cd: number | null;
+  is_public: boolean;
   admin_qr: string | null;
   viewer_qr: string | null;
   created_at: string;
@@ -126,6 +127,17 @@ export interface ViewerLog {
   name_input: string | null;
   matched_name: string | null;
   user_agent: string | null;
+}
+
+// ---------- TournamentAdmin ----------
+export interface TournamentAdmin {
+  id: number;
+  member_code: string;
+  name: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+  current_affiliation: string | null;
 }
 
 // ---------- API Response ----------

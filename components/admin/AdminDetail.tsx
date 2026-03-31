@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import { C } from '@/lib/colors';
 import type { Tournament } from '@/lib/types';
 import MembersTab from './MembersTab';
@@ -18,6 +19,8 @@ interface Props {
 
 export default function AdminDetail({ tournamentId }: Props) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isSystem = session?.user?.role === 'system';
   const [activeTab, setActiveTab] = useState<TabType>('members');
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,7 +110,38 @@ export default function AdminDetail({ tournamentId }: Props) {
             </div>
           ) : null}
         </div>
-        <span style={{ fontSize: 14, color: C.muted }}>管理者画面</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
+          {session?.user && (
+            <>
+              <span style={{ fontSize: 13, color: C.muted }}>{session.user.name ?? session.user.email}</span>
+              <span style={{
+                background: isSystem ? `${C.gold}33` : `${C.blue2}33`,
+                color: isSystem ? C.gold : C.blue2,
+                border: `1px solid ${isSystem ? C.gold : C.blue2}`,
+                borderRadius: 4,
+                padding: '2px 8px',
+                fontSize: 11,
+                fontWeight: 600,
+              }}>
+                {isSystem ? 'システム管理者' : '大会管理者'}
+              </span>
+            </>
+          )}
+          <button
+            onClick={() => signOut({ callbackUrl: '/admin/login' })}
+            style={{
+              background: 'transparent',
+              color: C.muted,
+              border: `1px solid ${C.border}`,
+              borderRadius: 5,
+              padding: '4px 10px',
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            ログアウト
+          </button>
+        </div>
       </header>
 
       {/* Tabs */}
