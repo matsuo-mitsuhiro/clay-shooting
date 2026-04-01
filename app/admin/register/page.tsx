@@ -97,7 +97,7 @@ function RegisterContent() {
               jpn.clayshooting@gmail.com からメールをお送りしました。<br />
               見当たらない場合は、迷惑メールフォルダを探してください。
             </p>
-            <button onClick={() => router.push('/admin/login')} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '10px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+            <button onClick={() => router.push('/admin/login?member_code=' + encodeURIComponent(memberCode))} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '10px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
               ログイン画面へ
             </button>
           </div>

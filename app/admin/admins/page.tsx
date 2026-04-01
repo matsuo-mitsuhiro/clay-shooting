@@ -211,7 +211,7 @@ export default function AdminsPage() {
           ← 大会一覧
         </button>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.gold, flex: 1 }}>
-          {isSystem ? '大会管理者マスター' : 'アカウント設定'}
+          大会管理者マスター
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {session?.user && (

@@ -11,8 +11,9 @@ function AdminLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') ?? '/admin';
+  const prefilledCode = searchParams.get('member_code') ?? '';
 
-  const [memberCode, setMemberCode] = useState('');
+  const [memberCode, setMemberCode] = useState(prefilledCode);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);

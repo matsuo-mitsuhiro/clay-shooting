@@ -174,9 +174,34 @@ export default function AdminPage() {
             </div>
             <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
           </button>
+          <button
+            onClick={() => router.push('/admin/admins')}
+            style={{
+              background: C.surface,
+              color: C.text,
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              padding: '14px 20px',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              width: '100%',
+              textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: 20 }}>🔑</span>
+            <div>
+              <div>大会管理者マスター</div>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>大会管理者のアカウント・パスワードを管理</div>
+            </div>
+            <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
+          </button>
           {isSystem && (
             <button
-              onClick={() => router.push('/admin/admins')}
+              onClick={() => router.push('/admin/support')}
               style={{
                 background: C.surface,
                 color: C.text,
@@ -193,10 +218,10 @@ export default function AdminPage() {
                 textAlign: 'left',
               }}
             >
-              <span style={{ fontSize: 20 }}>🔑</span>
+              <span style={{ fontSize: 20 }}>💬</span>
               <div>
-                <div>大会管理者マスター</div>
-                <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>大会管理者のアカウント・パスワードを管理</div>
+                <div>質問管理</div>
+                <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>利用者からの質問を受付・回答・Q&A掲載</div>
               </div>
               <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
             </button>
