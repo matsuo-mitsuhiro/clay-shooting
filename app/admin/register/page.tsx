@@ -29,6 +29,8 @@ function RegisterContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
@@ -114,11 +116,17 @@ function RegisterContent() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 8 }}>
               <div>
                 <label style={{ fontSize: 13, color: '#aaa', display: 'block', marginBottom: 6 }}>パスワード <span style={{ color: C.red }}>*</span></label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
+                <div style={{ position: 'relative' }}>
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required style={{ ...inputStyle, paddingRight: 40 }} />
+                  <button type="button" onClick={() => setShowPassword(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#888', fontSize: 16, padding: 0 }}>{showPassword ? '🙈' : '👁'}</button>
+                </div>
               </div>
               <div>
                 <label style={{ fontSize: 13, color: '#aaa', display: 'block', marginBottom: 6 }}>パスワード（確認）<span style={{ color: C.red }}>*</span></label>
-                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required style={inputStyle} />
+                <div style={{ position: 'relative' }}>
+                  <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required style={{ ...inputStyle, paddingRight: 40 }} />
+                  <button type="button" onClick={() => setShowConfirmPassword(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#888', fontSize: 16, padding: 0 }}>{showConfirmPassword ? '🙈' : '👁'}</button>
+                </div>
               </div>
             </div>
             <p style={{ fontSize: 12, color: '#888', marginBottom: 20 }}>8〜32文字、英字と数字を各1文字以上含む</p>

@@ -60,6 +60,7 @@ export default function AdminsPage() {
 
   // パスワード表示切替
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   const isSystem = session?.user?.role === 'system';
   const myCode = session?.user?.member_code;
@@ -382,7 +383,12 @@ export default function AdminsPage() {
                 </div>
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 4 }}>新しいパスワード（変更する場合のみ、8〜32文字、英字+数字）</label>
-                  <input style={inputStyle} type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="変更しない場合は空欄" />
+                  <div style={{ position: 'relative' }}>
+                    <input style={{ ...inputStyle, paddingRight: 40 }} type={showEditPassword ? 'text' : 'password'} value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="変更しない場合は空欄" />
+                    <button type="button" onClick={() => setShowEditPassword(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#888', fontSize: 16, padding: 0 }}>
+                      {showEditPassword ? '🙈' : '👁'}
+                    </button>
+                  </div>
                 </div>
                 {isSystem && (
                   <div style={{ marginBottom: 14 }}>

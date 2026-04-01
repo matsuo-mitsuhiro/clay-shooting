@@ -14,6 +14,7 @@ function AdminLoginContent() {
 
   const [memberCode, setMemberCode] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,13 +147,18 @@ function AdminLoginContent() {
               <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 6 }}>
                 パスワード
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => { setPassword(e.target.value); setError(null); }}
-                style={inputStyle}
-                autoComplete="current-password"
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setError(null); }}
+                  style={{ ...inputStyle, paddingRight: 40 }}
+                  autoComplete="current-password"
+                />
+                <button type="button" onClick={() => setShowPassword(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#888', fontSize: 16, padding: 0 }}>
+                  {showPassword ? '🙈' : '👁'}
+                </button>
+              </div>
             </div>
 
             {error && (
