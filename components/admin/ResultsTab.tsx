@@ -18,6 +18,13 @@ export default function ResultsTab({ tournamentId }: Props) {
   const [belongFilter, setBelongFilter] = useState<'all' | string>('all');
   const [highlightedCode, setHighlightedCode] = useState<string | null>(null);
 
+  // 手動順位モーダル
+  const [manualModalOpen, setManualModalOpen] = useState(false);
+  const [dndItems, setDndItems] = useState<Result[]>([]);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [savingRank, setSavingRank] = useState(false);
+  const [rankError, setRankError] = useState<string | null>(null);
+
   const fetchResults = useCallback(async () => {
     try {
       setLoading(true);
@@ -35,9 +42,7 @@ export default function ResultsTab({ tournamentId }: Props) {
     }
   }, [tournamentId]);
 
-  useEffect(() => {
-    fetchResults();
-  }, [fetchResults]);
+  useEffect(() => { fetchResults(); }, [fetchResults]);
 
   const belongs = Array.from(new Set(results.map(r => r.belong).filter(Boolean))) as string[];
 
@@ -47,26 +52,106 @@ export default function ResultsTab({ tournamentId }: Props) {
     return true;
   });
 
-  // 有効選手のみで平均計算
+  // 有効選手のみで統計計算
   const validScores = filtered
     .filter(r => r.status === 'valid' || !r.status)
-    .map(r => r.total)
-    .filter(v => v > 0);
+    .map(r => r.total).filter(v => v > 0);
   const overallAvg = validScores.length > 0
-    ? (validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(2)
-    : '-';
+    ? (validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(2) : '-';
   const top6 = [...validScores].sort((a, b) => b - a).slice(0, 6);
   const top6Avg = top6.length > 0
-    ? (top6.reduce((a, b) => a + b, 0) / top6.length).toFixed(2)
-    : '-';
+    ? (top6.reduce((a, b) => a + b, 0) / top6.length).toFixed(2) : '-';
 
-  // CB/FR 列を表示するか（いずれかの選手に値があれば表示）
+  // CB/FR 列表示フラグ
   const hasCB = results.some(r => r.cb !== null && r.cb !== undefined);
   const hasFR = results.some(r => r.fr !== null && r.fr !== undefined);
+
+  // 手動順位設定中フラグ
+  const hasManualRank = results.some(r => r.manual_rank !== null && r.manual_rank !== undefined);
 
   function handleRowClick(code: string) {
     setHighlightedCode(prev => prev === code ? null : code);
   }
+
+  // ---- 手動順位モーダル ----
+  function openManualModal() {
+    // 有効選手のみ DnD リストに（API からの順序 = 現在の rank 順）
+    const valid = results.filter(r => r.status === 'valid' || !r.status);
+    setDndItems(valid);
+    setRankError(null);
+    setManualModalOpen(true);
+  }
+
+  function handleDragStart(e: React.DragEvent, idx: number) {
+    setDragIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function handleDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragIdx === null || dragIdx === idx) return;
+    const next = [...dndItems];
+    const [removed] = next.splice(dragIdx, 1);
+    next.splice(idx, 0, removed);
+    setDndItems(next);
+    setDragIdx(idx);
+  }
+
+  function handleDrop() {
+    setDragIdx(null);
+  }
+
+  async function saveManualRank() {
+    setSavingRank(true);
+    setRankError(null);
+    try {
+      // 有効選手に連番、失格・棄権は null
+      const rankings = [
+        ...dndItems.map((r, i) => ({ member_code: r.member_code, manual_rank: i + 1 })),
+        ...results
+          .filter(r => r.status === 'disqualified' || r.status === 'withdrawn')
+          .map(r => ({ member_code: r.member_code, manual_rank: null })),
+      ];
+      const res = await fetch(`/api/tournaments/${tournamentId}/scores/ranking`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rankings }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setManualModalOpen(false);
+      await fetchResults();
+    } catch (e) {
+      setRankError(e instanceof Error ? e.message : '保存に失敗しました');
+    } finally {
+      setSavingRank(false);
+    }
+  }
+
+  async function resetToAutoRank() {
+    setSavingRank(true);
+    setRankError(null);
+    try {
+      const rankings = results.map(r => ({ member_code: r.member_code, manual_rank: null }));
+      const res = await fetch(`/api/tournaments/${tournamentId}/scores/ranking`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rankings }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setManualModalOpen(false);
+      await fetchResults();
+    } catch (e) {
+      setRankError(e instanceof Error ? e.message : 'リセットに失敗しました');
+    } finally {
+      setSavingRank(false);
+    }
+  }
+
+  // DQ/withdrawn リスト（モーダル下部表示用）
+  const dqItems = results.filter(r => r.status === 'disqualified' || r.status === 'withdrawn');
 
   const scoreCell = (val: number | null): React.ReactNode => {
     if (val === null) return <span style={{ color: C.muted }}>-</span>;
@@ -79,19 +164,183 @@ export default function ResultsTab({ tournamentId }: Props) {
 
   return (
     <div style={{ padding: '20px 16px', maxWidth: 1200, margin: '0 auto' }}>
+
+      {/* 手動順位モーダル */}
+      {manualModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 2000, padding: 16,
+        }}>
+          <div style={{
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
+            padding: 28, width: '100%', maxWidth: 520,
+            maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+          }}>
+            {/* モーダルヘッダー */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ margin: 0, fontSize: 18, color: C.gold, fontWeight: 700 }}>成績順位手動設定</h2>
+              <button
+                onClick={() => setManualModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 22, cursor: 'pointer', lineHeight: 1 }}
+              >✕</button>
+            </div>
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
+              ドラッグして順位を並び替えてください。並べた順番に 1位・2位・3位… と連番で確定されます。
+            </p>
+
+            {/* DnD リスト */}
+            <div style={{ overflowY: 'auto', flex: 1, paddingRight: 4 }}>
+              {dndItems.map((r, i) => (
+                <div
+                  key={r.member_code}
+                  draggable
+                  onDragStart={e => handleDragStart(e, i)}
+                  onDragOver={e => handleDragOver(e, i)}
+                  onDrop={handleDrop}
+                  onDragEnd={handleDrop}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 14px', marginBottom: 6,
+                    background: dragIdx === i ? `${C.gold}22` : C.surface2,
+                    border: `1px solid ${dragIdx === i ? C.gold : C.border}`,
+                    borderRadius: 8,
+                    cursor: 'grab',
+                    opacity: dragIdx === i ? 0.6 : 1,
+                    transition: 'background 0.1s, border-color 0.1s',
+                    userSelect: 'none',
+                  }}
+                >
+                  <span style={{ color: C.muted, fontSize: 20, lineHeight: 1, flexShrink: 0 }}>≡</span>
+                  <span style={{
+                    color: C.gold, fontWeight: 700, fontSize: 17,
+                    minWidth: 32, textAlign: 'right', flexShrink: 0,
+                  }}>{i + 1}</span>
+                  <span style={{ color: C.text, fontWeight: 500, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {r.name}
+                    {r.is_judge ? <span style={{ color: C.gold, marginLeft: 4 }}>⚑</span> : ''}
+                  </span>
+                  <span style={{ color: C.muted, fontSize: 13, flexShrink: 0 }}>{r.belong ?? ''}</span>
+                  <span style={{ color: C.gold, fontWeight: 700, fontSize: 15, minWidth: 28, textAlign: 'right', flexShrink: 0 }}>
+                    {r.total}
+                  </span>
+                </div>
+              ))}
+
+              {/* 失格・棄権（ドラッグ不可・最下部固定） */}
+              {dqItems.length > 0 && (
+                <>
+                  {dndItems.length > 0 && (
+                    <div style={{ borderTop: `1px dashed ${C.border}`, margin: '10px 0 8px', opacity: 0.4 }} />
+                  )}
+                  {dqItems.map(r => (
+                    <div
+                      key={r.member_code}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '8px 14px', marginBottom: 6,
+                        background: '#e74c3c08',
+                        border: `1px solid ${C.border}33`,
+                        borderRadius: 8, opacity: 0.55,
+                      }}
+                    >
+                      <span style={{ color: '#e74c3c', fontWeight: 700, fontSize: 13, minWidth: 32, textAlign: 'right' }}>―</span>
+                      <span style={{ color: '#e74c3c', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {r.name}
+                        <span style={{ fontSize: 12, marginLeft: 6 }}>
+                          {r.status === 'disqualified' ? '失格' : '棄権'}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* エラー */}
+            {rankError && (
+              <div style={{ background: '#e74c3c22', border: '1px solid #e74c3c', color: '#e74c3c', borderRadius: 6, padding: '8px 12px', marginTop: 12, fontSize: 13 }}>
+                ⚠ {rankError}
+              </div>
+            )}
+
+            {/* ボタン */}
+            <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+              <button
+                onClick={saveManualRank}
+                disabled={savingRank}
+                style={{
+                  flex: 1, background: C.gold, color: '#000', border: 'none',
+                  borderRadius: 6, padding: '11px', fontSize: 15, fontWeight: 700,
+                  cursor: savingRank ? 'not-allowed' : 'pointer', opacity: savingRank ? 0.7 : 1,
+                  minWidth: 120,
+                }}
+              >
+                {savingRank ? '保存中...' : '保存する'}
+              </button>
+              <button
+                onClick={resetToAutoRank}
+                disabled={savingRank}
+                style={{
+                  background: 'transparent', color: '#e67e22',
+                  border: '1px solid #e67e22', borderRadius: 6,
+                  padding: '11px 14px', fontSize: 13, cursor: savingRank ? 'not-allowed' : 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                自動計算に戻す
+              </button>
+              <button
+                onClick={() => setManualModalOpen(false)}
+                disabled={savingRank}
+                style={{
+                  background: 'transparent', color: C.muted,
+                  border: `1px solid ${C.border}`, borderRadius: 6,
+                  padding: '11px 14px', fontSize: 14, cursor: 'pointer',
+                }}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <h3 style={{ margin: 0, fontSize: 18, color: C.text }}>成績一覧</h3>
-        <button
-          onClick={fetchResults}
-          style={{
-            background: C.surface2, color: C.gold,
-            border: `1px solid ${C.gold}`, borderRadius: 6,
-            padding: '6px 14px', fontSize: 15, cursor: 'pointer', fontWeight: 600,
-          }}
-        >
-          ↺ 更新
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {hasManualRank && (
+            <span style={{
+              background: '#e67e2222', color: '#e67e22',
+              border: '1px solid #e67e22', borderRadius: 20,
+              padding: '3px 12px', fontSize: 12, fontWeight: 700,
+            }}>
+              手動設定中
+            </span>
+          )}
+          <button
+            onClick={openManualModal}
+            style={{
+              background: C.surface2, color: C.text,
+              border: `1px solid ${C.border}`, borderRadius: 6,
+              padding: '6px 14px', fontSize: 14, cursor: 'pointer', fontWeight: 600,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            成績順位手動設定
+          </button>
+          <button
+            onClick={fetchResults}
+            style={{
+              background: C.surface2, color: C.gold,
+              border: `1px solid ${C.gold}`, borderRadius: 6,
+              padding: '6px 14px', fontSize: 15, cursor: 'pointer', fontWeight: 600,
+            }}
+          >
+            ↺ 更新
+          </button>
+        </div>
       </div>
 
       {/* Error */}
@@ -186,11 +435,12 @@ export default function ResultsTab({ tournamentId }: Props) {
             </div>
           </div>
 
-          {/* CB/FR 凡例（表示中の場合のみ） */}
+          {/* CB/FR 凡例 */}
           {(hasCB || hasFR) && (
             <div style={{
               background: C.surface, border: `1px solid ${C.border}`, borderRadius: 6,
-              padding: '8px 14px', marginBottom: 12, display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: C.muted,
+              padding: '8px 14px', marginBottom: 12,
+              display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: C.muted,
             }}>
               {hasCB && <span><span style={{ color: '#e67e22', fontWeight: 700 }}>CB</span>: カウントバック（小さい数字が上位）</span>}
               {hasFR && <span><span style={{ color: '#9b59b6', fontWeight: 700 }}>FR</span>: ファイナルシュートオフ（大きい数字が上位）</span>}
@@ -238,7 +488,6 @@ export default function ResultsTab({ tournamentId }: Props) {
                     {filtered.map(r => {
                       const isHighlighted = highlightedCode === r.member_code;
                       const isDQ = r.status === 'disqualified' || r.status === 'withdrawn';
-                      const nameColor = isDQ ? '#e74c3c' : C.text;
 
                       return (
                         <tr
@@ -264,7 +513,7 @@ export default function ResultsTab({ tournamentId }: Props) {
 
                           {/* 氏名 */}
                           <td style={{ ...tdS, textAlign: 'left', whiteSpace: 'nowrap' }}>
-                            <span style={{ color: nameColor, fontWeight: 500 }}>{r.name}</span>
+                            <span style={{ color: isDQ ? '#e74c3c' : C.text, fontWeight: 500 }}>{r.name}</span>
                             {r.status === 'disqualified' && (
                               <span style={{ color: '#e74c3c', fontSize: 12, marginLeft: 6, fontWeight: 700 }}>失格</span>
                             )}
@@ -304,8 +553,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                           </td>
                           <td style={{ ...tdS, color: C.muted }}>
                             {!isDQ && r.average !== null && r.average !== undefined
-                              ? Number(r.average).toFixed(2)
-                              : '-'}
+                              ? Number(r.average).toFixed(2) : '-'}
                           </td>
                           {hasCB && (
                             <td style={{ ...tdS, color: r.cb ? '#e67e22' : C.muted, fontWeight: r.cb ? 700 : 400 }}>
@@ -338,20 +586,12 @@ export default function ResultsTab({ tournamentId }: Props) {
 }
 
 const thS: React.CSSProperties = {
-  padding: '8px 8px',
-  fontSize: 14,
-  color: C.muted,
-  fontWeight: 600,
-  textAlign: 'center',
-  borderBottom: `1px solid ${C.border}`,
-  whiteSpace: 'nowrap',
+  padding: '8px 8px', fontSize: 14, color: C.muted, fontWeight: 600,
+  textAlign: 'center', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap',
 };
 
 const tdS: React.CSSProperties = {
-  padding: '7px 8px',
-  fontSize: 15,
-  textAlign: 'center',
-  whiteSpace: 'nowrap',
+  padding: '7px 8px', fontSize: 15, textAlign: 'center', whiteSpace: 'nowrap',
 };
 
 function classBadgeBg(c: ClassType | 'all'): string {

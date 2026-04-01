@@ -81,6 +81,7 @@ export interface Score {
   cb: number | null;
   fr: number | null;
   status: ScoreStatus;
+  manual_rank: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -122,6 +123,7 @@ export interface Result {
   cb: number | null;
   fr: number | null;
   status: ScoreStatus;
+  manual_rank: number | null;
   day1_total: number;
   day2_total: number;
   total: number;

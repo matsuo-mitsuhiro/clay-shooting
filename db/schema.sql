@@ -92,6 +92,7 @@ CREATE TABLE scores (
   fr            SMALLINT     CHECK (fr BETWEEN 1 AND 99),  -- ファイナルシュートオフ（1〜99）
   status        VARCHAR(20)  NOT NULL DEFAULT 'valid'
                   CHECK (status IN ('valid', 'disqualified', 'withdrawn')), -- 成績ステータス
+  manual_rank   SMALLINT,                                  -- 手動順位（NULLで自動計算）
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 
@@ -108,6 +109,7 @@ COMMENT ON COLUMN scores.r5            IS '2日目ラウンド1（NULL=未入力
 COMMENT ON COLUMN scores.cb            IS 'カウントバック（1〜6、小さい方が上位）';
 COMMENT ON COLUMN scores.fr            IS 'ファイナルシュートオフ（1〜99、大きい方が上位）';
 COMMENT ON COLUMN scores.status        IS '成績ステータス：valid=有効 / disqualified=失格 / withdrawn=棄権';
+COMMENT ON COLUMN scores.manual_rank   IS '手動順位（NULL=自動計算、設定時はこの値を優先）';
 
 
 -- ============================================================
