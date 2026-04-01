@@ -21,6 +21,15 @@ interface Question {
   answered_at: string | null;
 }
 
+interface FaqItem {
+  id: number;
+  category: string;
+  title: string;
+  question: string;
+  answer: string;
+  published_at: string;
+}
+
 const FAQ_CATEGORIES = ['閲覧者の機能', '大会管理者の機能'];
 
 const inputStyle: React.CSSProperties = {
@@ -39,10 +48,21 @@ export default function AdminSupportPage() {
   const router = useRouter();
   const isSystem = session?.user?.role === 'system';
 
+  const [activeTab, setActiveTab] = useState<'questions' | 'faq'>('questions');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('');
+
+  // FAQ管理
+  const [faqItems, setFaqItems] = useState<FaqItem[]>([]);
+  const [faqLoading, setFaqLoading] = useState(false);
+  const [editFaq, setEditFaq] = useState<FaqItem | null>(null);
+  const [editFaqCategory, setEditFaqCategory] = useState('');
+  const [editFaqTitle, setEditFaqTitle] = useState('');
+  const [editFaqQuestion, setEditFaqQuestion] = useState('');
+  const [editFaqAnswer, setEditFaqAnswer] = useState('');
+  const [editFaqError, setEditFaqError] = useState('');
   const [selectedQ, setSelectedQ] = useState<Question | null>(null);
   const [answerBody, setAnswerBody] = useState('');
   const [answerError, setAnswerError] = useState('');
@@ -68,12 +88,78 @@ export default function AdminSupportPage() {
     }
   }, []);
 
+  const fetchFaqItems = useCallback(async () => {
+    setFaqLoading(true);
+    try {
+      const res = await fetch('/api/admin/support/faq');
+      const json = await res.json();
+      if (json.success) setFaqItems(json.data);
+    } finally {
+      setFaqLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (status === 'authenticated') {
       if (!isSystem) { router.push('/admin'); return; }
       fetchQuestions();
     }
   }, [status, isSystem, router, fetchQuestions]);
+
+  useEffect(() => {
+    if (activeTab === 'faq' && isSystem) fetchFaqItems();
+  }, [activeTab, isSystem, fetchFaqItems]);
+
+  function openEditFaq(item: FaqItem) {
+    setEditFaq(item);
+    setEditFaqCategory(item.category);
+    setEditFaqTitle(item.title);
+    setEditFaqQuestion(item.question);
+    setEditFaqAnswer(item.answer);
+    setEditFaqError('');
+  }
+
+  async function handleUpdateFaq(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editFaq) return;
+    if (!editFaqTitle.trim() || !editFaqQuestion.trim() || !editFaqAnswer.trim()) {
+      setEditFaqError('タイトル・質問・回答をすべて入力してください');
+      return;
+    }
+    setSaving(true);
+    setEditFaqError('');
+    try {
+      const res = await fetch('/api/admin/support/faq', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editFaq.id, category: editFaqCategory, title: editFaqTitle.trim(), question: editFaqQuestion.trim(), answer: editFaqAnswer.trim() }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setEditFaq(null);
+        await fetchFaqItems();
+      } else {
+        setEditFaqError(json.error ?? '更新に失敗しました');
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteFaq(id: number, title: string) {
+    if (!confirm(`「${title || 'このQ&A'}」を削除しますか？`)) return;
+    setSaving(true);
+    try {
+      await fetch('/api/admin/support/faq', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      await fetchFaqItems();
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function openDetail(q: Question) {
     setSelectedQ(q);
@@ -170,6 +256,38 @@ export default function AdminSupportPage() {
 
       <main style={{ maxWidth: 960, margin: '0 auto', padding: '28px 16px' }}>
 
+        {/* タブ */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: `1px solid ${C.border}` }}>
+          {[['questions', '質問一覧'], ['faq', 'Q&A管理']].map(([tab, label]) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab as 'questions' | 'faq')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === tab ? `2px solid ${C.gold}` : '2px solid transparent',
+                color: activeTab === tab ? C.gold : C.muted,
+                padding: '8px 20px',
+                fontSize: 15,
+                fontWeight: activeTab === tab ? 700 : 400,
+                cursor: 'pointer',
+                marginBottom: -1,
+              }}
+            >
+              {label}
+              {tab === 'questions' && pendingCount > 0 && (
+                <span style={{ background: C.red, color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 11, fontWeight: 700, marginLeft: 6 }}>{pendingCount}</span>
+              )}
+              {tab === 'faq' && (
+                <span style={{ color: C.muted, fontSize: 12, marginLeft: 6 }}>({faqItems.length})</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ===== 質問一覧タブ ===== */}
+        {activeTab === 'questions' && <>
+
         {/* フィルタ */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           {[['', 'すべて'], ['pending', '未回答'], ['answered', '回答済み']].map(([val, label]) => (
@@ -229,6 +347,67 @@ export default function AdminSupportPage() {
             )}
           </div>
         )}
+
+        </> /* 質問一覧タブ END */}
+
+        {/* ===== Q&A管理タブ ===== */}
+        {activeTab === 'faq' && (
+          <>
+            {faqLoading ? (
+              <div style={{ textAlign: 'center', padding: 48, color: C.muted }}>読み込み中...</div>
+            ) : faqItems.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 48, color: C.muted }}>
+                <p>掲載済みのQ&Aはありません</p>
+                <p style={{ fontSize: 13 }}>質問管理から回答後、「Q&Aに掲載」で追加できます</p>
+              </div>
+            ) : (
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: C.surface2 }}>
+                      {['カテゴリ', 'タイトル', '掲載日', '操作'].map(h => (
+                        <th key={h} style={{ padding: '10px 12px', fontSize: 13, color: C.muted, fontWeight: 600, textAlign: 'left', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {faqItems.map(item => (
+                      <tr key={item.id} style={{ borderBottom: `1px solid ${C.border}33` }}>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{ background: `${C.gold}22`, color: C.gold, border: `1px solid ${C.gold}44`, borderRadius: 4, padding: '2px 8px', fontSize: 12 }}>
+                            {item.category}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px', fontSize: 14, fontWeight: 500, maxWidth: 320 }}>
+                          <div style={{ fontWeight: 600, color: C.gold, marginBottom: 2 }}>{item.title || '—'}</div>
+                          <div style={{ fontSize: 12, color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.question}</div>
+                        </td>
+                        <td style={{ padding: '10px 12px', fontSize: 13, color: C.muted, whiteSpace: 'nowrap' }}>
+                          {new Date(item.published_at).toLocaleDateString('ja-JP')}
+                        </td>
+                        <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                          <button
+                            onClick={() => openEditFaq(item)}
+                            style={{ background: C.surface2, color: C.text, border: `1px solid ${C.border}`, borderRadius: 4, padding: '4px 12px', fontSize: 13, cursor: 'pointer', marginRight: 6 }}
+                          >
+                            編集
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFaq(item.id, item.title)}
+                            style={{ background: `${C.red}22`, color: '#e74c3c', border: `1px solid ${C.red}44`, borderRadius: 4, padding: '4px 12px', fontSize: 13, cursor: 'pointer' }}
+                          >
+                            削除
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+
       </main>
 
       {/* 詳細・回答モーダル */}
@@ -344,6 +523,41 @@ export default function AdminSupportPage() {
                 <button onClick={() => { setShowFaqModal(false); setSelectedQ(null); }} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '10px 22px', fontWeight: 700, cursor: 'pointer' }}>閉じる</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Q&A編集モーダル */}
+      {editFaq && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: 16, overflowY: 'auto' }}>
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 32, width: '100%', maxWidth: 560, position: 'relative', margin: 'auto' }}>
+            <button onClick={() => setEditFaq(null)} style={{ position: 'absolute', top: 14, right: 16, background: 'transparent', border: 'none', color: C.muted, fontSize: 20, cursor: 'pointer' }}>✕</button>
+            <h3 style={{ margin: '0 0 20px', fontSize: 18, color: C.gold }}>Q&A 編集</h3>
+            <form onSubmit={handleUpdateFaq}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 6 }}>カテゴリ</label>
+                <select style={{ ...inputStyle, cursor: 'pointer' }} value={editFaqCategory} onChange={e => setEditFaqCategory(e.target.value)}>
+                  {FAQ_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 6 }}>タイトル <span style={{ color: '#e74c3c' }}>*</span></label>
+                <input style={inputStyle} value={editFaqTitle} onChange={e => setEditFaqTitle(e.target.value)} required />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 6 }}>質問文</label>
+                <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical', lineHeight: 1.6 }} value={editFaqQuestion} onChange={e => setEditFaqQuestion(e.target.value)} required />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 6 }}>回答文</label>
+                <textarea style={{ ...inputStyle, minHeight: 100, resize: 'vertical', lineHeight: 1.6 }} value={editFaqAnswer} onChange={e => setEditFaqAnswer(e.target.value)} required />
+              </div>
+              {editFaqError && <div style={{ color: '#e74c3c', fontSize: 13, marginBottom: 10 }}>⚠ {editFaqError}</div>}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="submit" style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '10px 22px', fontWeight: 700, cursor: 'pointer' }}>保存</button>
+                <button type="button" onClick={() => setEditFaq(null)} style={{ background: 'transparent', color: C.muted, border: `1px solid ${C.border}`, borderRadius: 6, padding: '10px 16px', cursor: 'pointer' }}>キャンセル</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

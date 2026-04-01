@@ -6,6 +6,21 @@ import { neon } from '@neondatabase/serverless';
 function unauth() { return NextResponse.json({ success: false, error: '認証が必要です' }, { status: 401 }); }
 function forbidden() { return NextResponse.json({ success: false, error: '権限がありません' }, { status: 403 }); }
 
+// GET /api/admin/support/faq — Q&A一覧取得（管理者用・全件）
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return unauth();
+  if (session.user.role !== 'system') return forbidden();
+
+  const sql = neon(process.env.DATABASE_URL!);
+  const rows = await sql`
+    SELECT id, category, title, question, answer, published_at, sort_order
+    FROM faq_items
+    ORDER BY sort_order, published_at DESC
+  `;
+  return NextResponse.json({ success: true, data: rows });
+}
+
 // POST /api/admin/support/faq — Q&Aに掲載
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -25,6 +40,30 @@ export async function POST(req: NextRequest) {
       RETURNING id
     `;
     return NextResponse.json({ success: true, id: rows[0].id });
+  } catch (e) {
+    return NextResponse.json({ success: false, error: String(e) }, { status: 500 });
+  }
+}
+
+// PUT /api/admin/support/faq — Q&A更新
+export async function PUT(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return unauth();
+  if (session.user.role !== 'system') return forbidden();
+
+  try {
+    const { id, category, title, question, answer } = await req.json();
+    if (!id || !category || !question || !answer) {
+      return NextResponse.json({ success: false, error: '必須項目が不足しています' }, { status: 400 });
+    }
+
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      UPDATE faq_items
+      SET category = ${category}, title = ${title ?? ''}, question = ${question}, answer = ${answer}
+      WHERE id = ${id}
+    `;
+    return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json({ success: false, error: String(e) }, { status: 500 });
   }
