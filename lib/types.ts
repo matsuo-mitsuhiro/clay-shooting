@@ -63,6 +63,8 @@ export interface MemberInput {
 }
 
 // ---------- Score ----------
+export type ScoreStatus = 'valid' | 'disqualified' | 'withdrawn';
+
 export interface Score {
   id: number;
   tournament_id: number;
@@ -76,6 +78,9 @@ export interface Score {
   r6: number | null;
   r7: number | null;
   r8: number | null;
+  cb: number | null;
+  fr: number | null;
+  status: ScoreStatus;
   created_at: string;
   updated_at: string;
 }
@@ -91,6 +96,9 @@ export interface ScoreInput {
   r6?: number | null;
   r7?: number | null;
   r8?: number | null;
+  cb?: number | null;
+  fr?: number | null;
+  status?: ScoreStatus;
 }
 
 // ---------- Result (v_results ビュー) ----------
@@ -111,11 +119,14 @@ export interface Result {
   r6: number | null;
   r7: number | null;
   r8: number | null;
+  cb: number | null;
+  fr: number | null;
+  status: ScoreStatus;
   day1_total: number;
   day2_total: number;
   total: number;
   average: number | null;
-  rank: number;
+  rank: number | null;
 }
 
 // ---------- ViewerLog ----------

@@ -47,14 +47,22 @@ export default function ResultsTab({ tournamentId }: Props) {
     return true;
   });
 
-  const totalScores = filtered.map(r => r.total).filter(v => v > 0);
-  const overallAvg = totalScores.length > 0
-    ? (totalScores.reduce((a, b) => a + b, 0) / totalScores.length).toFixed(2)
+  // 有効選手のみで平均計算
+  const validScores = filtered
+    .filter(r => r.status === 'valid' || !r.status)
+    .map(r => r.total)
+    .filter(v => v > 0);
+  const overallAvg = validScores.length > 0
+    ? (validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(2)
     : '-';
-  const top6 = totalScores.sort((a, b) => b - a).slice(0, 6);
+  const top6 = [...validScores].sort((a, b) => b - a).slice(0, 6);
   const top6Avg = top6.length > 0
     ? (top6.reduce((a, b) => a + b, 0) / top6.length).toFixed(2)
     : '-';
+
+  // CB/FR 列を表示するか（いずれかの選手に値があれば表示）
+  const hasCB = results.some(r => r.cb !== null && r.cb !== undefined);
+  const hasFR = results.some(r => r.fr !== null && r.fr !== undefined);
 
   function handleRowClick(code: string) {
     setHighlightedCode(prev => prev === code ? null : code);
@@ -70,21 +78,16 @@ export default function ResultsTab({ tournamentId }: Props) {
   };
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ padding: '20px 16px', maxWidth: 1200, margin: '0 auto' }}>
       {/* Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <h3 style={{ margin: 0, fontSize: 18, color: C.text }}>成績一覧</h3>
         <button
           onClick={fetchResults}
           style={{
-            background: C.surface2,
-            color: C.gold,
-            border: `1px solid ${C.gold}`,
-            borderRadius: 6,
-            padding: '6px 14px',
-            fontSize: 15,
-            cursor: 'pointer',
-            fontWeight: 600,
+            background: C.surface2, color: C.gold,
+            border: `1px solid ${C.gold}`, borderRadius: 6,
+            padding: '6px 14px', fontSize: 15, cursor: 'pointer', fontWeight: 600,
           }}
         >
           ↺ 更新
@@ -183,6 +186,17 @@ export default function ResultsTab({ tournamentId }: Props) {
             </div>
           </div>
 
+          {/* CB/FR 凡例（表示中の場合のみ） */}
+          {(hasCB || hasFR) && (
+            <div style={{
+              background: C.surface, border: `1px solid ${C.border}`, borderRadius: 6,
+              padding: '8px 14px', marginBottom: 12, display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: C.muted,
+            }}>
+              {hasCB && <span><span style={{ color: '#e67e22', fontWeight: 700 }}>CB</span>: カウントバック（小さい数字が上位）</span>}
+              {hasFR && <span><span style={{ color: '#9b59b6', fontWeight: 700 }}>FR</span>: ファイナルシュートオフ（大きい数字が上位）</span>}
+            </div>
+          )}
+
           {/* Results Table */}
           {filtered.length === 0 ? (
             <div style={{
@@ -194,11 +208,11 @@ export default function ResultsTab({ tournamentId }: Props) {
           ) : (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 820 : 600 }}>
                   <thead>
                     <tr style={{ background: C.surface2 }}>
                       <th style={thS}>順位</th>
-                      <th style={{ ...thS, textAlign: 'left' }}>氏名　審判フラグ</th>
+                      <th style={{ ...thS, textAlign: 'left' }}>氏名</th>
                       <th style={thS}>組</th>
                       <th style={{ ...thS, textAlign: 'left' }}>所属</th>
                       <th style={thS}>クラス</th>
@@ -216,28 +230,50 @@ export default function ResultsTab({ tournamentId }: Props) {
                       </>}
                       <th style={{ ...thS, color: C.gold }}>合計</th>
                       <th style={thS}>平均</th>
+                      {hasCB && <th style={{ ...thS, color: '#e67e22' }}>CB</th>}
+                      {hasFR && <th style={{ ...thS, color: '#9b59b6' }}>FR</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map(r => {
                       const isHighlighted = highlightedCode === r.member_code;
+                      const isDQ = r.status === 'disqualified' || r.status === 'withdrawn';
+                      const nameColor = isDQ ? '#e74c3c' : C.text;
+
                       return (
                         <tr
                           key={r.member_code}
                           onClick={() => handleRowClick(r.member_code)}
                           style={{
                             borderBottom: `1px solid ${C.border}33`,
-                            background: isHighlighted ? `${C.green}22` : 'transparent',
+                            background: isDQ
+                              ? '#e74c3c0a'
+                              : isHighlighted ? `${C.green}22` : 'transparent',
                             cursor: 'pointer',
                             transition: 'background 0.15s',
                           }}
                         >
-                          <td style={{ ...tdS, color: r.rank <= 3 ? C.gold : C.muted, fontWeight: r.rank <= 3 ? 700 : 400 }}>
-                            {r.rank}
+                          {/* 順位 */}
+                          <td style={{
+                            ...tdS,
+                            color: r.rank && r.rank <= 3 ? C.gold : C.muted,
+                            fontWeight: r.rank && r.rank <= 3 ? 700 : 400,
+                          }}>
+                            {r.rank ?? ''}
                           </td>
-                          <td style={{ ...tdS, textAlign: 'left', color: C.text, fontWeight: 500, whiteSpace: 'nowrap' }}>
-                            {r.name}{r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
+
+                          {/* 氏名 */}
+                          <td style={{ ...tdS, textAlign: 'left', whiteSpace: 'nowrap' }}>
+                            <span style={{ color: nameColor, fontWeight: 500 }}>{r.name}</span>
+                            {r.status === 'disqualified' && (
+                              <span style={{ color: '#e74c3c', fontSize: 12, marginLeft: 6, fontWeight: 700 }}>失格</span>
+                            )}
+                            {r.status === 'withdrawn' && (
+                              <span style={{ color: '#e74c3c', fontSize: 12, marginLeft: 6, fontWeight: 700 }}>棄権</span>
+                            )}
+                            {r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
                           </td>
+
                           <td style={{ ...tdS, color: C.muted, fontSize: 14 }}>
                             {r.group1}{r.group2 ? `/${r.group2}` : ''}組
                           </td>
@@ -263,8 +299,24 @@ export default function ResultsTab({ tournamentId }: Props) {
                             <td style={tdS}>{scoreCell(r.r8)}</td>
                             <td style={{ ...tdS, fontWeight: 600, color: C.blue2 }}>{r.day2_total || '-'}</td>
                           </>}
-                          <td style={{ ...tdS, fontWeight: 700, color: C.gold, fontSize: 16 }}>{r.total || '-'}</td>
-                          <td style={{ ...tdS, color: C.muted }}>{r.average !== null && r.average !== undefined ? Number(r.average).toFixed(2) : '-'}</td>
+                          <td style={{ ...tdS, fontWeight: 700, color: isDQ ? C.muted : C.gold, fontSize: 16 }}>
+                            {isDQ ? '-' : (r.total || '-')}
+                          </td>
+                          <td style={{ ...tdS, color: C.muted }}>
+                            {!isDQ && r.average !== null && r.average !== undefined
+                              ? Number(r.average).toFixed(2)
+                              : '-'}
+                          </td>
+                          {hasCB && (
+                            <td style={{ ...tdS, color: r.cb ? '#e67e22' : C.muted, fontWeight: r.cb ? 700 : 400 }}>
+                              {r.cb ?? '-'}
+                            </td>
+                          )}
+                          {hasFR && (
+                            <td style={{ ...tdS, color: r.fr ? '#9b59b6' : C.muted, fontWeight: r.fr ? 700 : 400 }}>
+                              {r.fr ?? '-'}
+                            </td>
+                          )}
                         </tr>
                       );
                     })}

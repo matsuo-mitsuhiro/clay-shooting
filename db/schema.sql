@@ -88,6 +88,10 @@ CREATE TABLE scores (
   r6            SMALLINT     CHECK (r6 BETWEEN 0 AND 25),
   r7            SMALLINT     CHECK (r7 BETWEEN 0 AND 25),
   r8            SMALLINT     CHECK (r8 BETWEEN 0 AND 25),
+  cb            SMALLINT     CHECK (cb BETWEEN 1 AND 6),   -- カウントバック（1〜6）
+  fr            SMALLINT     CHECK (fr BETWEEN 1 AND 99),  -- ファイナルシュートオフ（1〜99）
+  status        VARCHAR(20)  NOT NULL DEFAULT 'valid'
+                  CHECK (status IN ('valid', 'disqualified', 'withdrawn')), -- 成績ステータス
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 
@@ -101,65 +105,44 @@ COMMENT ON COLUMN scores.tournament_id IS '大会ID（FK）';
 COMMENT ON COLUMN scores.member_code   IS '会員番号（NULLなし）';
 COMMENT ON COLUMN scores.r1            IS '1日目ラウンド1（NULL=未入力、0=0点）';
 COMMENT ON COLUMN scores.r5            IS '2日目ラウンド1（NULL=未入力）';
+COMMENT ON COLUMN scores.cb            IS 'カウントバック（1〜6、小さい方が上位）';
+COMMENT ON COLUMN scores.fr            IS 'ファイナルシュートオフ（1〜99、大きい方が上位）';
+COMMENT ON COLUMN scores.status        IS '成績ステータス：valid=有効 / disqualified=失格 / withdrawn=棄権';
 
 
 -- ============================================================
 -- 4. 成績ビュー (v_results)
 --    メンバー + 点数を結合し、合計・平均・順位を算出
+--    CB/FR/status 対応。失格・棄権は rank = NULL で最下位扱い
 -- ============================================================
-CREATE OR REPLACE VIEW v_results AS
+CREATE VIEW v_results AS
 WITH
 -- 1日目メンバー
 day1_members AS (
-  SELECT
-    tournament_id,
-    member_code,
-    name,
-    belong,
-    class,
-    is_judge,
-    group_number AS group1
-  FROM members
-  WHERE day = 1
+  SELECT tournament_id, member_code, name, belong, class, is_judge, group_number AS group1
+  FROM members WHERE day = 1
 ),
 -- 2日目メンバー（存在する場合）
 day2_members AS (
-  SELECT
-    tournament_id,
-    member_code,
-    group_number AS group2
-  FROM members
-  WHERE day = 2
+  SELECT tournament_id, member_code, group_number AS group2
+  FROM members WHERE day = 2
 ),
 -- メンバー結合
 merged AS (
-  SELECT
-    d1.tournament_id,
-    d1.member_code,
-    d1.name,
-    d1.belong,
-    d1.class,
-    d1.is_judge,
-    d1.group1,
-    d2.group2
+  SELECT d1.tournament_id, d1.member_code, d1.name, d1.belong,
+         d1.class, d1.is_judge, d1.group1, d2.group2
   FROM day1_members d1
   LEFT JOIN day2_members d2
-    ON d1.tournament_id = d2.tournament_id
-   AND d1.member_code   = d2.member_code
+    ON d1.tournament_id = d2.tournament_id AND d1.member_code = d2.member_code
 ),
 -- 点数結合・集計
 combined AS (
   SELECT
-    m.tournament_id,
-    m.member_code,
-    m.name,
-    m.belong,
-    m.class,
-    m.is_judge,
-    m.group1,
-    m.group2,
-    s.r1, s.r2, s.r3, s.r4,
-    s.r5, s.r6, s.r7, s.r8,
+    m.tournament_id, m.member_code, m.name, m.belong,
+    m.class, m.is_judge, m.group1, m.group2,
+    s.r1, s.r2, s.r3, s.r4, s.r5, s.r6, s.r7, s.r8,
+    s.cb, s.fr,
+    COALESCE(s.status, 'valid') AS status,
 
     -- 1日目合計（NULLは0として加算）
     COALESCE(s.r1,0) + COALESCE(s.r2,0) + COALESCE(s.r3,0) + COALESCE(s.r4,0) AS day1_total,
@@ -192,19 +175,32 @@ combined AS (
 
   FROM merged m
   LEFT JOIN scores s
-    ON m.tournament_id = s.tournament_id
-   AND m.member_code   = s.member_code
+    ON m.tournament_id = s.tournament_id AND m.member_code = s.member_code
 ),
--- 順位付与（同点同順位、次位は飛ばす）
-ranked AS (
-  SELECT
-    *,
-    RANK() OVER (PARTITION BY tournament_id ORDER BY total DESC) AS rank
+-- 有効選手のみで順位付与（合計DESC → CB ASC → FR DESC）
+valid_ranked AS (
+  SELECT tournament_id, member_code,
+    RANK() OVER (
+      PARTITION BY tournament_id
+      ORDER BY total DESC, COALESCE(cb, 999) ASC, COALESCE(fr, 0) DESC
+    ) AS rank
   FROM combined
+  WHERE status = 'valid'
+),
+-- 失格・棄権は rank = NULL で最下位扱い
+final AS (
+  SELECT c.*,
+    CASE
+      WHEN c.status IN ('disqualified', 'withdrawn') THEN NULL
+      ELSE vr.rank
+    END AS rank
+  FROM combined c
+  LEFT JOIN valid_ranked vr
+    ON c.tournament_id = vr.tournament_id AND c.member_code = vr.member_code
 )
-SELECT * FROM ranked;
+SELECT * FROM final;
 
-COMMENT ON VIEW v_results IS '成績集計ビュー（合計・平均・順位付き）';
+COMMENT ON VIEW v_results IS '成績集計ビュー（合計・平均・順位・CB・FR・成績ステータス付き）';
 
 
 -- ============================================================

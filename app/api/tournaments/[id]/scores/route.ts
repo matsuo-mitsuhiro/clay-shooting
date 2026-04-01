@@ -44,13 +44,15 @@ export async function POST(req: NextRequest, { params }: Params) {
     // UPSERT（ON CONFLICT で更新）
     for (const s of body.scores) {
       await sql`
-        INSERT INTO scores (tournament_id, member_code, name, r1, r2, r3, r4, r5, r6, r7, r8, updated_at)
+        INSERT INTO scores (tournament_id, member_code, name, r1, r2, r3, r4, r5, r6, r7, r8, cb, fr, status, updated_at)
         VALUES (
           ${tournamentId},
           ${s.member_code},
           ${s.name ?? null},
           ${s.r1 ?? null}, ${s.r2 ?? null}, ${s.r3 ?? null}, ${s.r4 ?? null},
           ${s.r5 ?? null}, ${s.r6 ?? null}, ${s.r7 ?? null}, ${s.r8 ?? null},
+          ${s.cb ?? null}, ${s.fr ?? null},
+          ${s.status ?? 'valid'},
           NOW()
         )
         ON CONFLICT (tournament_id, member_code)
@@ -64,6 +66,9 @@ export async function POST(req: NextRequest, { params }: Params) {
           r6         = EXCLUDED.r6,
           r7         = EXCLUDED.r7,
           r8         = EXCLUDED.r8,
+          cb         = EXCLUDED.cb,
+          fr         = EXCLUDED.fr,
+          status     = EXCLUDED.status,
           updated_at = NOW()
       `;
     }

@@ -2,52 +2,110 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { C } from '@/lib/colors';
-import type { Member, Score } from '@/lib/types';
+import type { Member, Score, ScoreStatus } from '@/lib/types';
 
 interface Props {
   tournamentId: number;
 }
 
 type RoundKey = 'r1' | 'r2' | 'r3' | 'r4' | 'r5' | 'r6' | 'r7' | 'r8';
-type ScoreMap = { [memberCode: string]: { r1: string; r2: string; r3: string; r4: string; r5: string; r6: string; r7: string; r8: string } };
+type ExtraKey = 'cb' | 'fr';
+type NumpadField = RoundKey | ExtraKey;
 
-const emptyScoreEntry = () => ({ r1: '', r2: '', r3: '', r4: '', r5: '', r6: '', r7: '', r8: '' });
+type ScoreEntry = {
+  r1: string; r2: string; r3: string; r4: string;
+  r5: string; r6: string; r7: string; r8: string;
+  cb: string; fr: string;
+  status: ScoreStatus;
+};
+type ScoreMap = { [memberCode: string]: ScoreEntry };
 
-function NumPad({ member, value, onChange, onConfirm, onClose }: {
+const emptyScoreEntry = (): ScoreEntry => ({
+  r1: '', r2: '', r3: '', r4: '', r5: '', r6: '', r7: '', r8: '',
+  cb: '', fr: '',
+  status: 'valid',
+});
+
+// ---- NumPad ----
+// variant='score': keys 0-9, max 25, 赤色閾値23
+// variant='cb':    keys 1-6 only, max 6
+// variant='fr':    keys 0-9, max 99
+function NumPad({ member, value, onChange, onConfirm, onClose, variant = 'score' }: {
   member: { name: string; round: string };
   value: string;
   onChange: (v: string) => void;
   onConfirm: () => void;
   onClose: () => void;
+  variant?: 'score' | 'cb' | 'fr';
 }) {
-  const numColor = value !== '' && Number(value) >= 23 ? '#e74c3c' : '#3498db';
+  const maxVal = variant === 'cb' ? 6 : variant === 'fr' ? 99 : 25;
+  const numColor = variant === 'score' && value !== '' && Number(value) >= 23
+    ? '#e74c3c'
+    : '#3498db';
+
+  const roundLabel =
+    variant === 'cb' ? 'CB' :
+    variant === 'fr' ? 'FR' :
+    member.round.toUpperCase();
 
   function handleKey(k: string) {
     if (k === 'C') { onChange(''); return; }
     if (k === '決定') { onConfirm(); return; }
+    // FR の先頭 0 を防ぐ
+    if (variant === 'fr' && value === '' && k === '0') return;
     const next = value + k;
-    if (Number(next) > 25) return;
+    if (Number(next) > maxVal) return;
     onChange(next);
   }
 
+  // CB: 1〜6 + C + 決定（4列グリッド）
+  const cbKeys = ['1', '2', '3', '4', '5', '6', 'C', '決定'];
+  // 通常: 0〜9 + C + 決定（3列グリッド）
+  const defaultKeys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', 'C', '決定'];
+
+  const keys = variant === 'cb' ? cbKeys : defaultKeys;
+  const gridCols = variant === 'cb' ? 4 : 3;
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, minWidth: 220, position: 'relative' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 10, right: 10, background: 'transparent', border: 'none', color: C.muted, fontSize: 20, cursor: 'pointer' }}>×</button>
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+    }}>
+      <div style={{
+        background: C.surface, border: `1px solid ${C.border}`,
+        borderRadius: 12, padding: 20, minWidth: variant === 'cb' ? 260 : 220,
+        position: 'relative',
+      }}>
+        <button
+          onClick={onClose}
+          style={{ position: 'absolute', top: 10, right: 10, background: 'transparent', border: 'none', color: C.muted, fontSize: 20, cursor: 'pointer' }}
+        >×</button>
         <div style={{ textAlign: 'center', marginBottom: 12 }}>
           <div style={{ fontSize: 17, color: C.text, fontWeight: 600 }}>{member.name}</div>
-          <div style={{ fontSize: 36, fontWeight: 700, color: numColor, minHeight: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>
+            {roundLabel}
+            {variant === 'cb' && <span style={{ fontSize: 11, marginLeft: 6 }}>(1〜6)</span>}
+            {variant === 'fr' && <span style={{ fontSize: 11, marginLeft: 6 }}>(1〜99)</span>}
+          </div>
+          <div style={{
+            fontSize: 36, fontWeight: 700, color: numColor,
+            minHeight: 50, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
             {value === '' ? '　' : value}
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', 'C', '決定'].map(k => (
-            <button key={k} onClick={() => handleKey(k)} style={{
-              background: k === '決定' ? C.gold : C.surface2,
-              color: k === '決定' ? '#000' : C.text,
-              border: `1px solid ${k === '決定' ? C.gold : C.border}`,
-              borderRadius: 6, padding: '14px 8px', fontSize: 17, fontWeight: 600, cursor: 'pointer',
-            }}>{k}</button>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${gridCols}, 1fr)`, gap: 8 }}>
+          {keys.map(k => (
+            <button
+              key={k}
+              onClick={() => handleKey(k)}
+              style={{
+                background: k === '決定' ? C.gold : C.surface2,
+                color: k === '決定' ? '#000' : C.text,
+                border: `1px solid ${k === '決定' ? C.gold : C.border}`,
+                borderRadius: 6, padding: '14px 8px', fontSize: 17, fontWeight: 600, cursor: 'pointer',
+              }}
+            >{k}</button>
           ))}
         </div>
       </div>
@@ -67,7 +125,8 @@ export default function ScoresTab({ tournamentId }: Props) {
 
   // Numpad state
   const [numpadOpen, setNumpadOpen] = useState(false);
-  const [numpadMember, setNumpadMember] = useState<{ code: string; name: string; round: RoundKey; groupIdx: number; memberIdx: number } | null>(null);
+  const [numpadField, setNumpadField] = useState<NumpadField>('r1');
+  const [numpadMember, setNumpadMember] = useState<{ code: string; name: string } | null>(null);
   const [numpadValue, setNumpadValue] = useState('');
 
   const fetchData = useCallback(async () => {
@@ -96,6 +155,9 @@ export default function ScoresTab({ tournamentId }: Props) {
           r6: s.r6 !== null && s.r6 !== undefined ? String(s.r6) : '',
           r7: s.r7 !== null && s.r7 !== undefined ? String(s.r7) : '',
           r8: s.r8 !== null && s.r8 !== undefined ? String(s.r8) : '',
+          cb: s.cb !== null && s.cb !== undefined ? String(s.cb) : '',
+          fr: s.fr !== null && s.fr !== undefined ? String(s.fr) : '',
+          status: s.status ?? 'valid',
         };
       }
       setScoreMap(map);
@@ -114,12 +176,22 @@ export default function ScoresTab({ tournamentId }: Props) {
   const groups = Array.from(new Set(dayMembers.map(m => m.group_number))).sort((a, b) => a - b);
   const filteredGroups = groupFilter === 'all' ? groups : groups.filter(g => g === groupFilter);
 
-  function updateScore(memberCode: string, round: RoundKey, value: string) {
+  function updateField(memberCode: string, field: NumpadField, value: string) {
     setScoreMap(prev => ({
       ...prev,
       [memberCode]: {
         ...(prev[memberCode] ?? emptyScoreEntry()),
-        [round]: value,
+        [field]: value,
+      },
+    }));
+  }
+
+  function updateStatus(memberCode: string, status: ScoreStatus) {
+    setScoreMap(prev => ({
+      ...prev,
+      [memberCode]: {
+        ...(prev[memberCode] ?? emptyScoreEntry()),
+        status,
       },
     }));
   }
@@ -137,33 +209,36 @@ export default function ScoresTab({ tournamentId }: Props) {
     let hasAny = false;
     for (const r of rounds) {
       const v = entry[r];
-      if (v !== '') {
-        hasAny = true;
-        total += Number(v);
-      }
+      if (v !== '') { hasAny = true; total += Number(v); }
     }
     return hasAny ? String(total) : '-';
   }
 
-  function openNumpad(member: Member, round: RoundKey, groupIdx: number, memberIdx: number) {
+  // 全表示中メンバーのフラット配列（ナビゲーション用）
+  function getAllGroupMembers(): Member[] {
+    return filteredGroups.flatMap(g => dayMembers.filter(m => m.group_number === g));
+  }
+
+  function openNumpad(member: Member, field: NumpadField) {
     const code = member.member_code ?? '';
-    setNumpadMember({ code, name: member.name, round, groupIdx, memberIdx });
-    setNumpadValue(scoreMap[code]?.[round] ?? '');
+    setNumpadMember({ code, name: member.name });
+    setNumpadField(field);
+    setNumpadValue((scoreMap[code] as ScoreEntry)?.[field] ?? '');
     setNumpadOpen(true);
   }
 
   function confirmNumpad() {
     if (!numpadMember) return;
-    updateScore(numpadMember.code, numpadMember.round, numpadValue);
+    updateField(numpadMember.code, numpadField, numpadValue);
 
-    // Find next member in same round (vertical navigation)
-    const allGroupMembers = filteredGroups.flatMap(g => dayMembers.filter(m => m.group_number === g));
-    const currentIdx = allGroupMembers.findIndex(m => m.member_code === numpadMember.code);
-    const next = allGroupMembers[currentIdx + 1];
+    // 次のメンバーへナビゲーション（同フィールド）
+    const all = getAllGroupMembers();
+    const currentIdx = all.findIndex(m => m.member_code === numpadMember.code);
+    const next = all[currentIdx + 1];
 
     if (next && next.member_code) {
-      setNumpadMember({ code: next.member_code, name: next.name, round: numpadMember.round, groupIdx: numpadMember.groupIdx, memberIdx: numpadMember.memberIdx + 1 });
-      setNumpadValue(scoreMap[next.member_code]?.[numpadMember.round] ?? '');
+      setNumpadMember({ code: next.member_code, name: next.name });
+      setNumpadValue((scoreMap[next.member_code] as ScoreEntry)?.[numpadField] ?? '');
     } else {
       setNumpadOpen(false);
       setNumpadMember(null);
@@ -183,18 +258,20 @@ export default function ScoresTab({ tournamentId }: Props) {
       .map(m => {
         const entry = scoreMap[m.member_code!] ?? emptyScoreEntry();
         const toNum = (v: string) => v === '' ? null : Number(v);
-        const existing = scoreMap[m.member_code!] ?? emptyScoreEntry();
         return {
           member_code: m.member_code!,
           name: m.name,
-          r1: selectedDay === 1 ? toNum(entry.r1) : (existing.r1 !== '' ? Number(existing.r1) : null),
-          r2: selectedDay === 1 ? toNum(entry.r2) : (existing.r2 !== '' ? Number(existing.r2) : null),
-          r3: selectedDay === 1 ? toNum(entry.r3) : (existing.r3 !== '' ? Number(existing.r3) : null),
-          r4: selectedDay === 1 ? toNum(entry.r4) : (existing.r4 !== '' ? Number(existing.r4) : null),
-          r5: selectedDay === 2 ? toNum(entry.r5) : (existing.r5 !== '' ? Number(existing.r5) : null),
-          r6: selectedDay === 2 ? toNum(entry.r6) : (existing.r6 !== '' ? Number(existing.r6) : null),
-          r7: selectedDay === 2 ? toNum(entry.r7) : (existing.r7 !== '' ? Number(existing.r7) : null),
-          r8: selectedDay === 2 ? toNum(entry.r8) : (existing.r8 !== '' ? Number(existing.r8) : null),
+          r1: selectedDay === 1 ? toNum(entry.r1) : (entry.r1 !== '' ? Number(entry.r1) : null),
+          r2: selectedDay === 1 ? toNum(entry.r2) : (entry.r2 !== '' ? Number(entry.r2) : null),
+          r3: selectedDay === 1 ? toNum(entry.r3) : (entry.r3 !== '' ? Number(entry.r3) : null),
+          r4: selectedDay === 1 ? toNum(entry.r4) : (entry.r4 !== '' ? Number(entry.r4) : null),
+          r5: selectedDay === 2 ? toNum(entry.r5) : (entry.r5 !== '' ? Number(entry.r5) : null),
+          r6: selectedDay === 2 ? toNum(entry.r6) : (entry.r6 !== '' ? Number(entry.r6) : null),
+          r7: selectedDay === 2 ? toNum(entry.r7) : (entry.r7 !== '' ? Number(entry.r7) : null),
+          r8: selectedDay === 2 ? toNum(entry.r8) : (entry.r8 !== '' ? Number(entry.r8) : null),
+          cb: entry.cb === '' ? null : Number(entry.cb),
+          fr: entry.fr === '' ? null : Number(entry.fr),
+          status: entry.status,
         };
       });
 
@@ -236,16 +313,22 @@ export default function ScoresTab({ tournamentId }: Props) {
     ? ['R1', 'R2', 'R3', 'R4']
     : ['R5', 'R6', 'R7', 'R8'];
 
+  const numpadVariant: 'score' | 'cb' | 'fr' =
+    numpadField === 'cb' ? 'cb' :
+    numpadField === 'fr' ? 'fr' :
+    'score';
+
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 960, margin: '0 auto' }}>
+    <div style={{ padding: '20px 16px', maxWidth: 1060, margin: '0 auto' }}>
       {/* Numpad Popup */}
       {numpadOpen && numpadMember && (
         <NumPad
-          member={{ name: numpadMember.name, round: numpadMember.round }}
+          member={{ name: numpadMember.name, round: numpadField }}
           value={numpadValue}
           onChange={setNumpadValue}
           onConfirm={confirmNumpad}
           onClose={() => { setNumpadOpen(false); setNumpadMember(null); }}
+          variant={numpadVariant}
         />
       )}
 
@@ -272,14 +355,9 @@ export default function ScoresTab({ tournamentId }: Props) {
         <button
           onClick={fetchData}
           style={{
-            background: 'transparent',
-            color: C.muted,
-            border: `1px solid ${C.border}`,
-            borderRadius: 6,
-            padding: '7px 12px',
-            fontSize: 15,
-            cursor: 'pointer',
-            marginLeft: 8,
+            background: 'transparent', color: C.muted,
+            border: `1px solid ${C.border}`, borderRadius: 6,
+            padding: '7px 12px', fontSize: 15, cursor: 'pointer', marginLeft: 8,
           }}
         >
           ↺ 再読込
@@ -343,7 +421,7 @@ export default function ScoresTab({ tournamentId }: Props) {
           </div>
 
           {/* Score Tables per group */}
-          {filteredGroups.map((groupNum, groupIdx) => {
+          {filteredGroups.map(groupNum => {
             const gMembers = dayMembers.filter(m => m.group_number === groupNum);
             return (
               <div key={groupNum} style={{
@@ -374,46 +452,88 @@ export default function ScoresTab({ tournamentId }: Props) {
                   </button>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
                     <thead>
                       <tr style={{ background: `${C.surface2}88` }}>
                         <th style={thStyle}>氏名</th>
+                        <th style={thStyle}>成績</th>
                         {roundLabels.map(l => (
                           <th key={l} style={thStyle}>{l}</th>
                         ))}
                         <th style={thStyle}>小計</th>
+                        <th style={{ ...thStyle, color: '#e67e22' }}>CB</th>
+                        <th style={{ ...thStyle, color: '#9b59b6' }}>FR</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {gMembers.map((m, memberIdx) => {
+                      {gMembers.map(m => {
                         const code = m.member_code ?? '';
                         const entry = scoreMap[code] ?? emptyScoreEntry();
                         const subtotal = calcSubtotal(code, rounds);
+                        const isDQ = entry.status === 'disqualified' || entry.status === 'withdrawn';
+
                         return (
-                          <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}33` }}>
-                            <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, whiteSpace: 'nowrap' }}>
+                          <tr
+                            key={m.id}
+                            style={{
+                              borderBottom: `1px solid ${C.border}33`,
+                              background: isDQ ? '#e74c3c08' : 'transparent',
+                            }}
+                          >
+                            {/* 氏名 */}
+                            <td style={{ padding: '6px 10px', fontSize: 15, color: isDQ ? '#e74c3c' : C.text, whiteSpace: 'nowrap' }}>
                               {m.is_judge ? <span style={{ color: C.gold }}>⚑ </span> : ''}
                               {m.name}
                               {!code && (
                                 <span style={{ fontSize: 13, color: C.red, marginLeft: 6 }}>(会員番号なし)</span>
                               )}
                             </td>
+
+                            {/* 成績ドロップダウン */}
+                            <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                              {code ? (
+                                <select
+                                  value={entry.status}
+                                  onChange={e => updateStatus(code, e.target.value as ScoreStatus)}
+                                  style={{
+                                    background: C.inputBg,
+                                    border: `1px solid ${isDQ ? '#e74c3c' : C.border}`,
+                                    borderRadius: 4,
+                                    color: isDQ ? '#e74c3c' : C.text,
+                                    padding: '5px 6px',
+                                    fontSize: 13,
+                                    cursor: 'pointer',
+                                    fontWeight: isDQ ? 700 : 400,
+                                  }}
+                                >
+                                  <option value="valid">有効</option>
+                                  <option value="disqualified">失格</option>
+                                  <option value="withdrawn">棄権</option>
+                                </select>
+                              ) : (
+                                <span style={{ color: C.muted, fontSize: 13 }}>-</span>
+                              )}
+                            </td>
+
+                            {/* ラウンド点数 */}
                             {rounds.map(r => (
                               <td key={r} style={{ padding: '4px 6px', textAlign: 'center' }}>
                                 {code ? (
                                   <button
-                                    onClick={() => openNumpad(m, r, groupIdx, memberIdx)}
+                                    onClick={() => openNumpad(m, r)}
+                                    disabled={isDQ}
                                     style={{
                                       background: C.inputBg,
                                       border: `1px solid ${isInvalid(entry[r]) ? C.red : C.border}`,
                                       borderRadius: 4,
-                                      color: entry[r] !== '' && Number(entry[r]) >= 23 ? '#e74c3c' : C.text,
+                                      color: entry[r] !== '' && Number(entry[r]) >= 23 ? '#e74c3c' : isDQ ? C.muted : C.text,
                                       padding: '6px 8px',
                                       fontSize: 15,
                                       width: 66,
                                       textAlign: 'center',
-                                      cursor: 'pointer',
+                                      cursor: isDQ ? 'not-allowed' : 'pointer',
                                       fontWeight: entry[r] !== '' && Number(entry[r]) >= 23 ? 700 : 400,
+                                      opacity: isDQ ? 0.5 : 1,
                                     }}
                                   >
                                     {entry[r] === '' ? '　' : entry[r]}
@@ -423,12 +543,67 @@ export default function ScoresTab({ tournamentId }: Props) {
                                 )}
                               </td>
                             ))}
+
+                            {/* 小計 */}
                             <td style={{
                               padding: '6px 10px', textAlign: 'center', fontSize: 15,
-                              color: subtotal !== '-' ? C.text : C.muted,
-                              fontWeight: 600,
+                              color: subtotal !== '-' ? C.text : C.muted, fontWeight: 600,
                             }}>
                               {subtotal}
+                            </td>
+
+                            {/* CB */}
+                            <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                              {code ? (
+                                <button
+                                  onClick={() => openNumpad(m, 'cb')}
+                                  disabled={isDQ}
+                                  style={{
+                                    background: entry.cb !== '' ? `#e67e2222` : C.inputBg,
+                                    border: `1px solid ${entry.cb !== '' ? '#e67e22' : C.border}`,
+                                    borderRadius: 4,
+                                    color: entry.cb !== '' ? '#e67e22' : isDQ ? C.muted : C.text,
+                                    padding: '6px 8px',
+                                    fontSize: 15,
+                                    width: 54,
+                                    textAlign: 'center',
+                                    cursor: isDQ ? 'not-allowed' : 'pointer',
+                                    fontWeight: entry.cb !== '' ? 700 : 400,
+                                    opacity: isDQ ? 0.5 : 1,
+                                  }}
+                                >
+                                  {entry.cb === '' ? '　' : entry.cb}
+                                </button>
+                              ) : (
+                                <span style={{ color: C.muted, fontSize: 13 }}>-</span>
+                              )}
+                            </td>
+
+                            {/* FR */}
+                            <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                              {code ? (
+                                <button
+                                  onClick={() => openNumpad(m, 'fr')}
+                                  disabled={isDQ}
+                                  style={{
+                                    background: entry.fr !== '' ? `#9b59b622` : C.inputBg,
+                                    border: `1px solid ${entry.fr !== '' ? '#9b59b6' : C.border}`,
+                                    borderRadius: 4,
+                                    color: entry.fr !== '' ? '#9b59b6' : isDQ ? C.muted : C.text,
+                                    padding: '6px 8px',
+                                    fontSize: 15,
+                                    width: 54,
+                                    textAlign: 'center',
+                                    cursor: isDQ ? 'not-allowed' : 'pointer',
+                                    fontWeight: entry.fr !== '' ? 700 : 400,
+                                    opacity: isDQ ? 0.5 : 1,
+                                  }}
+                                >
+                                  {entry.fr === '' ? '　' : entry.fr}
+                                </button>
+                              ) : (
+                                <span style={{ color: C.muted, fontSize: 13 }}>-</span>
+                              )}
                             </td>
                           </tr>
                         );

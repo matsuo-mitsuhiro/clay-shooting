@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // 並列取得
     const [tournamentRows, resultRows, day2Rows] = await Promise.all([
       sql`SELECT * FROM tournaments WHERE id = ${tournamentId}`,
-      sql`SELECT * FROM v_results WHERE tournament_id = ${tournamentId} ORDER BY rank, name`,
+      sql`SELECT * FROM v_results WHERE tournament_id = ${tournamentId} ORDER BY rank NULLS LAST, name`,
       sql`SELECT COUNT(*) AS cnt FROM members WHERE tournament_id = ${tournamentId} AND day = 2`,
     ]);
 
