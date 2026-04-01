@@ -5,8 +5,9 @@ import type { NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // /admin/login は認証不要
-  if (pathname === '/admin/login') {
+  // 認証不要なページ
+  const publicPaths = ['/admin/login', '/admin/register', '/admin/forgot-password'];
+  if (publicPaths.some(p => pathname === p || pathname.startsWith('/admin/reset-password'))) {
     return NextResponse.next();
   }
 

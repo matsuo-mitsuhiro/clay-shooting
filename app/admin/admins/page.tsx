@@ -58,6 +58,9 @@ export default function AdminsPage() {
   const [qrLoading, setQrLoading] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
 
+  // パスワード表示切替
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
   const isSystem = session?.user?.role === 'system';
   const myCode = session?.user?.member_code;
   const myAffiliation = session?.user?.affiliation ?? null;
@@ -200,7 +203,7 @@ export default function AdminsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
-      <LoadingOverlay show={loading || saving} message={saving ? '処理中...' : '読み込み中...'} />
+      <LoadingOverlay show={loading || saving || qrLoading} message={qrLoading ? 'QRコード発行中...' : saving ? '処理中...' : '読み込み中...'} />
 
       <header style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <button onClick={() => router.push('/admin')} style={{ background: 'transparent', color: C.muted, border: `1px solid ${C.border}`, borderRadius: 5, padding: '6px 12px', fontSize: 15, cursor: 'pointer' }}>
@@ -284,7 +287,12 @@ export default function AdminsPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 4 }}>初期パスワード（8〜32文字、英字+数字）*</label>
-                  <input style={inputStyle} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+                  <div style={{ position: 'relative' }}>
+                    <input style={{ ...inputStyle, paddingRight: 40 }} type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+                    <button type="button" onClick={() => setShowNewPassword(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: C.muted, fontSize: 16, padding: 0 }}>
+                      {showNewPassword ? '🙈' : '👁'}
+                    </button>
+                  </div>
                 </div>
               </div>
               {createError && <div style={{ color: '#e74c3c', fontSize: 13, marginTop: 10 }}>⚠ {createError}</div>}
