@@ -44,7 +44,11 @@ export default function ForgotPasswordPage() {
           <div style={{ background: '#1a2a1a', border: '1px solid #4caf50', borderRadius: 8, padding: 28, textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📧</div>
             <p style={{ fontSize: 15, marginBottom: 8 }}>リセット用メールを送信しました。</p>
-            <p style={{ color: '#aaa', fontSize: 13, marginBottom: 24 }}>1時間以内にメール内のURLをクリックしてください。</p>
+            <p style={{ color: '#aaa', fontSize: 13, marginBottom: 12 }}>1時間以内にメール内のURLをクリックしてください。</p>
+            <p style={{ color: '#aaa', fontSize: 13, marginBottom: 24 }}>
+              jpn.clayshooting@gmail.com からメールをお送りしました。<br />
+              見当たらない場合は、迷惑メールフォルダを探してください。
+            </p>
             <button onClick={() => router.push('/admin/login')} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
               ログイン画面に戻る
             </button>

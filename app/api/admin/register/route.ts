@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     SELECT id FROM tournament_admins WHERE member_code = ${member_code} OR email = ${email}
   `;
   if (dupRows.length > 0) {
-    return NextResponse.json({ success: false, error: 'この会員番号またはメールアドレスは既に登録されています' }, { status: 409 });
+    return NextResponse.json({ success: false, error: 'この会員番号またはメールアドレスは既に登録されています。' }, { status: 409 });
   }
 
   // 登録

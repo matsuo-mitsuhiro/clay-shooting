@@ -23,6 +23,7 @@ export async function sendRegistrationComplete(to: string, name: string) {
       <p>以下のURLからログインしてください。</p>
       <p><a href="${BASE_URL}/admin/login">${BASE_URL}/admin/login</a></p>
       <br>
+      <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
       <p>クレー射撃 成績管理システム</p>
     `,
   });
@@ -37,10 +38,11 @@ export async function sendPasswordReset(to: string, name: string, token: string)
     html: `
       <p>${name} 様</p>
       <p>パスワードリセットのリクエストを受け付けました。</p>
-      <p>以下のURLから1時間以内に新しいパスワードを設定してください。</p>
+      <p>以下のURLから 「１時間」 以内に新しいパスワードを設定してください。</p>
       <p><a href="${url}">${url}</a></p>
       <p>このリクエストに心当たりがない場合は、このメールを無視してください。</p>
       <br>
+      <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
       <p>クレー射撃 成績管理システム</p>
     `,
   });

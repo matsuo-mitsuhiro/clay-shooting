@@ -92,7 +92,11 @@ function RegisterContent() {
           <div style={{ background: '#1a2a1a', border: `1px solid #4caf50`, borderRadius: 8, padding: 32, textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
             <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>登録が完了しました</p>
-            <p style={{ color: '#aaa', marginBottom: 24 }}>登録完了メールをご確認ください。</p>
+            <p style={{ color: '#aaa', marginBottom: 8 }}>登録完了メールをご確認ください。</p>
+            <p style={{ color: '#aaa', fontSize: 13, marginBottom: 24 }}>
+              jpn.clayshooting@gmail.com からメールをお送りしました。<br />
+              見当たらない場合は、迷惑メールフォルダを探してください。
+            </p>
             <button onClick={() => router.push('/admin/login')} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '10px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
               ログイン画面へ
             </button>
@@ -131,7 +135,23 @@ function RegisterContent() {
             </div>
             <p style={{ fontSize: 12, color: '#888', marginBottom: 20 }}>8〜32文字、英字と数字を各1文字以上含む</p>
 
-            {error && <p style={{ color: C.red, fontSize: 14, marginBottom: 16 }}>{error}</p>}
+            {error && (
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ color: C.red, fontSize: 14, marginBottom: 8 }}>{error}</p>
+                {error.includes('既に登録されています') && (
+                  <div style={{ background: '#1a1a2e', border: '1px solid #444', borderRadius: 6, padding: '10px 14px', fontSize: 13 }}>
+                    <p style={{ color: '#aaa', marginBottom: 6 }}>
+                      パスワードをお忘れの場合は、ログイン画面からリセットしてください。<br />
+                      または、登録済みのアカウントを別の管理者に依頼して削除してください。
+                    </p>
+                    <a href="/admin/login" style={{ color: '#4a9eff', textDecoration: 'underline', fontSize: 13 }}>
+                      大会管理者ログイン画面はこちら →<br />
+                      https://clay-shooting.vercel.app/admin/login
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
 
             <button type="submit" disabled={saving} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '12px', fontSize: 16, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', width: '100%', opacity: saving ? 0.7 : 1 }}>
               {saving ? '登録中...' : '登録する'}
