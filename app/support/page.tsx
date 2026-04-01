@@ -39,7 +39,7 @@ function SupportContent() {
   const [memberCode, setMemberCode] = useState('');
   const [name, setName] = useState('');
   const [affiliation, setAffiliation] = useState('');
-  const [email, setEmail] = useState('');
+  const [tokenEmail, setTokenEmail] = useState(''); // トークンから取得（非表示）
   const [body, setBody] = useState('');
   const [honeypot, setHoneypot] = useState(''); // ハニーポット
 
@@ -48,7 +48,7 @@ function SupportContent() {
     fetch(`/api/support/validate?token=${token}`)
       .then(r => r.json())
       .then(j => {
-        if (j.valid) setTokenStatus('valid');
+        if (j.valid) { setTokenStatus('valid'); setTokenEmail(j.email ?? ''); }
         else { setTokenStatus('invalid'); setTokenError(j.error ?? 'URLが無効です。'); }
       })
       .catch(() => { setTokenStatus('invalid'); setTokenError('確認中にエラーが発生しました。'); });
@@ -62,7 +62,7 @@ function SupportContent() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (honeypot) return; // ボット除外
-    if (!memberCode.trim() || !name.trim() || !email.trim() || !body.trim()) {
+    if (!memberCode.trim() || !name.trim() || !body.trim()) {
       setSubmitError('必須項目をすべて入力してください');
       return;
     }
@@ -72,7 +72,7 @@ function SupportContent() {
       const res = await fetch('/api/support/questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, member_code: memberCode.trim(), name: name.trim(), affiliation: affiliation || null, email: email.trim(), body: body.trim() }),
+        body: JSON.stringify({ token, member_code: memberCode.trim(), name: name.trim(), affiliation: affiliation || null, email: tokenEmail, body: body.trim() }),
       });
       const json = await res.json();
       if (json.success) {
@@ -142,10 +142,6 @@ function SupportContent() {
                 </select>
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>メールアドレス <span style={{ color: '#e74c3c' }}>*</span></label>
-                <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="例: example@email.com" required />
-              </div>
 
               <div style={{ marginBottom: 20 }}>
                 <label style={labelStyle}>質問内容 <span style={{ color: '#e74c3c' }}>*</span></label>

@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   const sql = neon(process.env.DATABASE_URL!);
   const rows = await sql`
-    SELECT id, expires_at, used_at FROM support_tokens WHERE token = ${token}
+    SELECT id, email, expires_at, used_at FROM support_tokens WHERE token = ${token}
   `;
 
   if (rows.length === 0) return NextResponse.json({ valid: false, error: 'URLが無効です' });
@@ -17,5 +17,5 @@ export async function GET(req: NextRequest) {
   if (t.used_at) return NextResponse.json({ valid: false, error: 'このURLはすでに使用済みです' });
   if (new Date(t.expires_at) < new Date()) return NextResponse.json({ valid: false, error: 'URLの有効期限が切れています' });
 
-  return NextResponse.json({ valid: true });
+  return NextResponse.json({ valid: true, email: t.email ?? '' });
 }
