@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import ContactButton from '@/components/ContactButton';
 
 interface TournamentAdmin {
   id: number;
@@ -214,6 +215,7 @@ export default function AdminsPage() {
           大会管理者マスター
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ContactButton />
           {session?.user && (
             <>
               <span style={{ fontSize: 13, color: C.muted }}>{session.user.name ?? session.user.email}</span>

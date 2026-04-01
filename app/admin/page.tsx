@@ -8,6 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
 import type { Tournament, EventType } from '@/lib/types';
+import ContactButton from '@/components/ContactButton';
 
 const ORGANIZERS = [
   { cd: 27, name: '大阪' },
@@ -110,7 +111,8 @@ export default function AdminPage() {
             クレー射撃 成績管理システム
           </h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ContactButton />
           {session?.user && (
             <>
               <span style={{ fontSize: 14, color: C.muted }}>

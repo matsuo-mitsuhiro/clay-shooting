@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import { PREFECTURES, DEFAULT_AFFILIATION } from '@/lib/prefectures';
 import type { PlayerMaster } from '@/app/api/players/route';
+import ContactButton from '@/components/ContactButton';
 
 const CLASSES = ['A', 'B', 'C', 'D', 'E'];
 
@@ -129,7 +130,10 @@ export default function PlayersPage() {
           <h1 style={s.title}>選手マスター管理</h1>
           <button style={s.backBtn} onClick={() => router.push('/admin')}>← 大会管理に戻る</button>
         </div>
-        <button style={s.btnGold} onClick={openNew}>＋ 新規選手登録</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ContactButton />
+          <button style={s.btnGold} onClick={openNew}>＋ 新規選手登録</button>
+        </div>
       </div>
 
       {/* フィルタ・検索 */}

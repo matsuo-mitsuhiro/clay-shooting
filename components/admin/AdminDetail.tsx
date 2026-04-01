@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { C } from '@/lib/colors';
 import type { Tournament } from '@/lib/types';
+import ContactButton from '@/components/ContactButton';
 import MembersTab from './MembersTab';
 import ScoresTab from './ScoresTab';
 import ResultsTab from './ResultsTab';
@@ -111,6 +112,7 @@ export default function AdminDetail({ tournamentId }: Props) {
           ) : null}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
+          <ContactButton />
           {session?.user && (
             <>
               <span style={{ fontSize: 13, color: C.muted }}>{session.user.name ?? session.user.email}</span>

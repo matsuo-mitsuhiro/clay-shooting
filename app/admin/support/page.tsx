@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import ContactButton from '@/components/ContactButton';
 
 interface Question {
   id: number;
@@ -55,11 +56,6 @@ export default function AdminSupportPage() {
   const [faqError, setFaqError] = useState('');
   const [faqDone, setFaqDone] = useState(false);
 
-  // トークン発行
-  const [tokenEmail, setTokenEmail] = useState('');
-  const [tokenSending, setTokenSending] = useState(false);
-  const [tokenMessage, setTokenMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
     try {
@@ -77,29 +73,6 @@ export default function AdminSupportPage() {
       fetchQuestions();
     }
   }, [status, isSystem, router, fetchQuestions]);
-
-  async function handleSendToken(e: React.FormEvent) {
-    e.preventDefault();
-    if (!tokenEmail.trim()) return;
-    setTokenSending(true);
-    setTokenMessage(null);
-    try {
-      const res = await fetch('/api/admin/support/tokens', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: tokenEmail.trim() }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setTokenMessage({ type: 'success', text: `${tokenEmail} に質問URLを送信しました` });
-        setTokenEmail('');
-      } else {
-        setTokenMessage({ type: 'error', text: json.error ?? '送信に失敗しました' });
-      }
-    } finally {
-      setTokenSending(false);
-    }
-  }
 
   function openDetail(q: Question) {
     setSelectedQ(q);
@@ -167,7 +140,7 @@ export default function AdminSupportPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
-      <LoadingOverlay show={loading || saving || tokenSending} message={tokenSending ? 'メール送信中...' : saving ? '処理中...' : '読み込み中...'} />
+      <LoadingOverlay show={loading || saving} message={saving ? '処理中...' : '読み込み中...'} />
 
       <header style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <button onClick={() => router.push('/admin')} style={{ background: 'transparent', color: C.muted, border: `1px solid ${C.border}`, borderRadius: 5, padding: '6px 12px', fontSize: 15, cursor: 'pointer' }}>
@@ -180,6 +153,7 @@ export default function AdminSupportPage() {
           )}
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ContactButton />
           {session?.user && (
             <>
               <span style={{ fontSize: 13, color: C.muted }}>{session.user.name ?? session.user.email}</span>
@@ -193,36 +167,6 @@ export default function AdminSupportPage() {
       </header>
 
       <main style={{ maxWidth: 960, margin: '0 auto', padding: '28px 16px' }}>
-
-        {/* 質問URL送信 */}
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 28 }}>
-          <h3 style={{ margin: '0 0 14px', fontSize: 16, color: C.gold }}>📨 質問URLを送信</h3>
-          <form onSubmit={handleSendToken} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <input
-              type="email"
-              value={tokenEmail}
-              onChange={e => { setTokenEmail(e.target.value); setTokenMessage(null); }}
-              placeholder="送信先のメールアドレス"
-              required
-              style={{ ...inputStyle, flex: 1, minWidth: 240 }}
-            />
-            <button
-              type="submit"
-              disabled={tokenSending}
-              style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '10px 20px', fontWeight: 700, fontSize: 15, cursor: tokenSending ? 'not-allowed' : 'pointer', opacity: tokenSending ? 0.7 : 1, whiteSpace: 'nowrap' }}
-            >
-              送信
-            </button>
-          </form>
-          {tokenMessage && (
-            <div style={{ marginTop: 10, fontSize: 13, color: tokenMessage.type === 'success' ? '#2ecc71' : '#e74c3c', fontWeight: 600 }}>
-              {tokenMessage.type === 'success' ? '✓ ' : '⚠ '}{tokenMessage.text}
-            </div>
-          )}
-          <p style={{ margin: '10px 0 0', fontSize: 12, color: C.muted }}>
-            ※ メール内のURLは1時間以内・1回のみ有効です
-          </p>
-        </div>
 
         {/* フィルタ */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
