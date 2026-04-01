@@ -222,7 +222,7 @@ export default function AdminPage() {
             >
               <span style={{ fontSize: 20 }}>💬</span>
               <div>
-                <div>質問管理</div>
+                <div>質問・Q&amp;A管理</div>
                 <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>利用者からの質問を受付・回答・Q&A掲載</div>
               </div>
               <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
