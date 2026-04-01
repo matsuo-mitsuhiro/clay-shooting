@@ -12,29 +12,29 @@ export async function GET(req: NextRequest) {
   let rows;
   if (q && category) {
     rows = await sql`
-      SELECT id, category, question, answer, published_at
+      SELECT id, category, title, question, answer, published_at
       FROM faq_items
       WHERE category = ${category}
-        AND (question ILIKE ${'%' + q + '%'} OR answer ILIKE ${'%' + q + '%'})
+        AND (title ILIKE ${'%' + q + '%'} OR question ILIKE ${'%' + q + '%'} OR answer ILIKE ${'%' + q + '%'})
       ORDER BY sort_order, published_at DESC
     `;
   } else if (q) {
     rows = await sql`
-      SELECT id, category, question, answer, published_at
+      SELECT id, category, title, question, answer, published_at
       FROM faq_items
-      WHERE question ILIKE ${'%' + q + '%'} OR answer ILIKE ${'%' + q + '%'}
+      WHERE title ILIKE ${'%' + q + '%'} OR question ILIKE ${'%' + q + '%'} OR answer ILIKE ${'%' + q + '%'}
       ORDER BY sort_order, published_at DESC
     `;
   } else if (category) {
     rows = await sql`
-      SELECT id, category, question, answer, published_at
+      SELECT id, category, title, question, answer, published_at
       FROM faq_items
       WHERE category = ${category}
       ORDER BY sort_order, published_at DESC
     `;
   } else {
     rows = await sql`
-      SELECT id, category, question, answer, published_at
+      SELECT id, category, title, question, answer, published_at
       FROM faq_items
       ORDER BY sort_order, published_at DESC
     `;

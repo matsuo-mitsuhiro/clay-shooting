@@ -48,6 +48,27 @@ export default function ContactButton() {
 
   return (
     <>
+      {/* Q&Aボタン */}
+      <a
+        href="/faq"
+        style={{
+          background: 'transparent',
+          color: C.muted,
+          border: `1px solid ${C.border}`,
+          borderRadius: 5,
+          padding: '4px 12px',
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          textDecoration: 'none',
+          display: 'inline-block',
+          lineHeight: '1.6',
+        }}
+      >
+        Q&amp;A
+      </a>
+
       {/* お問合せボタン */}
       <button
         onClick={handleOpen}

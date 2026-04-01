@@ -13,15 +13,15 @@ export async function POST(req: NextRequest) {
   if (session.user.role !== 'system') return forbidden();
 
   try {
-    const { question, answer, category } = await req.json();
+    const { question, answer, category, title } = await req.json();
     if (!question || !answer || !category) {
       return NextResponse.json({ success: false, error: '必須項目が不足しています' }, { status: 400 });
     }
 
     const sql = neon(process.env.DATABASE_URL!);
     const rows = await sql`
-      INSERT INTO faq_items (category, question, answer)
-      VALUES (${category}, ${question}, ${answer})
+      INSERT INTO faq_items (category, title, question, answer)
+      VALUES (${category}, ${title ?? ''}, ${question}, ${answer})
       RETURNING id
     `;
     return NextResponse.json({ success: true, id: rows[0].id });

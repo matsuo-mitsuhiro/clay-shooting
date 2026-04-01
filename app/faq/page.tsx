@@ -7,6 +7,7 @@ import ContactButton from '@/components/ContactButton';
 interface FaqItem {
   id: number;
   category: string;
+  title: string;
   question: string;
   answer: string;
   published_at: string;
@@ -136,10 +137,19 @@ export default function FaqPage() {
                 key={item.id}
                 style={{ background: C.surface, border: `1px solid ${openId === item.id ? C.gold + '66' : C.border}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.2s' }}
               >
+                {/* タイトル行 */}
+                {item.title && (
+                  <div style={{ padding: '14px 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: C.gold, fontWeight: 700, fontSize: 15 }}>
+                      {highlight(item.title, searchWord)}
+                    </span>
+                  </div>
+                )}
+
                 {/* 質問行 */}
                 <button
                   onClick={() => setOpenId(openId === item.id ? null : item.id)}
-                  style={{ width: '100%', background: 'transparent', border: 'none', padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 12, textAlign: 'left' }}
+                  style={{ width: '100%', background: 'transparent', border: 'none', padding: item.title ? '8px 20px 16px' : '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 12, textAlign: 'left' }}
                 >
                   <span style={{ color: C.gold, fontWeight: 700, fontSize: 18, lineHeight: 1.4, flexShrink: 0 }}>Q</span>
                   <span style={{ color: C.text, fontSize: 15, lineHeight: 1.6, flex: 1 }}>

@@ -51,6 +51,7 @@ export default function AdminSupportPage() {
   // FAQ掲載
   const [showFaqModal, setShowFaqModal] = useState(false);
   const [faqCategory, setFaqCategory] = useState(FAQ_CATEGORIES[0]);
+  const [faqTitle, setFaqTitle] = useState('');
   const [faqQuestion, setFaqQuestion] = useState('');
   const [faqAnswer, setFaqAnswer] = useState('');
   const [faqError, setFaqError] = useState('');
@@ -106,6 +107,7 @@ export default function AdminSupportPage() {
 
   function openFaqModal() {
     if (!selectedQ) return;
+    setFaqTitle('');
     setFaqQuestion(selectedQ.body);
     setFaqAnswer(selectedQ.answer_body ?? '');
     setFaqCategory(FAQ_CATEGORIES[0]);
@@ -116,14 +118,14 @@ export default function AdminSupportPage() {
 
   async function handlePublishFaq(e: React.FormEvent) {
     e.preventDefault();
-    if (!faqQuestion.trim() || !faqAnswer.trim()) { setFaqError('質問と回答を入力してください'); return; }
+    if (!faqTitle.trim() || !faqQuestion.trim() || !faqAnswer.trim()) { setFaqError('タイトル・質問・回答をすべて入力してください'); return; }
     setSaving(true);
     setFaqError('');
     try {
       const res = await fetch('/api/admin/support/faq', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: faqQuestion.trim(), answer: faqAnswer.trim(), category: faqCategory }),
+        body: JSON.stringify({ title: faqTitle.trim(), question: faqQuestion.trim(), answer: faqAnswer.trim(), category: faqCategory }),
       });
       const json = await res.json();
       if (json.success) { setFaqDone(true); }
@@ -313,6 +315,10 @@ export default function AdminSupportPage() {
                   <select style={{ ...inputStyle, cursor: 'pointer' }} value={faqCategory} onChange={e => setFaqCategory(e.target.value)}>
                     {FAQ_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 6 }}>タイトル <span style={{ color: '#e74c3c' }}>*</span></label>
+                  <input style={inputStyle} value={faqTitle} onChange={e => setFaqTitle(e.target.value)} placeholder="例：スコアの確認方法について" required />
                 </div>
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 6 }}>質問文（編集可）</label>
