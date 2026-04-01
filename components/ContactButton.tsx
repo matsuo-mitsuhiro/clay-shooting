@@ -51,6 +51,8 @@ export default function ContactButton() {
       {/* Q&Aボタン */}
       <a
         href="/faq"
+        target="_blank"
+        rel="noopener noreferrer"
         style={{
           background: 'transparent',
           color: C.muted,
