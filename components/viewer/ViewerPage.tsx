@@ -360,8 +360,8 @@ export default function ViewerPage({ tournamentId }: Props) {
                               transition: 'background 0.15s',
                             }}
                           >
-                            <td style={{ ...tdS, color: r.rank <= 3 ? C.gold : C.muted, fontWeight: r.rank <= 3 ? 700 : 400 }}>
-                              {r.rank}
+                            <td style={{ ...tdS, color: r.rank && r.rank <= 3 ? C.gold : C.muted, fontWeight: r.rank && r.rank <= 3 ? 700 : 400 }}>
+                              {r.rank ?? ''}
                             </td>
                             <td style={{ ...tdS, textAlign: 'left', color: C.text, fontWeight: 500, whiteSpace: 'nowrap' }}>
                               {r.name}{r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
