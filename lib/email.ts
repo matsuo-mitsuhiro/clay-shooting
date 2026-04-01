@@ -1,17 +1,20 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const FROM = process.env.EMAIL_FROM ?? 'noreply@clay-shooting.vercel.app';
 const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://clay-shooting.vercel.app';
 
-function getResend() {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) throw new Error('RESEND_API_KEY is not set');
-  return new Resend(key);
+function getTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
 }
 
 export async function sendRegistrationComplete(to: string, name: string) {
-  await getResend().emails.send({
-    from: FROM,
+  await getTransporter().sendMail({
+    from: `"クレー射撃 成績管理システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: '【クレー射撃 成績管理システム】大会管理者登録完了',
     html: `
@@ -27,8 +30,8 @@ export async function sendRegistrationComplete(to: string, name: string) {
 
 export async function sendPasswordReset(to: string, name: string, token: string) {
   const url = `${BASE_URL}/admin/reset-password/${token}`;
-  await getResend().emails.send({
-    from: FROM,
+  await getTransporter().sendMail({
+    from: `"クレー射撃 成績管理システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: '【クレー射撃 成績管理システム】パスワードリセット',
     html: `
