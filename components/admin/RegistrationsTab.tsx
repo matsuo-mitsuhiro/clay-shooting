@@ -479,7 +479,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
               opacity: saving ? 0.7 : 1,
             }}
           >
-            {saving ? '保存中...' : '保存'}
+            {saving ? '追加中...' : '申込管理リストに追加'}
           </button>
           {!searched && (
             <span style={{ fontSize: 12, color: C.muted }}>
@@ -663,6 +663,8 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
           borderRadius: 6, padding: '8px 12px', marginBottom: 14, fontSize: 14,
         }}>{transferError}</div>
       )}
+
+      <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 10 }}>申込管理リスト</div>
 
       {loading ? (
         <p style={{ color: C.muted, textAlign: 'center', padding: '40px 0' }}>読み込み中...</p>
