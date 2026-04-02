@@ -25,14 +25,6 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
     const t = tRows[0];
 
-    // 募集終了前はNG
-    if (!t.apply_end_at || Date.now() <= new Date(t.apply_end_at).getTime() + 5 * 60 * 1000) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'まだ申込期間中のため、選手登録への移行はできません',
-      }, { status: 400 });
-    }
-
     // 未移行かつactiveな申込者一覧
     const regRows = await sql`
       SELECT * FROM registrations
