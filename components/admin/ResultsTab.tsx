@@ -44,7 +44,8 @@ export default function ResultsTab({ tournamentId }: Props) {
 
   useEffect(() => { fetchResults(); }, [fetchResults]);
 
-  const belongs = Array.from(new Set(results.map(r => r.belong).filter(Boolean))) as string[];
+  const belongs = Array.from(new Set(results.map(r => r.belong).filter(Boolean))).sort() as string[];
+  const existingClasses = (['AA', 'A', 'B', 'C'] as ClassType[]).filter(c => results.some(r => r.class === c));
 
   const filtered = results.filter(r => {
     if (classFilter !== 'all' && r.class !== classFilter) return false;
@@ -360,16 +361,16 @@ export default function ResultsTab({ tournamentId }: Props) {
             background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
             padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
           }}>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ fontSize: 14, color: C.muted }}>クラス:</span>
-              {(['all', 'AA', 'A', 'B', 'C'] as const).map(c => (
+              {(['all', ...existingClasses] as const).map(c => (
                 <button
                   key={c}
-                  onClick={() => setClassFilter(c)}
+                  onClick={() => setClassFilter(c as 'all' | ClassType)}
                   style={{
-                    background: classFilter === c ? classBadgeBg(c) : 'transparent',
-                    color: classFilter === c ? classBadgeColor(c) : C.muted,
-                    border: `1px solid ${classFilter === c ? classBadgeColor(c) : C.border}`,
+                    background: classFilter === c ? classBadgeBg(c as 'all' | ClassType) : 'transparent',
+                    color: classFilter === c ? classBadgeColor(c as 'all' | ClassType) : C.muted,
+                    border: `1px solid ${classFilter === c ? classBadgeColor(c as 'all' | ClassType) : C.border}`,
                     borderRadius: 4, padding: '3px 10px', fontSize: 14,
                     fontWeight: classFilter === c ? 700 : 400, cursor: 'pointer',
                   }}
@@ -378,36 +379,29 @@ export default function ResultsTab({ tournamentId }: Props) {
                 </button>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 14, color: C.muted }}>所属:</span>
-              <button
-                onClick={() => setBelongFilter('all')}
-                style={{
-                  background: belongFilter === 'all' ? `${C.gold}22` : 'transparent',
-                  color: belongFilter === 'all' ? C.gold : C.muted,
-                  border: `1px solid ${belongFilter === 'all' ? C.gold : C.border}`,
-                  borderRadius: 4, padding: '3px 10px', fontSize: 14,
-                  fontWeight: belongFilter === 'all' ? 700 : 400, cursor: 'pointer',
-                }}
-              >
-                全て
-              </button>
-              {belongs.map(b => (
-                <button
-                  key={b}
-                  onClick={() => setBelongFilter(b)}
+            {belongs.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: 14, color: C.muted }}>所属:</span>
+                <select
+                  value={belongFilter}
+                  onChange={e => setBelongFilter(e.target.value)}
                   style={{
-                    background: belongFilter === b ? `${C.gold}22` : 'transparent',
-                    color: belongFilter === b ? C.gold : C.muted,
-                    border: `1px solid ${belongFilter === b ? C.gold : C.border}`,
-                    borderRadius: 4, padding: '3px 10px', fontSize: 14,
-                    fontWeight: belongFilter === b ? 700 : 400, cursor: 'pointer',
+                    background: C.inputBg,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 4,
+                    color: C.text,
+                    padding: '5px 10px',
+                    fontSize: 14,
+                    cursor: 'pointer',
                   }}
                 >
-                  {b}
-                </button>
-              ))}
-            </div>
+                  <option value="all">全て</option>
+                  {belongs.map(b => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Stats */}
