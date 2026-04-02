@@ -209,7 +209,7 @@ export default function AdminDetail({ tournamentId }: Props) {
         {!loading && !error && tournament && (
           <>
             {activeTab === 'registrations' && (
-              <RegistrationsTab tournamentId={tournamentId} />
+              <RegistrationsTab tournamentId={tournamentId} tournament={tournament} />
             )}
             {activeTab === 'members' && (
               <MembersTab tournamentId={tournamentId} />

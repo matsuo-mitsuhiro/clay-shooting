@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { C } from '@/lib/colors';
-import type { Registration, ParticipationDay, ClassType } from '@/lib/types';
+import type { Registration, ParticipationDay, ClassType, Tournament } from '@/lib/types';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface Props {
   tournamentId: number;
+  tournament: Tournament;
 }
 
 function dayLabel(d: ParticipationDay): string {
@@ -26,6 +27,7 @@ interface ManualRow {
   belong: string;
   class: ClassType | '';
   is_judge: boolean;
+  participation_day: ParticipationDay;
   searchStatus: SearchStatus;
 }
 
@@ -44,7 +46,7 @@ function normalizeSpaces(s: string): string {
 const INIT_MANUAL_ROWS = 6;
 const ADD_ROWS_COUNT = 6;
 
-export default function RegistrationsTab({ tournamentId }: Props) {
+export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   const { data: session } = useSession();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,6 @@ export default function RegistrationsTab({ tournamentId }: Props) {
   const [editValue, setEditValue] = useState('');
 
   // Manual add state
-  const [manualDay, setManualDay] = useState<1 | 2>(1);
   const [manualRows, setManualRows] = useState<ManualRow[]>(() => generateManualRows(INIT_MANUAL_ROWS, 0));
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -88,6 +89,7 @@ export default function RegistrationsTab({ tournamentId }: Props) {
       belong: '',
       class: '' as ClassType | '',
       is_judge: false,
+      participation_day: 'day1' as ParticipationDay,
       searchStatus: 'idle' as SearchStatus,
     }));
   }
@@ -185,6 +187,25 @@ export default function RegistrationsTab({ tournamentId }: Props) {
     setTransferError(null);
     const untransferred = registrations.filter(r => r.status === 'active' && !r.transferred_at);
     if (untransferred.length === 0) return;
+
+    // Over-capacity check (client-side)
+    if (maxP != null) {
+      const allActive = registrations.filter(r => r.status === 'active');
+      const postDay1 = allActive.filter(r => r.participation_day === 'day1' || r.participation_day === 'both').length;
+      const postDay2 = allActive.filter(r => r.participation_day === 'day2' || r.participation_day === 'both').length;
+      const overErrors: string[] = [];
+      if (postDay1 > maxP) {
+        overErrors.push(`${is2Day ? '1日目は' : ''}募集人数${maxP}名に対して、${postDay1 - maxP}名オーバーしています。`);
+      }
+      if (is2Day && postDay2 > maxP) {
+        overErrors.push(`2日目は募集人数${maxP}名に対して、${postDay2 - maxP}名オーバーしています。`);
+      }
+      if (overErrors.length > 0) {
+        setTransferError(overErrors.join(' ') + ' 大会設定で募集人数を変更するか、参加者を調整してください。');
+        return;
+      }
+    }
+
     if (!window.confirm(`未移行の ${untransferred.length} 名を選手管理に移行しますか？\n申込期間が終了している必要があります。`)) return;
     try {
       setTransferring(true);
@@ -248,7 +269,7 @@ export default function RegistrationsTab({ tournamentId }: Props) {
               newRows.push({
                 ...row, member_code: p.member_code, name: p.name,
                 belong: p.affiliation ?? '', class: (p.class ?? '') as ClassType | '',
-                is_judge: p.is_judge, searchStatus: 'found',
+                is_judge: p.is_judge, participation_day: row.participation_day, searchStatus: 'found',
               });
             } else {
               newRows.push({ ...row, searchStatus: 'not_found' });
@@ -264,7 +285,7 @@ export default function RegistrationsTab({ tournamentId }: Props) {
             newRows.push({
               ...row, member_code: p.member_code, name: p.name,
               belong: p.affiliation ?? '', class: (p.class ?? '') as ClassType | '',
-              is_judge: p.is_judge, searchStatus: 'found',
+              is_judge: p.is_judge, participation_day: row.participation_day, searchStatus: 'found',
             });
           } else {
             newRows.push({ ...row, searchStatus: 'not_found' });
@@ -283,7 +304,7 @@ export default function RegistrationsTab({ tournamentId }: Props) {
                 id: i === 0 ? row.id : idCounterRef.current++,
                 member_code: p.member_code, name: p.name,
                 belong: p.affiliation ?? '', class: (p.class ?? '') as ClassType | '',
-                is_judge: p.is_judge, searchStatus: 'found',
+                is_judge: p.is_judge, participation_day: row.participation_day, searchStatus: 'found',
               });
             }
           } else {
@@ -326,7 +347,7 @@ export default function RegistrationsTab({ tournamentId }: Props) {
             belong: r.belong || null,
             class: r.class || null,
             is_judge: r.is_judge,
-            participation_day: manualDay === 1 ? 'day1' : 'day2',
+            participation_day: r.participation_day,
           }),
         });
         const json = await res.json();
@@ -336,7 +357,7 @@ export default function RegistrationsTab({ tournamentId }: Props) {
         results.push(json.data);
       }
 
-      setManualSuccess(`${validRows.length}名を手動登録しました（${manualDay}日目）`);
+      setManualSuccess(`${validRows.length}名を手動登録しました`);
       // Reset manual rows
       idCounterRef.current += 100;
       setManualRows(generateManualRows(INIT_MANUAL_ROWS, idCounterRef.current));
@@ -353,6 +374,12 @@ export default function RegistrationsTab({ tournamentId }: Props) {
   const activeRegs = registrations.filter(r => r.status === 'active');
   const cancelledCount = registrations.filter(r => r.status === 'cancelled').length;
   const untransferredCount = activeRegs.filter(r => !r.transferred_at).length;
+
+  // Capacity calculation
+  const maxP = tournament.max_participants;
+  const is2Day = !!tournament.day2_date;
+  const day1Count = activeRegs.filter(r => r.participation_day === 'day1' || r.participation_day === 'both').length;
+  const day2Count = activeRegs.filter(r => r.participation_day === 'day2' || r.participation_day === 'both').length;
 
   const inputStyle: React.CSSProperties = {
     background: C.inputBg,
@@ -380,26 +407,6 @@ export default function RegistrationsTab({ tournamentId }: Props) {
         <h3 style={{ margin: '0 0 12px', fontSize: 16, color: C.gold, fontWeight: 700 }}>
           手動追加
         </h3>
-
-        {/* Day selector */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-          <span style={{ color: C.muted, fontSize: 14 }}>登録先：</span>
-          {([1, 2] as const).map(d => (
-            <button
-              key={d}
-              onClick={() => setManualDay(d)}
-              style={{
-                background: manualDay === d ? C.gold : C.surface2,
-                color: manualDay === d ? '#000' : C.muted,
-                border: `1px solid ${manualDay === d ? C.gold : C.border}`,
-                borderRadius: 6, padding: '5px 14px', fontSize: 14,
-                fontWeight: manualDay === d ? 700 : 400, cursor: 'pointer',
-              }}
-            >
-              {d}日目
-            </button>
-          ))}
-        </div>
 
         {/* Manual error/success */}
         {manualError && (
@@ -469,6 +476,7 @@ export default function RegistrationsTab({ tournamentId }: Props) {
                   { label: '所属', w: 110 },
                   { label: 'クラス', w: 68 },
                   { label: '審判', w: 52 },
+                  { label: '参加', w: 80 },
                   { label: '削除', w: 52, red: true },
                 ].map(h => (
                   <th key={h.label} style={{
@@ -522,6 +530,15 @@ export default function RegistrationsTab({ tournamentId }: Props) {
                         <span style={{ fontSize: 14, color: row.is_judge ? C.gold : C.muted }}>⚑</span>
                       </label>
                     </td>
+                    <td style={{ padding: '3px 6px' }}>
+                      <select value={row.participation_day}
+                        onChange={e => updateManualRow(row.id, 'participation_day', e.target.value)}
+                        style={{ ...inputStyle, width: 72 }}>
+                        <option value="day1">1日目</option>
+                        <option value="day2">2日目</option>
+                        <option value="both">両方</option>
+                      </select>
+                    </td>
                     <td style={{ padding: '3px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       <button onClick={() => deleteManualRow(row.id)}
                         style={{
@@ -549,31 +566,52 @@ export default function RegistrationsTab({ tournamentId }: Props) {
       </div>
 
       {/* ============ Registration List ============ */}
+      {/* Capacity info */}
+      <div style={{ marginBottom: 12 }}>
+        {(() => {
+          const capStyle: React.CSSProperties = {
+            fontSize: 14, lineHeight: 1.8, color: C.text,
+          };
+          const renderDayLine = (label: string, count: number) => {
+            if (maxP == null) {
+              return (
+                <div key={label} style={capStyle}>
+                  {label}募集人数: 制限なし　申込中: {count}名
+                </div>
+              );
+            }
+            const isOver = count > maxP;
+            return (
+              <div key={label} style={{ ...capStyle, color: isOver ? '#e74c3c' : C.text }}>
+                {label}募集人数: {maxP}名　申込中: {count}名　{isOver
+                  ? `オーバー: ${count - maxP}名`
+                  : `残り: ${maxP - count}名`}
+              </div>
+            );
+          };
+          if (is2Day) {
+            return (<>{renderDayLine('1日目　', day1Count)}{renderDayLine('2日目　', day2Count)}</>);
+          } else {
+            return renderDayLine('', day1Count);
+          }
+        })()}
+        {cancelledCount > 0 && (
+          <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
+            キャンセル: {cancelledCount}名
+          </div>
+        )}
+      </div>
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <span style={{
-            background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,
-            borderRadius: 5, padding: '4px 12px', fontSize: 14, fontWeight: 700,
-          }}>
-            申込中: {activeRegs.length}名
-          </span>
-          {cancelledCount > 0 && (
-            <span style={{
-              background: C.surface2, border: `1px solid ${C.border}`, color: C.muted,
-              borderRadius: 5, padding: '4px 12px', fontSize: 14,
-            }}>
-              キャンセル: {cancelledCount}名
-            </span>
-          )}
-        </div>
         <button
           onClick={fetchRegistrations}
+          title="Web申込の最新の状態を取得するにはクリックしてください。Web申込が終了している場合は更新は不要です。"
           style={{
             background: C.surface2, color: C.muted, border: `1px solid ${C.border}`,
             borderRadius: 5, padding: '6px 14px', fontSize: 14, cursor: 'pointer',
           }}
         >
-          更新
+          最新に更新
         </button>
         <button
           onClick={handleTransfer}

@@ -296,7 +296,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
 
     // 必須チェック（注意書き以外）
     const missing: string[] = [];
-    if (!applyForm.max_participants) missing.push('参加人数上限');
+    if (!applyForm.max_participants) missing.push('募集人数');
     if (!applyForm.apply_start_at) missing.push('募集開始日時');
     if (!applyForm.apply_end_at) missing.push('募集終了日時');
     if (!applyForm.cancel_end_at) missing.push('キャンセル可能日時');
@@ -582,9 +582,9 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         <form onSubmit={handleSaveApply}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
-            {/* 参加人数上限 */}
+            {/* 募集人数 */}
             <div>
-              <label style={labelStyle}>参加人数上限 {requiredMark}</label>
+              <label style={labelStyle}>募集人数 {requiredMark}</label>
               <input
                 type="number"
                 min={1}

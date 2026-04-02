@@ -43,6 +43,27 @@ export async function POST(req: NextRequest, { params }: Params) {
       }, { status: 400 });
     }
 
+    // Over-capacity check (server-side)
+    const maxParticipants = t.max_participants != null ? Number(t.max_participants) : null;
+    if (maxParticipants != null) {
+      const allActiveRows = await sql`
+        SELECT participation_day FROM registrations
+        WHERE tournament_id = ${tid} AND status = 'active'
+      `;
+      const allActive = allActiveRows as { participation_day: string }[];
+      const d1 = allActive.filter(r => r.participation_day === 'day1' || r.participation_day === 'both').length;
+      const d2 = allActive.filter(r => r.participation_day === 'day2' || r.participation_day === 'both').length;
+      const overErrors: string[] = [];
+      if (d1 > maxParticipants) overErrors.push(`1日目は募集人数${maxParticipants}名に対して${d1 - maxParticipants}名オーバー`);
+      if (t.day2_date && d2 > maxParticipants) overErrors.push(`2日目は募集人数${maxParticipants}名に対して${d2 - maxParticipants}名オーバー`);
+      if (overErrors.length > 0) {
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: overErrors.join('、') + '。大会設定で募集人数を変更するか、参加者を調整してください。',
+        }, { status: 400 });
+      }
+    }
+
     // 既存のmembersを取得して空きスロットを特定
     const memberRows = await sql`
       SELECT * FROM members WHERE tournament_id = ${tid}
