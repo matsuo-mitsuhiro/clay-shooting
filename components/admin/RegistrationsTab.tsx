@@ -226,9 +226,12 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   // ===== Manual add functions =====
   function updateManualRow(id: number, field: keyof ManualRow, value: string | boolean) {
     setManualRows(prev => prev.map(r =>
-      r.id === id ? { ...r, [field]: value, searchStatus: 'idle' as SearchStatus } : r
+      r.id === id ? { ...r, [field]: value } : r
     ));
-    setSearched(false);
+    // 会員番号・氏名の変更時のみ再検索が必要（所属・クラス・審判・参加の編集は許可）
+    if (field === 'member_code' || field === 'name') {
+      setSearched(false);
+    }
   }
 
   function deleteManualRow(id: number) {
@@ -328,6 +331,25 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
     const validRows = manualRows.filter(r => r.name.trim());
     if (validRows.length === 0) {
       setManualError('登録する選手がいません（氏名を入力してください）');
+      return;
+    }
+
+    // 会員番号と氏名の必須チェック
+    const missingInfo = validRows.filter(r => !r.member_code.trim());
+    if (missingInfo.length > 0) {
+      setManualError('会員番号と氏名は必須です');
+      return;
+    }
+
+    // 重複チェック（同じ会員番号が複数行にある場合）
+    const codeCounts = new Map<string, number>();
+    for (const r of validRows) {
+      const code = r.member_code.trim();
+      if (code) codeCounts.set(code, (codeCounts.get(code) ?? 0) + 1);
+    }
+    const dupCodes = [...codeCounts.entries()].filter(([, c]) => c > 1).map(([code]) => code);
+    if (dupCodes.length > 0) {
+      setManualError(`会員番号が重複しています: ${dupCodes.join(', ')}。重複を削除してから保存してください。`);
       return;
     }
 
@@ -494,8 +516,14 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
             <tbody>
               {manualRows.map(row => {
                 const isNotFound = row.searchStatus === 'not_found';
+                // 重複チェック: 同じ会員番号の行が複数あるか
+                const code = row.member_code.trim();
+                const isDuplicate = code !== '' && manualRows.filter(r => r.member_code.trim() === code).length > 1;
                 return (
-                  <tr key={row.id} style={{ borderBottom: `1px solid ${C.border}33` }}>
+                  <tr key={row.id} style={{
+                    borderBottom: `1px solid ${C.border}33`,
+                    ...(isDuplicate ? { outline: `2px solid ${C.red}`, outlineOffset: -1 } : {}),
+                  }}>
                     <td style={{ padding: '3px 6px' }}>
                       <input type="text" value={row.member_code}
                         onChange={e => updateManualRow(row.id, 'member_code', e.target.value)}
