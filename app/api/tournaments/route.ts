@@ -19,7 +19,7 @@ export async function GET() {
       LEFT JOIN (
         SELECT tournament_id, COUNT(*) AS score_count
         FROM scores
-        WHERE total > 0
+        WHERE COALESCE(r1,0)+COALESCE(r2,0)+COALESCE(r3,0)+COALESCE(r4,0)+COALESCE(r5,0)+COALESCE(r6,0)+COALESCE(r7,0)+COALESCE(r8,0) > 0
         GROUP BY tournament_id
       ) s ON s.tournament_id = t.id
       ORDER BY t.created_at DESC
