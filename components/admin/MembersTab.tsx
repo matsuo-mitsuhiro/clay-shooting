@@ -706,7 +706,7 @@ export default function MembersTab({ tournamentId }: Props) {
                           style={{ ...inputStyle, width: 60 }}
                         >
                           <option value="">-</option>
-                          {(['A', 'B', 'C', 'D'] as ClassType[]).map(c => (
+                          {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
                             <option key={c} value={c}>{c}</option>
                           ))}
                         </select>
@@ -851,8 +851,8 @@ export default function MembersTab({ tournamentId }: Props) {
 }
 
 function classBadgeBg(c: ClassType): string {
-  return { A: `${C.gold}33`, B: '#3498db33', C: '#2ecc7133', D: '#9b59b633' }[c];
+  return { AA: '#e74c3c33', A: `${C.gold}33`, B: '#3498db33', C: '#2ecc7133' }[c] ?? '';
 }
 function classBadgeColor(c: ClassType): string {
-  return { A: C.gold, B: '#3498db', C: '#2ecc71', D: '#9b59b6' }[c];
+  return { AA: '#e74c3c', A: C.gold, B: '#3498db', C: '#2ecc71' }[c] ?? C.muted;
 }

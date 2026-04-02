@@ -235,7 +235,7 @@ export default function ViewerPage({ tournamentId }: Props) {
             }}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 14, color: C.muted }}>クラス:</span>
-                {(['all', 'A', 'B', 'C', 'D'] as const).map(c => (
+                {(['all', 'AA', 'A', 'B', 'C'] as const).map(c => (
                   <button
                     key={c}
                     onClick={() => setClassFilter(c)}
@@ -515,10 +515,10 @@ const tdS: React.CSSProperties = {
 
 function classBadgeBg(c: ClassType | 'all'): string {
   if (c === 'all') return `${C.gold}22`;
-  return { A: `${C.gold}33`, B: '#3498db33', C: '#2ecc7133', D: '#9b59b633' }[c];
+  return { AA: '#e74c3c33', A: `${C.gold}33`, B: '#3498db33', C: '#2ecc7133' }[c] ?? '';
 }
 
 function classBadgeColor(c: ClassType | 'all'): string {
   if (c === 'all') return C.gold;
-  return { A: C.gold, B: '#3498db', C: '#2ecc71', D: '#9b59b6' }[c];
+  return { AA: '#e74c3c', A: C.gold, B: '#3498db', C: '#2ecc71' }[c] ?? C.muted;
 }

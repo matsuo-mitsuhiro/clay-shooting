@@ -558,7 +558,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
                       style={{ ...inputStyle, width: 56 }}
                     >
                       <option value="">-</option>
-                      {(['A', 'B', 'C', 'D'] as ClassType[]).map(c => (
+                      {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>

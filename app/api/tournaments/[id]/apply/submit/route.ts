@@ -18,6 +18,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     const name: string = (body.name ?? '').trim();
     const belong: string | null = body.belong?.trim() || null;
     const classVal: ClassType | null = body.class || null;
+    const is_judge: boolean = body.is_judge === true;
     const participation_day: ParticipationDay = body.participation_day ?? 'day1';
 
     if (!token || !member_code || !name) {
@@ -73,9 +74,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     // 申込登録
     const regRows = await sql`
       INSERT INTO registrations
-        (tournament_id, member_code, name, belong, email, event_type, participation_day, class)
+        (tournament_id, member_code, name, belong, email, event_type, participation_day, class, is_judge)
       VALUES
-        (${tid}, ${member_code}, ${name}, ${belong}, ${tok.email}, ${t.event_type}, ${participation_day}, ${classVal})
+        (${tid}, ${member_code}, ${name}, ${belong}, ${tok.email}, ${t.event_type}, ${participation_day}, ${classVal}, ${is_judge})
       RETURNING *
     `;
     const registration = regRows[0] as Registration;

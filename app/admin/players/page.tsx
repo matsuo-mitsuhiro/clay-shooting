@@ -7,7 +7,7 @@ import { DEFAULT_AFFILIATION } from '@/lib/prefectures';
 import type { PlayerMaster } from '@/app/api/players/route';
 import ContactButton from '@/components/ContactButton';
 
-const CLASSES = ['A', 'B', 'C', 'D', 'E'];
+const CLASSES = ['AA', 'A', 'B', 'C'];
 
 const s = {
   page: { minHeight: '100vh', background: C.bg, color: C.text, padding: '24px', fontFamily: 'sans-serif' } as const,

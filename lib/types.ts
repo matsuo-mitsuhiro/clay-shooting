@@ -3,7 +3,7 @@
 // ============================================================
 
 export type EventType = 'trap' | 'skeet';
-export type ClassType = 'A' | 'B' | 'C' | 'D';
+export type ClassType = 'AA' | 'A' | 'B' | 'C';
 
 // ---------- Tournament ----------
 export interface Tournament {
@@ -193,6 +193,7 @@ export interface Registration {
   event_type: string;
   participation_day: ParticipationDay;
   class: ClassType | null;
+  is_judge: boolean;
   status: 'active' | 'cancelled';
   cancelled_at: string | null;
   cancelled_by: 'user' | 'admin' | null;

@@ -18,6 +18,7 @@ export default function ApplyFormPage() {
   const [name, setName] = useState('');
   const [belong, setBelong] = useState('');
   const [classVal, setClassVal] = useState<ClassType | ''>('');
+  const [isJudge, setIsJudge] = useState(false);
   const [participationDay, setParticipationDay] = useState<ParticipationDay>('day1');
   const [associationNames, setAssociationNames] = useState<string[]>([]);
 
@@ -54,6 +55,14 @@ export default function ApplyFormPage() {
       setSubmitError('会員番号と氏名は必須です');
       return;
     }
+    if (!belong) {
+      setSubmitError('所属を選択してください');
+      return;
+    }
+    if (!classVal) {
+      setSubmitError('クラスを選択してください');
+      return;
+    }
     try {
       setSubmitting(true);
       const res = await fetch(`/api/tournaments/${id}/apply/submit`, {
@@ -65,6 +74,7 @@ export default function ApplyFormPage() {
           name: name.trim(),
           belong: belong || null,
           class: classVal || null,
+          is_judge: isJudge,
           participation_day: is2Day ? participationDay : 'day1',
         }),
       });
@@ -187,7 +197,7 @@ export default function ApplyFormPage() {
               </div>
 
               <div>
-                <label style={labelStyle}>所属</label>
+                <label style={labelStyle}>所属 <span style={{ color: C.red }}>*</span></label>
                 <select
                   value={belong}
                   onChange={e => setBelong(e.target.value)}
@@ -201,17 +211,36 @@ export default function ApplyFormPage() {
               </div>
 
               <div>
-                <label style={labelStyle}>クラス</label>
-                <select
-                  value={classVal}
-                  onChange={e => setClassVal(e.target.value as ClassType | '')}
-                  style={{ ...inputStyle, width: 120 }}
-                >
-                  <option value="">— 選択 —</option>
-                  {(['A', 'B', 'C', 'D'] as ClassType[]).map(c => (
-                    <option key={c} value={c}>{c}クラス</option>
-                  ))}
-                </select>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+                  <div>
+                    <label style={labelStyle}>クラス <span style={{ color: C.red }}>*</span></label>
+                    <select
+                      value={classVal}
+                      onChange={e => setClassVal(e.target.value as ClassType | '')}
+                      style={{ ...inputStyle, width: 120 }}
+                    >
+                      <option value="">— 選択 —</option>
+                      {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
+                        <option key={c} value={c}>{c}クラス</option>
+                      ))}
+                    </select>
+                    <p style={{ color: C.muted, fontSize: 12, margin: '4px 0 0' }}>
+                      ※クラスが不明な方はCクラスを選択してください
+                    </p>
+                  </div>
+                  <div style={{ paddingTop: 4 }}>
+                    <label style={labelStyle}>審判資格</label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: C.text, fontSize: 15 }}>
+                      <input
+                        type="checkbox"
+                        checked={isJudge}
+                        onChange={e => setIsJudge(e.target.checked)}
+                        style={{ accentColor: C.gold, width: 18, height: 18 }}
+                      />
+                      審判資格あり
+                    </label>
+                  </div>
+                </div>
               </div>
 
               {is2Day && (
