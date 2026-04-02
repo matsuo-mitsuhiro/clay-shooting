@@ -33,6 +33,9 @@ export interface Tournament {
   cancellation_notice: string | null;
   notes: string | null;
   apply_qr: string | null;
+  // 進捗判定用（一覧取得時のみ付与）
+  member_count?: number;
+  score_count?: number;
 }
 
 export interface TournamentInput {

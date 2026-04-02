@@ -2,11 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import type { Tournament, TournamentInput, ApiResponse } from '@/lib/types';
 
-// GET /api/tournaments — 大会一覧取得
+// GET /api/tournaments — 大会一覧取得（member_count / score_count 付き）
 export async function GET() {
   try {
     const rows = await sql`
-      SELECT * FROM tournaments ORDER BY created_at DESC
+      SELECT
+        t.*,
+        COALESCE(m.member_count, 0)::int AS member_count,
+        COALESCE(s.score_count, 0)::int  AS score_count
+      FROM tournaments t
+      LEFT JOIN (
+        SELECT tournament_id, COUNT(*) AS member_count
+        FROM members
+        GROUP BY tournament_id
+      ) m ON m.tournament_id = t.id
+      LEFT JOIN (
+        SELECT tournament_id, COUNT(*) AS score_count
+        FROM scores
+        WHERE total > 0
+        GROUP BY tournament_id
+      ) s ON s.tournament_id = t.id
+      ORDER BY t.created_at DESC
     `;
     return NextResponse.json<ApiResponse<Tournament[]>>({ success: true, data: rows as Tournament[] });
   } catch (e) {

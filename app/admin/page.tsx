@@ -95,6 +95,14 @@ export default function AdminPage() {
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
   };
 
+  // 進捗に応じた遷移先タブを判定
+  function getInitialTab(t: Tournament): string {
+    if ((t.score_count ?? 0) > 0) return 'scores';       // 1. 点数入力中
+    if ((t.member_count ?? 0) > 0) return 'members';     // 2. 選手登録済み
+    if (t.apply_start_at) return 'registrations';         // 3. 申込設定済み
+    return 'settings';                                     // 4. 未設定
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
       {/* Header */}
@@ -458,7 +466,7 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => router.push(`/admin/${t.id}`)}
+                  onClick={() => router.push(`/admin/${t.id}?tab=${getInitialTab(t)}`)}
                   style={{
                     background: C.surface2,
                     color: C.gold,

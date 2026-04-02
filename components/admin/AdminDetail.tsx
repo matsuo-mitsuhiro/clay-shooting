@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { C } from '@/lib/colors';
 import type { Tournament, Registration } from '@/lib/types';
@@ -20,11 +20,17 @@ interface Props {
   tournamentId: number;
 }
 
+const VALID_TABS: TabType[] = ['members', 'scores', 'results', 'settings', 'history', 'registrations', 'bulk'];
+
 export default function AdminDetail({ tournamentId }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const isSystem = session?.user?.role === 'system';
-  const [activeTab, setActiveTab] = useState<TabType>('members');
+
+  const tabParam = searchParams.get('tab') as TabType | null;
+  const initialTab: TabType = (tabParam && VALID_TABS.includes(tabParam)) ? tabParam : 'members';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

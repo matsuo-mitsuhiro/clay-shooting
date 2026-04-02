@@ -84,6 +84,13 @@ function SortablePlayerRow({ slot }: { slot: SlotItem }) {
   );
 }
 
+interface UnregisteredEntry {
+  member_code: string;
+  name: string;
+  belong: string | null;
+  participation_day: string;
+}
+
 export default function MembersTab({ tournamentId }: Props) {
   const [showBulk, setShowBulk] = useState(false);
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
@@ -97,6 +104,7 @@ export default function MembersTab({ tournamentId }: Props) {
   const [success, setSuccess] = useState<string | null>(null);
   const [reorderMode, setReorderMode] = useState(false);
   const [reorderItems, setReorderItems] = useState<SlotItem[]>([]);
+  const [unregistered, setUnregistered] = useState<UnregisteredEntry[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -161,7 +169,18 @@ export default function MembersTab({ tournamentId }: Props) {
 
   useEffect(() => {
     fetchMembers();
+    fetchUnregistered();
   }, [fetchMembers]);
+
+  async function fetchUnregistered() {
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/registrations/unregistered`);
+      const json = await res.json();
+      if (json.success) setUnregistered(json.data);
+    } catch {
+      // 警告表示は任意なのでエラーは無視
+    }
+  }
 
   const updateRow = (idx: number, field: keyof MemberRow, value: string | boolean) => {
     const rows = [...getRows(selectedDay, selectedGroup)];
@@ -441,9 +460,39 @@ export default function MembersTab({ tournamentId }: Props) {
     boxSizing: 'border-box',
   };
 
+  const dayLabel = (d: string) => d === 'day1' ? '1日目' : d === 'day2' ? '2日目' : '両日';
+
   return (
     <div style={{ padding: '20px 16px', maxWidth: 900, margin: '0 auto' }}>
       <LoadingOverlay show={loading || saving} message={loading ? '読み込み中...' : '保存中...'} />
+
+      {/* 申込済み・未登録 警告バナー */}
+      {unregistered.length > 0 && (
+        <div style={{
+          background: '#7a4a0022',
+          border: '1px solid #d4870a',
+          borderRadius: 8,
+          padding: '14px 18px',
+          marginBottom: 20,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 18 }}>⚠️</span>
+            <span style={{ color: '#d4870a', fontWeight: 700, fontSize: 15 }}>
+              申込済みだが選手未登録の方が {unregistered.length} 名います
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 20px', marginBottom: 10 }}>
+            {unregistered.map(u => (
+              <span key={u.member_code} style={{ fontSize: 14, color: '#e0a040' }}>
+                {u.member_code}　{u.name}（{dayLabel(u.participation_day)}）
+              </span>
+            ))}
+          </div>
+          <p style={{ margin: 0, fontSize: 13, color: '#a07840' }}>
+            選手登録するか、申込管理タブでキャンセル処理してください。
+          </p>
+        </div>
+      )}
       {/* Day Tabs（選手一括登録 / 1日目 / 2日目） */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
         <button
