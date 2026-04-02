@@ -24,6 +24,8 @@ const ORGANIZERS = [
   { cd: 28, name: '兵庫' },
 ];
 
+const DEFAULT_CANCELLATION_NOTICE = '当協会のホームページにて公表いたします。';
+
 // ---------- 日付変換ヘルパー ----------
 function isoStrToDate(s: string | null): Date | null {
   if (!s) return null;
@@ -56,8 +58,21 @@ function dateToTimeStr(d: Date | null): string | null {
   return `${h}:${m}`;
 }
 
-// ピッカーを開いたとき 00:00 を基準にする
+function addMinutes(d: Date, minutes: number): Date {
+  return new Date(d.getTime() + minutes * 60 * 1000);
+}
+
+// ピッカー基準時刻（00:00）
 const MIDNIGHT = new Date(new Date().setHours(0, 0, 0, 0));
+
+// 時刻ピッカー用フィルタ: 05:00〜12:00、10分刻みのみ表示
+const filterScheduleTime = (time: Date) => {
+  const h = time.getHours();
+  const m = time.getMinutes();
+  if (h < 5 || h > 12) return false;
+  if (h === 12 && m > 0) return false;
+  return m % 10 === 0;
+};
 
 export default function SettingsTab({ tournamentId, tournament, onUpdated }: Props) {
   const router = useRouter();
@@ -93,7 +108,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     reception_start_time: null,
     practice_clay_time: null,
     competition_start_time: null,
-    cancellation_notice: '',
+    cancellation_notice: DEFAULT_CANCELLATION_NOTICE,
     notes: '',
   });
 
@@ -129,10 +144,58 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       reception_start_time: timeStrToDate(tournament.reception_start_time),
       practice_clay_time: timeStrToDate(tournament.practice_clay_time),
       competition_start_time: timeStrToDate(tournament.competition_start_time),
-      cancellation_notice: tournament.cancellation_notice ?? '',
+      cancellation_notice: tournament.cancellation_notice ?? DEFAULT_CANCELLATION_NOTICE,
       notes: tournament.notes ?? '',
     });
   }, [tournament]);
+
+  // 開門時間変更 → 受付・クレー・競技を自動設定
+  function handleGateOpenChange(date: Date | null) {
+    if (!date) {
+      setApplyForm(f => ({ ...f, gate_open_time: null }));
+      return;
+    }
+    const reception = addMinutes(date, 60);
+    const clay = addMinutes(reception, 55);
+    const competition = addMinutes(clay, 10);
+    setApplyForm(f => ({
+      ...f,
+      gate_open_time: date,
+      reception_start_time: reception,
+      practice_clay_time: clay,
+      competition_start_time: competition,
+    }));
+  }
+
+  // 受付時間変更 → クレー・競技を自動設定
+  function handleReceptionChange(date: Date | null) {
+    if (!date) {
+      setApplyForm(f => ({ ...f, reception_start_time: null }));
+      return;
+    }
+    const clay = addMinutes(date, 55);
+    const competition = addMinutes(clay, 10);
+    setApplyForm(f => ({
+      ...f,
+      reception_start_time: date,
+      practice_clay_time: clay,
+      competition_start_time: competition,
+    }));
+  }
+
+  // クレー時間変更 → 競技を自動設定
+  function handleClayChange(date: Date | null) {
+    if (!date) {
+      setApplyForm(f => ({ ...f, practice_clay_time: null }));
+      return;
+    }
+    const competition = addMinutes(date, 10);
+    setApplyForm(f => ({
+      ...f,
+      practice_clay_time: date,
+      competition_start_time: competition,
+    }));
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -188,6 +251,29 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     if (!applyForm.cancellation_notice.trim()) missing.push('中止お知らせ方法');
     if (missing.length > 0) {
       setError(`以下の項目は必須です：${missing.join('、')}`);
+      return;
+    }
+
+    // 日付整合性チェック
+    const errors: string[] = [];
+    if (applyForm.apply_start_at && form.day1_date) {
+      const day1 = new Date(form.day1_date);
+      if (applyForm.apply_start_at >= day1) {
+        errors.push('募集開始日時は1日目日付より前に設定してください');
+      }
+    }
+    if (applyForm.apply_start_at && applyForm.apply_end_at) {
+      if (applyForm.apply_end_at <= applyForm.apply_start_at) {
+        errors.push('募集終了日時は募集開始日時より後に設定してください');
+      }
+    }
+    if (applyForm.apply_end_at && applyForm.cancel_end_at) {
+      if (applyForm.cancel_end_at < applyForm.apply_end_at) {
+        errors.push('キャンセル可能日時は募集終了日時と同じかそれ以降に設定してください');
+      }
+    }
+    if (errors.length > 0) {
+      setError(errors.join('\n'));
       return;
     }
 
@@ -285,11 +371,11 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
 
   const requiredMark = <span style={{ color: C.red }}>*</span>;
 
-  // DatePicker 共通カスタムインプット（readOnly で直接テキスト入力不可）
-  const dpInputStyle: React.CSSProperties = {
-    ...inputStyle,
-    cursor: 'pointer',
-  };
+  // 日時ピッカー用（カレンダー＋時刻: readOnly でクリック操作）
+  const dpDateTimeInput = <input style={{ ...inputStyle, cursor: 'pointer' }} readOnly />;
+
+  // 時刻ピッカー用（手動入力可能: readOnly なし）
+  const dpTimeInput = <input style={{ ...inputStyle, cursor: 'pointer' }} />;
 
   return (
     <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
@@ -298,6 +384,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         <div style={{
           background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
           borderRadius: 6, padding: '8px 12px', marginBottom: 16, fontSize: 15,
+          whiteSpace: 'pre-line',
         }}>{error}</div>
       )}
       {success && (
@@ -364,7 +451,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 dateFormat="yyyy/MM/dd"
                 locale={ja}
                 placeholderText="日付を選択"
-                customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const, cursor: 'pointer' }} />}
+                customInput={<input style={{ ...inputStyle, cursor: 'pointer' }} readOnly />}
               />
             </div>
             <div>
@@ -375,7 +462,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 dateFormat="yyyy/MM/dd"
                 locale={ja}
                 placeholderText="日付を選択"
-                customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const, cursor: 'pointer' }} />}
+                customInput={<input style={{ ...inputStyle, cursor: 'pointer' }} readOnly />}
               />
             </div>
             <div>
@@ -441,7 +528,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
             </div>
             <div>{/* spacer */}</div>
 
-            {/* 募集開始日時 */}
+            {/* 募集開始日時（1時間刻み） */}
             <div>
               <label style={labelStyle}>募集開始日時 {requiredMark}</label>
               <DatePicker
@@ -450,15 +537,15 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 showTimeSelect
                 dateFormat="yyyy/MM/dd HH:mm"
                 timeFormat="HH:mm"
-                timeIntervals={15}
+                timeIntervals={60}
                 locale={ja}
                 placeholderText="日付・時刻を選択"
                 openToDate={MIDNIGHT}
-                customInput={<input style={dpInputStyle} readOnly />}
+                customInput={dpDateTimeInput}
               />
             </div>
 
-            {/* 募集終了日時 */}
+            {/* 募集終了日時（1時間刻み） */}
             <div>
               <label style={labelStyle}>募集終了日時 {requiredMark}</label>
               <DatePicker
@@ -467,15 +554,15 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 showTimeSelect
                 dateFormat="yyyy/MM/dd HH:mm"
                 timeFormat="HH:mm"
-                timeIntervals={15}
+                timeIntervals={60}
                 locale={ja}
                 placeholderText="日付・時刻を選択"
                 openToDate={MIDNIGHT}
-                customInput={<input style={dpInputStyle} readOnly />}
+                customInput={dpDateTimeInput}
               />
             </div>
 
-            {/* キャンセル可能日時 */}
+            {/* キャンセル可能日時（1時間刻み） */}
             <div>
               <label style={labelStyle}>キャンセル可能日時 {requiredMark}</label>
               <DatePicker
@@ -484,29 +571,37 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 showTimeSelect
                 dateFormat="yyyy/MM/dd HH:mm"
                 timeFormat="HH:mm"
-                timeIntervals={15}
+                timeIntervals={60}
                 locale={ja}
                 placeholderText="日付・時刻を選択"
                 openToDate={MIDNIGHT}
-                customInput={<input style={dpInputStyle} readOnly />}
+                customInput={dpDateTimeInput}
               />
             </div>
             <div>{/* spacer */}</div>
+
+            {/* --- 当日スケジュール --- */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <p style={{ margin: '4px 0 10px', fontSize: 13, color: C.muted }}>
+                ※ 射撃場開門時間を選択すると、受付・クレー・競技開始が自動設定されます（後から修正可）
+              </p>
+            </div>
 
             {/* 射撃場開門時間 */}
             <div>
               <label style={labelStyle}>射撃場開門時間 {requiredMark}</label>
               <DatePicker
                 selected={applyForm.gate_open_time}
-                onChange={(date: Date | null) => setApplyForm(f => ({ ...f, gate_open_time: date }))}
+                onChange={handleGateOpenChange}
                 showTimeSelect
                 showTimeSelectOnly
                 timeFormat="HH:mm"
                 dateFormat="HH:mm"
-                timeIntervals={15}
+                timeIntervals={10}
+                filterTime={filterScheduleTime}
                 placeholderText="時刻を選択"
                 openToDate={MIDNIGHT}
-                customInput={<input style={dpInputStyle} readOnly />}
+                customInput={dpTimeInput}
               />
             </div>
 
@@ -515,15 +610,16 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               <label style={labelStyle}>受付開始時間 {requiredMark}</label>
               <DatePicker
                 selected={applyForm.reception_start_time}
-                onChange={(date: Date | null) => setApplyForm(f => ({ ...f, reception_start_time: date }))}
+                onChange={handleReceptionChange}
                 showTimeSelect
                 showTimeSelectOnly
                 timeFormat="HH:mm"
                 dateFormat="HH:mm"
-                timeIntervals={15}
+                timeIntervals={10}
+                filterTime={filterScheduleTime}
                 placeholderText="時刻を選択"
                 openToDate={MIDNIGHT}
-                customInput={<input style={dpInputStyle} readOnly />}
+                customInput={dpTimeInput}
               />
             </div>
 
@@ -532,15 +628,16 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               <label style={labelStyle}>テストクレー放出時間 {requiredMark}</label>
               <DatePicker
                 selected={applyForm.practice_clay_time}
-                onChange={(date: Date | null) => setApplyForm(f => ({ ...f, practice_clay_time: date }))}
+                onChange={handleClayChange}
                 showTimeSelect
                 showTimeSelectOnly
                 timeFormat="HH:mm"
                 dateFormat="HH:mm"
-                timeIntervals={15}
+                timeIntervals={10}
+                filterTime={filterScheduleTime}
                 placeholderText="時刻を選択"
                 openToDate={MIDNIGHT}
-                customInput={<input style={dpInputStyle} readOnly />}
+                customInput={dpTimeInput}
               />
             </div>
 
@@ -554,10 +651,11 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 showTimeSelectOnly
                 timeFormat="HH:mm"
                 dateFormat="HH:mm"
-                timeIntervals={15}
+                timeIntervals={10}
+                filterTime={filterScheduleTime}
                 placeholderText="時刻を選択"
                 openToDate={MIDNIGHT}
-                customInput={<input style={dpInputStyle} readOnly />}
+                customInput={dpTimeInput}
               />
             </div>
 
@@ -569,7 +667,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 onChange={e => setApplyForm(f => ({ ...f, cancellation_notice: e.target.value }))}
                 maxLength={400}
                 rows={4}
-                placeholder="大会中止・中断時のお知らせ方法を入力"
+                placeholder="大会中止のお知らせ方法を入力してください。"
                 style={{ ...inputStyle, resize: 'vertical', height: 'auto' }}
               />
             </div>
@@ -618,9 +716,14 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
                 <QRCodeSVG value={`${origin}/admin/${tournamentId}`} size={120} />
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+              <a
+                href={`${origin}/admin/${tournamentId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ margin: 0, fontSize: 12, color: '#3498db', textAlign: 'center', wordBreak: 'break-all', textDecoration: 'underline' }}
+              >
                 {origin}/admin/{tournamentId}
-              </p>
+              </a>
               <button onClick={() => { navigator.clipboard.writeText(`${origin}/admin/${tournamentId}`); setAdminCopied(true); setTimeout(() => setAdminCopied(false), 2000); }}
                 style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
                 {adminCopied ? 'コピーしました！' : 'URLをコピー'}
@@ -632,9 +735,14 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
                 <QRCodeSVG value={`${origin}/viewer`} size={120} />
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+              <a
+                href={`${origin}/viewer`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ margin: 0, fontSize: 12, color: '#3498db', textAlign: 'center', wordBreak: 'break-all', textDecoration: 'underline' }}
+              >
                 {origin}/viewer
-              </p>
+              </a>
               <button onClick={() => { navigator.clipboard.writeText(`${origin}/viewer`); setViewerCopied(true); setTimeout(() => setViewerCopied(false), 2000); }}
                 style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
                 {viewerCopied ? 'コピーしました！' : 'URLをコピー'}
@@ -646,9 +754,14 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
                 <QRCodeSVG value={`${origin}/tournaments/${tournamentId}/apply`} size={120} />
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+              <a
+                href={`${origin}/tournaments/${tournamentId}/apply`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ margin: 0, fontSize: 12, color: '#3498db', textAlign: 'center', wordBreak: 'break-all', textDecoration: 'underline' }}
+              >
                 {origin}/tournaments/{tournamentId}/apply
-              </p>
+              </a>
               <button onClick={() => { navigator.clipboard.writeText(`${origin}/tournaments/${tournamentId}/apply`); setApplyCopied(true); setTimeout(() => setApplyCopied(false), 2000); }}
                 style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
                 {applyCopied ? 'コピーしました！' : 'URLをコピー'}
