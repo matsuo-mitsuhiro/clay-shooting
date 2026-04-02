@@ -120,11 +120,12 @@ export async function POST(req: NextRequest, { params }: Params) {
       }
     }
 
-    // INSERT members
+    // INSERT members（重複の場合はスキップ）
     for (const m of membersToInsert) {
       await sql`
         INSERT INTO members (tournament_id, day, group_number, position, member_code, name, belong, class, is_judge)
         VALUES (${tid}, ${m.day}, ${m.group_number}, ${m.position}, ${m.member_code}, ${m.name}, ${m.belong}, ${m.class}, ${m.is_judge})
+        ON CONFLICT (tournament_id, day, member_code) DO NOTHING
       `;
     }
 
