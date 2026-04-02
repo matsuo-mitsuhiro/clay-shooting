@@ -33,6 +33,13 @@ export interface Tournament {
   cancellation_notice: string | null;
   notes: string | null;
   apply_qr: string | null;
+  // 保存者・日時
+  info_saved_at: string | null;
+  info_saved_by: string | null;
+  apply_saved_at: string | null;
+  apply_saved_by: string | null;
+  reset_at: string | null;
+  reset_by: string | null;
   // 進捗判定用（一覧取得時のみ付与）
   member_count?: number;
   score_count?: number;

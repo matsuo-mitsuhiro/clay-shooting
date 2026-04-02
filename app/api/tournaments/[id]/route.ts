@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import type { Tournament, TournamentInput, ApiResponse } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string }> };
+
+// HH:MM:SS → HH:MM（秒を除去）
+function stripSeconds(time: string | null | undefined): string | null | undefined {
+  if (time == null) return time;
+  // "HH:MM:SS" or "HH:MM" → "HH:MM"
+  return time.slice(0, 5);
+}
 
 // GET /api/tournaments/[id] — 大会情報取得
 export async function GET(_req: NextRequest, { params }: Params) {
@@ -23,7 +32,20 @@ export async function GET(_req: NextRequest, { params }: Params) {
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
-    const body: Partial<TournamentInput> = await req.json();
+    const body: Partial<TournamentInput> & { _save_type?: string } = await req.json();
+
+    // セッションからユーザー名を取得
+    const session = await getServerSession(authOptions);
+    const userName = session?.user?.name ?? session?.user?.email ?? null;
+
+    // _save_type: 'info' = 大会情報保存, 'apply' = 申込設定保存
+    const saveType = body._save_type;
+
+    // 時間フィールドの秒を除去（HH:MM形式に統一）
+    const gateOpenTime = stripSeconds(body.gate_open_time);
+    const receptionStartTime = stripSeconds(body.reception_start_time);
+    const practiceClayTime = stripSeconds(body.practice_clay_time);
+    const competitionStartTime = stripSeconds(body.competition_start_time);
 
     const rows = await sql`
       UPDATE tournaments SET
@@ -41,13 +63,17 @@ export async function PUT(req: NextRequest, { params }: Params) {
         apply_start_at       = ${body.apply_start_at       !== undefined ? (body.apply_start_at ? sql`${body.apply_start_at}::timestamptz` : null) : sql`apply_start_at`},
         apply_end_at         = ${body.apply_end_at         !== undefined ? (body.apply_end_at ? sql`${body.apply_end_at}::timestamptz` : null) : sql`apply_end_at`},
         cancel_end_at        = ${body.cancel_end_at        !== undefined ? (body.cancel_end_at ? sql`${body.cancel_end_at}::timestamptz` : null) : sql`cancel_end_at`},
-        competition_start_time = ${body.competition_start_time !== undefined ? (body.competition_start_time || null) : sql`competition_start_time`},
-        gate_open_time       = ${body.gate_open_time       !== undefined ? (body.gate_open_time || null) : sql`gate_open_time`},
-        reception_start_time = ${body.reception_start_time !== undefined ? (body.reception_start_time || null) : sql`reception_start_time`},
-        practice_clay_time   = ${body.practice_clay_time   !== undefined ? (body.practice_clay_time || null) : sql`practice_clay_time`},
+        competition_start_time = ${competitionStartTime !== undefined ? (competitionStartTime || null) : sql`competition_start_time`},
+        gate_open_time       = ${gateOpenTime       !== undefined ? (gateOpenTime || null) : sql`gate_open_time`},
+        reception_start_time = ${receptionStartTime !== undefined ? (receptionStartTime || null) : sql`reception_start_time`},
+        practice_clay_time   = ${practiceClayTime   !== undefined ? (practiceClayTime || null) : sql`practice_clay_time`},
         cancellation_notice  = ${body.cancellation_notice  !== undefined ? (body.cancellation_notice || null) : sql`cancellation_notice`},
         notes                = ${body.notes                !== undefined ? (body.notes || null) : sql`notes`},
         apply_qr             = ${body.apply_qr             !== undefined ? (body.apply_qr || null) : sql`apply_qr`},
+        info_saved_at        = ${saveType === 'info' ? sql`NOW()` : sql`info_saved_at`},
+        info_saved_by        = ${saveType === 'info' ? (userName ?? sql`info_saved_by`) : sql`info_saved_by`},
+        apply_saved_at       = ${saveType === 'apply' ? sql`NOW()` : sql`apply_saved_at`},
+        apply_saved_by       = ${saveType === 'apply' ? (userName ?? sql`apply_saved_by`) : sql`apply_saved_by`},
         updated_at           = NOW()
       WHERE id = ${Number(id)}
       RETURNING *

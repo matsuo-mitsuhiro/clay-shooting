@@ -99,6 +99,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       gate_open_time: t.gate_open_time,
       reception_start_time: t.reception_start_time,
       practice_clay_time: t.practice_clay_time,
+      cancellation_notice: t.cancellation_notice,
       notes: t.notes,
     });
 

@@ -10,16 +10,17 @@ import MembersTab from './MembersTab';
 import ScoresTab from './ScoresTab';
 import ResultsTab from './ResultsTab';
 import SettingsTab from './SettingsTab';
+import ApplySettingsTab from './ApplySettingsTab';
 import ViewerHistoryTab from './ViewerHistoryTab';
 import RegistrationsTab from './RegistrationsTab';
 
-type TabType = 'members' | 'scores' | 'results' | 'settings' | 'history' | 'registrations';
+type TabType = 'members' | 'scores' | 'results' | 'settings' | 'apply-settings' | 'history' | 'registrations';
 
 interface Props {
   tournamentId: number;
 }
 
-const VALID_TABS: TabType[] = ['members', 'scores', 'results', 'settings', 'history', 'registrations'];
+const VALID_TABS: TabType[] = ['members', 'scores', 'results', 'settings', 'apply-settings', 'history', 'registrations'];
 
 export default function AdminDetail({ tournamentId }: Props) {
   const router = useRouter();
@@ -54,6 +55,7 @@ export default function AdminDetail({ tournamentId }: Props) {
 
   const tabs: { key: TabType; label: string }[] = [
     { key: 'settings', label: '大会設定' },
+    { key: 'apply-settings', label: '申込設定' },
     { key: 'registrations', label: '申込管理' },
     { key: 'members', label: '選手管理' },
     { key: 'scores', label: '点数登録' },
@@ -222,6 +224,13 @@ export default function AdminDetail({ tournamentId }: Props) {
             )}
             {activeTab === 'settings' && (
               <SettingsTab
+                tournamentId={tournamentId}
+                tournament={tournament}
+                onUpdated={fetchTournament}
+              />
+            )}
+            {activeTab === 'apply-settings' && (
+              <ApplySettingsTab
                 tournamentId={tournamentId}
                 tournament={tournament}
                 onUpdated={fetchTournament}

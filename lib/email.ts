@@ -150,6 +150,7 @@ export async function sendApplyConfirmation(
     gate_open_time: string | null;
     reception_start_time: string | null;
     practice_clay_time: string | null;
+    cancellation_notice: string | null;
     notes: string | null;
   }
 ): Promise<void> {
@@ -169,6 +170,7 @@ export async function sendApplyConfirmation(
     tournament.reception_start_time ? `【受付開始】${tournament.reception_start_time}` : '',
     tournament.practice_clay_time ? `【テストクレー放出】${tournament.practice_clay_time}` : '',
     tournament.competition_start_time ? `【競技開始】${tournament.competition_start_time}` : '',
+    tournament.cancellation_notice ? `\n【中止のお知らせ方法】\n${tournament.cancellation_notice}` : '',
     tournament.notes ? `\n【注意事項】\n${tournament.notes}` : '',
   ].filter(Boolean);
 
