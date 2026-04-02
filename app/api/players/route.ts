@@ -82,30 +82,33 @@ export async function GET(req: NextRequest) {
     const classFilter = searchParams.get('class');
     const isJudge = searchParams.get('is_judge');
     const q = searchParams.get('q');
+    const kanjiQ = q ? normalizeKanji(q) : null;
+    const qPat = q ? '%' + q + '%' : '';
+    const kanjiPat = kanjiQ && kanjiQ !== q ? '%' + kanjiQ + '%' : '';
 
     let rows;
     if (affiliation && classFilter && isJudge !== null && q) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
     } else if (affiliation && classFilter && isJudge !== null) {
       rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
     } else if (affiliation && classFilter && q) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
     } else if (affiliation && isJudge !== null && q) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
     } else if (classFilter && isJudge !== null && q) {
-      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
     } else if (affiliation && classFilter) {
       rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} ORDER BY member_code`;
     } else if (affiliation && isJudge !== null) {
       rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
     } else if (affiliation && q) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
     } else if (classFilter && isJudge !== null) {
       rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
     } else if (classFilter && q) {
-      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
     } else if (isJudge !== null && q) {
-      rows = await sql`SELECT * FROM player_master WHERE is_judge=${isJudge==='true'} AND (member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'}) ORDER BY member_code`;
+      rows = await sql`SELECT * FROM player_master WHERE is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
     } else if (affiliation) {
       rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} ORDER BY member_code`;
     } else if (classFilter) {
@@ -113,7 +116,7 @@ export async function GET(req: NextRequest) {
     } else if (isJudge !== null) {
       rows = await sql`SELECT * FROM player_master WHERE is_judge=${isJudge==='true'} ORDER BY member_code`;
     } else if (q) {
-      rows = await sql`SELECT * FROM player_master WHERE member_code ILIKE ${'%'+q+'%'} OR name ILIKE ${'%'+q+'%'} ORDER BY member_code`;
+      rows = await sql`SELECT * FROM player_master WHERE (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
     } else {
       rows = await sql`SELECT * FROM player_master ORDER BY member_code`;
     }

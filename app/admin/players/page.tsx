@@ -64,20 +64,25 @@ export default function PlayersPage() {
       .catch(() => {});
   }, []);
 
-  const fetchPlayers = useCallback(async () => {
+  const fetchPlayers = useCallback(async (searchQ?: string, affil?: string, cls?: string, judge?: string) => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (q) params.set('q', q);
-    if (filterAffil) params.set('affiliation', filterAffil);
-    if (filterClass) params.set('class', filterClass);
-    if (filterJudge) params.set('is_judge', filterJudge);
+    if (searchQ) params.set('q', searchQ);
+    if (affil) params.set('affiliation', affil);
+    if (cls) params.set('class', cls);
+    if (judge) params.set('is_judge', judge);
     const res = await fetch(`/api/players?${params}`);
     const json = await res.json();
     if (json.success) setPlayers(json.data);
     setLoading(false);
-  }, [q, filterAffil, filterClass, filterJudge]);
+  }, []);
 
+  // 初回ロード
   useEffect(() => { fetchPlayers(); }, [fetchPlayers]);
+
+  function handleSearch() {
+    fetchPlayers(q, filterAffil, filterClass, filterJudge);
+  }
 
   function openNew() {
     setForm(emptyForm);
@@ -168,6 +173,15 @@ export default function PlayersPage() {
           <option value="true">⚑ 審判のみ</option>
           <option value="false">審判以外</option>
         </select>
+        <button
+          onClick={handleSearch}
+          style={{
+            background: C.gold, color: '#000', border: 'none', borderRadius: '6px',
+            padding: '8px 18px', fontWeight: 700, cursor: 'pointer', fontSize: '14px',
+          }}
+        >
+          検索
+        </button>
         <span style={s.countBadge}>{filtered.length}名</span>
       </div>
 
