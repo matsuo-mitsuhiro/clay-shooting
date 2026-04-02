@@ -7,22 +7,13 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
-import type { Tournament, EventType } from '@/lib/types';
+import type { Tournament, EventType, Association, ShootingRange } from '@/lib/types';
 
 interface Props {
   tournamentId: number;
   tournament: Tournament;
   onUpdated: () => void;
 }
-
-const ORGANIZERS = [
-  { cd: 27, name: '大阪' },
-  { cd: 26, name: '京都' },
-  { cd: 30, name: '和歌山' },
-  { cd: 29, name: '奈良' },
-  { cd: 25, name: '滋賀' },
-  { cd: 28, name: '兵庫' },
-];
 
 const DEFAULT_CANCELLATION_NOTICE = '当協会のホームページにて公表いたします。';
 
@@ -77,6 +68,10 @@ const filterScheduleTime = (time: Date) => {
 export default function SettingsTab({ tournamentId, tournament, onUpdated }: Props) {
   const router = useRouter();
 
+  const [associations, setAssociations] = useState<Association[]>([]);
+  const [allRanges, setAllRanges] = useState<ShootingRange[]>([]);
+  const [assocRangeIds, setAssocRangeIds] = useState<number[]>([]);
+
   const [form, setForm] = useState({
     name: '',
     venue: '',
@@ -85,7 +80,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     event_type: 'trap' as EventType,
     day1_set: '',
     day2_set: '',
-    organizer_cd: 27,
+    organizer_cd: 0,
   });
 
   const [applyForm, setApplyForm] = useState<{
@@ -134,8 +129,41 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       event_type: tournament.event_type ?? 'trap',
       day1_set: tournament.day1_set ?? '',
       day2_set: tournament.day2_set ?? '',
-      organizer_cd: tournament.organizer_cd ?? 27,
+      organizer_cd: tournament.organizer_cd ?? 0,
     });
+
+    // 協会マスターから cancellation_notice / notes のデフォルト値を取得
+    const orgCd = tournament.organizer_cd;
+    if (orgCd) {
+      fetch(`/api/associations/${orgCd}`)
+        .then(r => r.json())
+        .then(j => {
+          if (j.success) {
+            const assoc = j.data as Association & { shooting_range_ids: number[] };
+            setAssocRangeIds(assoc.shooting_range_ids ?? []);
+            setApplyForm({
+              max_participants: tournament.max_participants != null ? String(tournament.max_participants) : '',
+              apply_start_at: isoStrToDate(tournament.apply_start_at),
+              apply_end_at: isoStrToDate(tournament.apply_end_at),
+              cancel_end_at: isoStrToDate(tournament.cancel_end_at),
+              gate_open_time: timeStrToDate(tournament.gate_open_time),
+              reception_start_time: timeStrToDate(tournament.reception_start_time),
+              practice_clay_time: timeStrToDate(tournament.practice_clay_time),
+              competition_start_time: timeStrToDate(tournament.competition_start_time),
+              cancellation_notice: tournament.cancellation_notice ?? assoc.cancellation_notice ?? DEFAULT_CANCELLATION_NOTICE,
+              notes: tournament.notes ?? assoc.notes ?? '',
+            });
+          } else {
+            setApplyFormDefault();
+          }
+        })
+        .catch(() => setApplyFormDefault());
+    } else {
+      setApplyFormDefault();
+    }
+  }, [tournament]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function setApplyFormDefault() {
     setApplyForm({
       max_participants: tournament.max_participants != null ? String(tournament.max_participants) : '',
       apply_start_at: isoStrToDate(tournament.apply_start_at),
@@ -148,7 +176,34 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       cancellation_notice: tournament.cancellation_notice ?? DEFAULT_CANCELLATION_NOTICE,
       notes: tournament.notes ?? '',
     });
-  }, [tournament]);
+  }
+
+  // 協会一覧と射撃場一覧を取得
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/associations').then(r => r.json()),
+      fetch('/api/shooting-ranges').then(r => r.json()),
+    ]).then(([assocJson, rangesJson]) => {
+      if (assocJson.success) setAssociations(assocJson.data as Association[]);
+      if (rangesJson.success) setAllRanges(rangesJson.data as ShootingRange[]);
+    }).catch(() => {});
+  }, []);
+
+  // 主催変更時に射撃場リストを更新
+  async function handleOrganizerChange(cd: number) {
+    setForm(f => ({ ...f, organizer_cd: cd, venue: '' }));
+    try {
+      const res = await fetch(`/api/associations/${cd}`);
+      const json = await res.json();
+      if (json.success) setAssocRangeIds((json.data.shooting_range_ids as number[]) ?? []);
+      else setAssocRangeIds([]);
+    } catch { setAssocRangeIds([]); }
+  }
+
+  // 選択中主催の射撃場を表示
+  const venueOptions: ShootingRange[] = assocRangeIds.length > 0
+    ? allRanges.filter(r => assocRangeIds.includes(r.id))
+    : allRanges;
 
   // 開門時間変更 → 受付・クレー・競技を自動設定
   function handleGateOpenChange(date: Date | null) {
@@ -407,10 +462,11 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               <label style={labelStyle}>主催</label>
               <select
                 value={form.organizer_cd}
-                onChange={e => setForm(f => ({ ...f, organizer_cd: Number(e.target.value) }))}
+                onChange={e => handleOrganizerChange(Number(e.target.value))}
                 style={inputStyle}
               >
-                {ORGANIZERS.map(o => (
+                <option value={0}>— 選択 —</option>
+                {associations.map(o => (
                   <option key={o.cd} value={o.cd}>{o.name}</option>
                 ))}
               </select>
@@ -426,12 +482,16 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
             </div>
             <div>
               <label style={labelStyle}>射撃場名</label>
-              <input
-                type="text"
+              <select
                 value={form.venue}
                 onChange={e => setForm(f => ({ ...f, venue: e.target.value }))}
                 style={inputStyle}
-              />
+              >
+                <option value="">— 未選択 —</option>
+                {venueOptions.map(r => (
+                  <option key={r.id} value={r.name}>{r.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label style={labelStyle}>種目</label>

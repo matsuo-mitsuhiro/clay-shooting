@@ -19,7 +19,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { C } from '@/lib/colors';
-import { PREFECTURES } from '@/lib/prefectures';
 import type { Member, ClassType } from '@/lib/types';
 import BulkRegisterTab from './BulkRegisterTab';
 import LoadingOverlay from '@/components/LoadingOverlay';
@@ -105,6 +104,16 @@ export default function MembersTab({ tournamentId }: Props) {
   const [reorderMode, setReorderMode] = useState(false);
   const [reorderItems, setReorderItems] = useState<SlotItem[]>([]);
   const [unregistered, setUnregistered] = useState<UnregisteredEntry[]>([]);
+  const [associationNames, setAssociationNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/api/associations')
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) setAssociationNames((j.data as { name: string }[]).map(a => a.name));
+      })
+      .catch(() => {});
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -685,8 +694,8 @@ export default function MembersTab({ tournamentId }: Props) {
                           style={{ ...inputStyle, width: '100%' }}
                         >
                           <option value="">—</option>
-                          {PREFECTURES.map(p => (
-                            <option key={p.cd} value={p.name}>{p.name}</option>
+                          {associationNames.map(name => (
+                            <option key={name} value={name}>{name}</option>
                           ))}
                         </select>
                       </td>

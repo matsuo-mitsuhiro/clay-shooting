@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
-import { PREFECTURES, DEFAULT_AFFILIATION } from '@/lib/prefectures';
+import { DEFAULT_AFFILIATION } from '@/lib/prefectures';
 import type { PlayerMaster } from '@/app/api/players/route';
 import ContactButton from '@/components/ContactButton';
 
@@ -53,6 +53,16 @@ export default function PlayersPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [associationNames, setAssociationNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/api/associations')
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) setAssociationNames((j.data as { name: string }[]).map(a => a.name));
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchPlayers = useCallback(async () => {
     setLoading(true);
@@ -147,7 +157,7 @@ export default function PlayersPage() {
         />
         <select style={s.select} value={filterAffil} onChange={e => setFilterAffil(e.target.value)}>
           <option value="">所属：すべて</option>
-          {PREFECTURES.map(p => <option key={p.cd} value={p.name}>{p.name}</option>)}
+          {associationNames.map(name => <option key={name} value={name}>{name}</option>)}
         </select>
         <select style={s.select} value={filterClass} onChange={e => setFilterClass(e.target.value)}>
           <option value="">クラス：すべて</option>
@@ -228,7 +238,8 @@ export default function PlayersPage() {
             <div style={s.formRow}>
               <label style={s.formLabel}>所属</label>
               <select style={s.formSelect} value={form.affiliation} onChange={e => setForm(f => ({ ...f, affiliation: e.target.value }))}>
-                {PREFECTURES.map(p => <option key={p.cd} value={p.name}>{p.name}</option>)}
+                <option value="">— 選択 —</option>
+                {associationNames.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
             </div>
             <div style={s.formRow2}>

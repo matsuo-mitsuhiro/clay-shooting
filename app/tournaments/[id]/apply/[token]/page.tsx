@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { C } from '@/lib/colors';
-import { PREFECTURES } from '@/lib/prefectures';
 import type { Tournament, ClassType, ParticipationDay } from '@/lib/types';
 
 export default function ApplyFormPage() {
@@ -20,6 +19,7 @@ export default function ApplyFormPage() {
   const [belong, setBelong] = useState('');
   const [classVal, setClassVal] = useState<ClassType | ''>('');
   const [participationDay, setParticipationDay] = useState<ParticipationDay>('day1');
+  const [associationNames, setAssociationNames] = useState<string[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -35,6 +35,15 @@ export default function ApplyFormPage() {
       .catch(() => setFetchError('データ取得に失敗しました'))
       .finally(() => setLoading(false));
   }, [id, token]);
+
+  useEffect(() => {
+    fetch('/api/associations')
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) setAssociationNames((j.data as { name: string }[]).map(a => a.name));
+      })
+      .catch(() => {});
+  }, []);
 
   const is2Day = !!(tournament?.day2_date);
 
@@ -185,8 +194,8 @@ export default function ApplyFormPage() {
                   style={inputStyle}
                 >
                   <option value="">— 選択 —</option>
-                  {PREFECTURES.map(p => (
-                    <option key={p.cd} value={p.name}>{p.name}</option>
+                  {associationNames.map(name => (
+                    <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
               </div>

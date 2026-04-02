@@ -212,6 +212,21 @@ export interface RegistrationToken {
   created_at: string;
 }
 
+// ---------- Association ----------
+export interface Association {
+  cd: number;
+  name: string;
+  cancellation_notice: string | null;
+  notes: string | null;
+}
+
+// ---------- ShootingRange ----------
+export interface ShootingRange {
+  id: number;
+  prefecture: string;
+  name: string;
+}
+
 // ---------- API Response ----------
 export interface ApiResponse<T = unknown> {
   success: boolean;

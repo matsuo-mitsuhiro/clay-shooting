@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { C } from '@/lib/colors';
-import { PREFECTURES } from '@/lib/prefectures';
 import type { ClassType, Member, ParticipationDay, Registration } from '@/lib/types';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
@@ -79,6 +78,16 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const idCounterRef = useRef(INIT_COUNT);
+  const [associationNames, setAssociationNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/api/associations')
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) setAssociationNames((j.data as { name: string }[]).map(a => a.name));
+      })
+      .catch(() => {});
+  }, []);
 
   const nextId = () => idCounterRef.current++;
 
@@ -535,8 +544,8 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
                       style={inputStyle}
                     >
                       <option value="">—</option>
-                      {PREFECTURES.map(p => (
-                        <option key={p.cd} value={p.name}>{p.name}</option>
+                      {associationNames.map(name => (
+                        <option key={name} value={name}>{name}</option>
                       ))}
                     </select>
                   </td>

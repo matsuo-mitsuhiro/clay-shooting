@@ -7,17 +7,8 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
-import type { Tournament, EventType } from '@/lib/types';
+import type { Tournament, EventType, Association, ShootingRange } from '@/lib/types';
 import ContactButton from '@/components/ContactButton';
-
-const ORGANIZERS = [
-  { cd: 27, name: '大阪' },
-  { cd: 26, name: '京都' },
-  { cd: 30, name: '和歌山' },
-  { cd: 29, name: '奈良' },
-  { cd: 25, name: '滋賀' },
-  { cd: 28, name: '兵庫' },
-];
 
 export default function AdminPage() {
   const { data: session } = useSession();
@@ -30,17 +21,65 @@ export default function AdminPage() {
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
+  const [associations, setAssociations] = useState<Association[]>([]);
+  const [allRanges, setAllRanges] = useState<ShootingRange[]>([]);
+  const [assocRangeIds, setAssocRangeIds] = useState<number[]>([]);
+
   const [form, setForm] = useState({
     name: '',
     venue: '',
     day1_date: '',
     event_type: 'trap' as EventType,
-    organizer_cd: 27,
+    organizer_cd: 0,
   });
 
+  // 初期データ取得
   useEffect(() => {
     fetchTournaments();
+    fetchAssociations();
   }, []);
+
+  // session が確定したら organizer_cd を設定
+  useEffect(() => {
+    if (!session?.user) return;
+    if (associations.length === 0) return;
+    updateOrganizerCd(associations);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, associations]);
+
+  async function fetchAssociations() {
+    try {
+      const [assocRes, rangesRes] = await Promise.all([
+        fetch('/api/associations'),
+        fetch('/api/shooting-ranges'),
+      ]);
+      const assocJson = await assocRes.json();
+      const rangesJson = await rangesRes.json();
+      if (assocJson.success) setAssociations(assocJson.data as Association[]);
+      if (rangesJson.success) setAllRanges(rangesJson.data as ShootingRange[]);
+    } catch { /* ignore */ }
+  }
+
+  function updateOrganizerCd(assocList: Association[]) {
+    if (isSystem) {
+      const defaultCd = assocList[0]?.cd ?? 0;
+      setForm(f => ({ ...f, organizer_cd: defaultCd }));
+      // system adminは全射撃場
+      setAssocRangeIds([]);
+    } else {
+      const found = assocList.find(a => a.name === userAffiliation);
+      if (found) {
+        setForm(f => ({ ...f, organizer_cd: found.cd }));
+        // 協会の射撃場リストを取得
+        fetch(`/api/associations/${found.cd}`)
+          .then(r => r.json())
+          .then(j => {
+            if (j.success) setAssocRangeIds((j.data.shooting_range_ids as number[]) ?? []);
+          })
+          .catch(() => {});
+      }
+    }
+  }
 
   async function fetchTournaments() {
     try {
@@ -74,18 +113,32 @@ export default function AdminPage() {
           venue: form.venue.trim() || undefined,
           day1_date: form.day1_date || undefined,
           event_type: form.event_type,
-          organizer_cd: form.organizer_cd,
+          organizer_cd: form.organizer_cd || undefined,
         }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      setForm({ name: '', venue: '', day1_date: '', event_type: 'trap', organizer_cd: 27 });
+      const defaultCd = isSystem ? (associations[0]?.cd ?? 0) : (associations.find(a => a.name === userAffiliation)?.cd ?? 0);
+      setForm({ name: '', venue: '', day1_date: '', event_type: 'trap', organizer_cd: defaultCd });
       setShowForm(false);
       await fetchTournaments();
     } catch (e) {
       setError(e instanceof Error ? e.message : '大会の作成に失敗しました');
     } finally {
       setCreating(false);
+    }
+  }
+
+  // 主催変更時に射撃場リストを更新
+  async function handleOrganizerChange(cd: number) {
+    setForm(f => ({ ...f, organizer_cd: cd, venue: '' }));
+    if (isSystem) {
+      try {
+        const res = await fetch(`/api/associations/${cd}`);
+        const json = await res.json();
+        if (json.success) setAssocRangeIds((json.data.shooting_range_ids as number[]) ?? []);
+        else setAssocRangeIds([]);
+      } catch { setAssocRangeIds([]); }
     }
   }
 
@@ -97,11 +150,24 @@ export default function AdminPage() {
 
   // 進捗に応じた遷移先タブを判定
   function getInitialTab(t: Tournament): string {
-    if ((t.score_count ?? 0) > 0) return 'scores';       // 1. 点数入力中
-    if ((t.member_count ?? 0) > 0) return 'members';     // 2. 選手登録済み
-    if (t.apply_start_at) return 'registrations';         // 3. 申込設定済み
-    return 'settings';                                     // 4. 未設定
+    if ((t.score_count ?? 0) > 0) return 'scores';
+    if ((t.member_count ?? 0) > 0) return 'members';
+    if (t.apply_start_at) return 'registrations';
+    return 'settings';
   }
+
+  // 選択中主催の射撃場を表示
+  const venueOptions: ShootingRange[] = isSystem
+    ? (assocRangeIds.length > 0
+        ? allRanges.filter(r => assocRangeIds.includes(r.id))
+        : allRanges)
+    : allRanges.filter(r => assocRangeIds.includes(r.id));
+
+  // 大会一覧フィルタ
+  const userOrganizerCd = isSystem ? null : (associations.find(a => a.name === userAffiliation)?.cd ?? null);
+  const filteredTournaments = isSystem
+    ? tournaments
+    : tournaments.filter(t => t.organizer_cd === userOrganizerCd);
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
@@ -162,19 +228,10 @@ export default function AdminPage() {
           <button
             onClick={() => router.push('/admin/players')}
             style={{
-              background: C.surface,
-              color: C.text,
-              border: `1px solid ${C.border}`,
-              borderRadius: 8,
-              padding: '14px 20px',
-              fontSize: 15,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              width: '100%',
-              textAlign: 'left',
+              background: C.surface, color: C.text, border: `1px solid ${C.border}`,
+              borderRadius: 8, padding: '14px 20px', fontSize: 15, fontWeight: 600,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', textAlign: 'left',
             }}
           >
             <span style={{ fontSize: 20 }}>👤</span>
@@ -187,19 +244,10 @@ export default function AdminPage() {
           <button
             onClick={() => router.push('/admin/admins')}
             style={{
-              background: C.surface,
-              color: C.text,
-              border: `1px solid ${C.border}`,
-              borderRadius: 8,
-              padding: '14px 20px',
-              fontSize: 15,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              width: '100%',
-              textAlign: 'left',
+              background: C.surface, color: C.text, border: `1px solid ${C.border}`,
+              borderRadius: 8, padding: '14px 20px', fontSize: 15, fontWeight: 600,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', textAlign: 'left',
             }}
           >
             <span style={{ fontSize: 20 }}>🔑</span>
@@ -209,23 +257,46 @@ export default function AdminPage() {
             </div>
             <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
           </button>
+          <button
+            onClick={() => router.push('/admin/shooting-ranges')}
+            style={{
+              background: C.surface, color: C.text, border: `1px solid ${C.border}`,
+              borderRadius: 8, padding: '14px 20px', fontSize: 15, fontWeight: 600,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: 20 }}>🎯</span>
+            <div>
+              <div>射撃場マスター</div>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>射撃場の登録・管理</div>
+            </div>
+            <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
+          </button>
+          <button
+            onClick={() => router.push('/admin/associations')}
+            style={{
+              background: C.surface, color: C.text, border: `1px solid ${C.border}`,
+              borderRadius: 8, padding: '14px 20px', fontSize: 15, fontWeight: 600,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: 20 }}>🏢</span>
+            <div>
+              <div>協会マスター</div>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>協会ごとの射撃場・中止連絡方法・注意書きを管理</div>
+            </div>
+            <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
+          </button>
           {isSystem && (
             <button
               onClick={() => router.push('/admin/support')}
               style={{
-                background: C.surface,
-                color: C.text,
-                border: `1px solid ${C.border}`,
-                borderRadius: 8,
-                padding: '14px 20px',
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                width: '100%',
-                textAlign: 'left',
+                background: C.surface, color: C.text, border: `1px solid ${C.border}`,
+                borderRadius: 8, padding: '14px 20px', fontSize: 15, fontWeight: 600,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                width: '100%', textAlign: 'left',
               }}
             >
               <span style={{ fontSize: 20 }}>💬</span>
@@ -244,14 +315,8 @@ export default function AdminPage() {
           <button
             onClick={() => { setShowForm(!showForm); setError(null); }}
             style={{
-              background: C.gold,
-              color: '#000',
-              border: 'none',
-              borderRadius: 6,
-              padding: '9px 20px',
-              fontWeight: 700,
-              fontSize: 16,
-              cursor: 'pointer',
+              background: C.gold, color: '#000', border: 'none', borderRadius: 6,
+              padding: '9px 20px', fontWeight: 700, fontSize: 16, cursor: 'pointer',
             }}
           >
             ＋ 新規大会作成
@@ -261,13 +326,8 @@ export default function AdminPage() {
         {/* Error */}
         {error && (
           <div style={{
-            background: `${C.red}22`,
-            border: `1px solid ${C.red}`,
-            color: '#e74c3c',
-            borderRadius: 6,
-            padding: '10px 14px',
-            marginBottom: 16,
-            fontSize: 16,
+            background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
+            borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 16,
           }}>
             {error}
           </div>
@@ -276,11 +336,8 @@ export default function AdminPage() {
         {/* Create Form */}
         {showForm && (
           <div style={{
-            background: C.surface,
-            border: `1px solid ${C.border}`,
-            borderRadius: 8,
-            padding: 24,
-            marginBottom: 28,
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+            padding: 24, marginBottom: 28,
           }}>
             <h3 style={{ margin: '0 0 18px', fontSize: 18, color: C.gold }}>新規大会作成</h3>
             <form onSubmit={handleCreate}>
@@ -289,10 +346,10 @@ export default function AdminPage() {
                   <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>主催</label>
                   <select
                     value={form.organizer_cd}
-                    onChange={e => setForm(f => ({ ...f, organizer_cd: Number(e.target.value) }))}
+                    onChange={e => handleOrganizerChange(Number(e.target.value))}
                     style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' }}
                   >
-                    {ORGANIZERS.map(o => (
+                    {associations.map(o => (
                       <option key={o.cd} value={o.cd}>{o.name}</option>
                     ))}
                   </select>
@@ -307,35 +364,23 @@ export default function AdminPage() {
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="例: 第○回○○大会"
                     style={{
-                      width: '100%',
-                      background: C.inputBg,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 5,
-                      color: C.text,
-                      padding: '8px 10px',
-                      fontSize: 16,
-                      boxSizing: 'border-box',
+                      width: '100%', background: C.inputBg, border: `1px solid ${C.border}`,
+                      borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box',
                     }}
                   />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>射撃場名</label>
-                  <input
-                    type="text"
+                  <select
                     value={form.venue}
                     onChange={e => setForm(f => ({ ...f, venue: e.target.value }))}
-                    placeholder="例: ○○射撃場"
-                    style={{
-                      width: '100%',
-                      background: C.inputBg,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 5,
-                      color: C.text,
-                      padding: '8px 10px',
-                      fontSize: 16,
-                      boxSizing: 'border-box',
-                    }}
-                  />
+                    style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' }}
+                  >
+                    <option value="">— 未選択 —</option>
+                    {venueOptions.map(r => (
+                      <option key={r.id} value={r.name}>{r.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>1日目日付</label>
@@ -354,14 +399,8 @@ export default function AdminPage() {
                     value={form.event_type}
                     onChange={e => setForm(f => ({ ...f, event_type: e.target.value as EventType }))}
                     style={{
-                      width: '100%',
-                      background: C.inputBg,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 5,
-                      color: C.text,
-                      padding: '8px 10px',
-                      fontSize: 16,
-                      boxSizing: 'border-box',
+                      width: '100%', background: C.inputBg, border: `1px solid ${C.border}`,
+                      borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box',
                     }}
                   >
                     <option value="trap">トラップ</option>
@@ -374,15 +413,9 @@ export default function AdminPage() {
                   type="submit"
                   disabled={creating}
                   style={{
-                    background: C.gold,
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: 5,
-                    padding: '9px 22px',
-                    fontWeight: 700,
-                    fontSize: 16,
-                    cursor: creating ? 'not-allowed' : 'pointer',
-                    opacity: creating ? 0.7 : 1,
+                    background: C.gold, color: '#000', border: 'none', borderRadius: 5,
+                    padding: '9px 22px', fontWeight: 700, fontSize: 16,
+                    cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.7 : 1,
                   }}
                 >
                   {creating ? '作成中...' : '作成する'}
@@ -391,13 +424,8 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => { setShowForm(false); setError(null); }}
                   style={{
-                    background: 'transparent',
-                    color: C.muted,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 5,
-                    padding: '9px 18px',
-                    fontSize: 16,
-                    cursor: 'pointer',
+                    background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
+                    borderRadius: 5, padding: '9px 18px', fontSize: 16, cursor: 'pointer',
                   }}
                 >
                   キャンセル
@@ -408,39 +436,26 @@ export default function AdminPage() {
         )}
 
         {/* Tournament List */}
-        {(() => {
-          const userOrganizerCd = isSystem ? null : (ORGANIZERS.find(o => o.name === userAffiliation)?.cd ?? null);
-          const filteredTournaments = isSystem ? tournaments : tournaments.filter(t => t.organizer_cd === userOrganizerCd);
-          return loading ? (
+        {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: C.muted }}>
             読み込み中...
           </div>
-          ) : filteredTournaments.length === 0 ? (
+        ) : filteredTournaments.length === 0 ? (
           <div style={{
-            background: C.surface,
-            border: `1px solid ${C.border}`,
-            borderRadius: 8,
-            padding: '48px 24px',
-            textAlign: 'center',
-            color: C.muted,
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+            padding: '48px 24px', textAlign: 'center', color: C.muted,
           }}>
             大会が登録されていません。「＋ 新規大会作成」から作成してください。
           </div>
-          ) : (
+        ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {filteredTournaments.map(t => (
               <div
                 key={t.id}
                 style={{
-                  background: C.surface,
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 8,
-                  padding: '16px 20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 16,
-                  flexWrap: 'wrap',
+                  background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+                  padding: '16px 20px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
                 }}
               >
                 <div style={{ flex: 1, minWidth: 200 }}>
@@ -450,10 +465,7 @@ export default function AdminPage() {
                       background: t.event_type === 'trap' ? `${C.gold}33` : `${C.blue2}33`,
                       color: t.event_type === 'trap' ? C.gold : C.blue2,
                       border: `1px solid ${t.event_type === 'trap' ? C.gold : C.blue2}`,
-                      borderRadius: 4,
-                      padding: '2px 8px',
-                      fontSize: 13,
-                      fontWeight: 600,
+                      borderRadius: 4, padding: '2px 8px', fontSize: 13, fontWeight: 600,
                     }}>
                       {t.event_type === 'trap' ? 'トラップ' : 'スキート'}
                     </span>
@@ -468,15 +480,9 @@ export default function AdminPage() {
                 <button
                   onClick={() => router.push(`/admin/${t.id}?tab=${getInitialTab(t)}`)}
                   style={{
-                    background: C.surface2,
-                    color: C.gold,
-                    border: `1px solid ${C.gold}`,
-                    borderRadius: 6,
-                    padding: '8px 18px',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    background: C.surface2, color: C.gold, border: `1px solid ${C.gold}`,
+                    borderRadius: 6, padding: '8px 18px', fontSize: 16, fontWeight: 600,
+                    cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
                 >
                   管理する →
@@ -484,8 +490,7 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
-          );
-        })()}
+        )}
       </main>
     </div>
   );
