@@ -30,6 +30,22 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
 
+  // プルリフレッシュ後もログイン状態を維持（sessionStorageで保存）
+  useEffect(() => {
+    const key = `viewer_session_${tournamentId}`;
+    try {
+      const saved = sessionStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { name?: string; belong?: string };
+        setLoginName(parsed.name ?? '');
+        setLoginBelong(parsed.belong ?? '');
+        setLoggedIn(true);
+      }
+    } catch {
+      sessionStorage.removeItem(key);
+    }
+  }, [tournamentId]);
+
   const fetchResults = useCallback(async () => {
     try {
       setLoading(true);
@@ -134,6 +150,7 @@ export default function ViewerPage({ tournamentId }: Props) {
         tournamentDay1Date={tournament?.day1_date}
         tournamentDay2Date={tournament?.day2_date}
         onLoginSuccess={(name, belong) => {
+          sessionStorage.setItem(`viewer_session_${tournamentId}`, JSON.stringify({ name, belong }));
           setLoginName(name);
           setLoginBelong(belong);
           setLoggedIn(true);

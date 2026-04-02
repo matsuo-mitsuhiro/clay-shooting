@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import DatePicker from 'react-datepicker';
@@ -20,6 +20,8 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const orgInitRef = useRef(false);
 
   const [associations, setAssociations] = useState<Association[]>([]);
   const [allRanges, setAllRanges] = useState<ShootingRange[]>([]);
@@ -33,16 +35,26 @@ export default function AdminPage() {
     organizer_cd: 0,
   });
 
+  // モバイル検出
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   // 初期データ取得
   useEffect(() => {
     fetchTournaments();
     fetchAssociations();
   }, []);
 
-  // session が確定したら organizer_cd を設定
+  // session が確定したら organizer_cd を設定（1回のみ実行してスクロールリセットを防ぐ）
   useEffect(() => {
     if (!session?.user) return;
     if (associations.length === 0) return;
+    if (orgInitRef.current) return;
+    orgInitRef.current = true;
     updateOrganizerCd(associations);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, associations]);
@@ -175,19 +187,18 @@ export default function AdminPage() {
       <header style={{
         background: C.surface,
         borderBottom: `1px solid ${C.border}`,
-        padding: '16px 24px',
+        padding: isMobile ? '12px 16px' : '16px 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        gap: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.gold }}>
-            クレー射撃 成績管理システム
-          </h1>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <h1 style={{ margin: 0, fontSize: isMobile ? 16 : 22, fontWeight: 700, color: C.gold, flex: 1, minWidth: 0 }}>
+          {isMobile ? 'クレー射撃 管理' : 'クレー射撃 成績管理システム'}
+        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <ContactButton />
-          {session?.user && (
+          {!isMobile && session?.user && (
             <>
               <span style={{ fontSize: 14, color: C.muted }}>
                 {session.user.name ?? session.user.email}
@@ -200,6 +211,7 @@ export default function AdminPage() {
                 padding: '2px 8px',
                 fontSize: 12,
                 fontWeight: 600,
+                whiteSpace: 'nowrap',
               }}>
                 {isSystem ? 'システム管理者' : '大会管理者'}
               </span>
@@ -215,6 +227,7 @@ export default function AdminPage() {
               padding: '5px 12px',
               fontSize: 13,
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
           >
             ログアウト
