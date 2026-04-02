@@ -424,7 +424,7 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
   const dayLabel = (d: string) => d === 'day1' ? '1日目' : d === 'day2' ? '2日目' : '両日';
 
   return (
-    <div style={{ padding: '20px 16px' }}>
+    <div style={{ padding: '20px 16px', maxWidth: 1400, margin: '0 auto' }}>
       <LoadingOverlay show={loading || saving} message={loading ? '読み込み中...' : '保存中...'} />
 
       {/* 申込済み・未登録 警告バナー */}

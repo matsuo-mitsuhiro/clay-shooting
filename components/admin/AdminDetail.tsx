@@ -34,6 +34,16 @@ export default function AdminDetail({ tournamentId }: Props) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   useEffect(() => {
     fetchTournament();
   }, [tournamentId]);
@@ -155,56 +165,170 @@ export default function AdminDetail({ tournamentId }: Props) {
         </div>
       </header>
 
-      {/* Tabs */}
-      <div style={{
-        background: C.surface,
-        borderBottom: `1px solid ${C.border}`,
-        display: 'flex',
-        gap: 0,
-        overflowX: 'auto',
-        alignItems: 'center',
-      }}>
-        {tabs.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            style={{
-              background: 'transparent',
-              color: activeTab === tab.key ? C.gold : C.muted,
-              border: 'none',
-              borderBottom: activeTab === tab.key ? `2px solid ${C.gold}` : '2px solid transparent',
-              padding: '12px 20px',
-              fontSize: 16,
-              fontWeight: activeTab === tab.key ? 700 : 400,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'color 0.15s',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-        {tournament && (
-          <button
-            onClick={() => window.open(`/viewer/${tournamentId}`, '_blank')}
-            style={{
-              marginLeft: 'auto',
-              marginRight: 12,
-              background: `${C.blue2}22`,
-              color: C.blue2,
-              border: `1px solid ${C.blue2}`,
-              borderRadius: 5,
-              padding: '6px 14px',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            閲覧用確認 ↗
-          </button>
-        )}
-      </div>
+      {/* Tabs — PC: 横並び / スマホ: ハンバーガーメニュー */}
+      {isMobile ? (
+        <>
+          {/* モバイル用タブバー */}
+          <div style={{
+            background: C.surface,
+            borderBottom: `1px solid ${C.border}`,
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 12px',
+            gap: 10,
+            minHeight: 48,
+          }}>
+            <button
+              onClick={() => setMenuOpen(true)}
+              style={{
+                background: 'transparent',
+                border: `1px solid ${C.border}`,
+                borderRadius: 5,
+                color: C.muted,
+                fontSize: 20,
+                padding: '4px 10px',
+                cursor: 'pointer',
+                lineHeight: 1,
+              }}
+            >
+              ☰
+            </button>
+            <span style={{ color: C.gold, fontWeight: 700, fontSize: 15 }}>
+              {tabs.find(t => t.key === activeTab)?.label ?? ''}
+            </span>
+            {tournament && (
+              <button
+                onClick={() => window.open(`/viewer/${tournamentId}`, '_blank')}
+                style={{
+                  marginLeft: 'auto',
+                  background: `${C.blue2}22`,
+                  color: C.blue2,
+                  border: `1px solid ${C.blue2}`,
+                  borderRadius: 5,
+                  padding: '5px 10px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                閲覧用 ↗
+              </button>
+            )}
+          </div>
+
+          {/* ドロワーオーバーレイ */}
+          {menuOpen && (
+            <div style={{
+              position: 'fixed', inset: 0, zIndex: 300,
+              display: 'flex',
+            }}>
+              {/* 背景（クリックで閉じる） */}
+              <div
+                onClick={() => setMenuOpen(false)}
+                style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)' }}
+              />
+              {/* ドロワー本体 */}
+              <div style={{
+                position: 'relative',
+                width: 240,
+                background: C.surface,
+                borderRight: `1px solid ${C.border}`,
+                display: 'flex',
+                flexDirection: 'column',
+                zIndex: 1,
+              }}>
+                <div style={{
+                  padding: '14px 16px',
+                  borderBottom: `1px solid ${C.border}`,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <span style={{ color: C.muted, fontSize: 13, fontWeight: 600 }}>メニュー</span>
+                  <button
+                    onClick={() => setMenuOpen(false)}
+                    style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 20, cursor: 'pointer' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                {tabs.map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => { setActiveTab(tab.key); setMenuOpen(false); }}
+                    style={{
+                      background: activeTab === tab.key ? `${C.gold}18` : 'transparent',
+                      color: activeTab === tab.key ? C.gold : C.muted,
+                      border: 'none',
+                      borderLeft: activeTab === tab.key ? `3px solid ${C.gold}` : '3px solid transparent',
+                      padding: '14px 20px',
+                      fontSize: 15,
+                      fontWeight: activeTab === tab.key ? 700 : 400,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      width: '100%',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        /* PC用タブバー */
+        <div style={{
+          background: C.surface,
+          borderBottom: `1px solid ${C.border}`,
+          display: 'flex',
+          gap: 0,
+          overflowX: 'auto',
+          alignItems: 'center',
+        }}>
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                background: 'transparent',
+                color: activeTab === tab.key ? C.gold : C.muted,
+                border: 'none',
+                borderBottom: activeTab === tab.key ? `2px solid ${C.gold}` : '2px solid transparent',
+                padding: '12px 20px',
+                fontSize: 16,
+                fontWeight: activeTab === tab.key ? 700 : 400,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'color 0.15s',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+          {tournament && (
+            <button
+              onClick={() => window.open(`/viewer/${tournamentId}`, '_blank')}
+              style={{
+                marginLeft: 'auto',
+                marginRight: 12,
+                background: `${C.blue2}22`,
+                color: C.blue2,
+                border: `1px solid ${C.blue2}`,
+                borderRadius: 5,
+                padding: '6px 14px',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              閲覧用確認 ↗
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Tab Content */}
       <div style={{ padding: '0' }}>
@@ -217,7 +341,7 @@ export default function AdminDetail({ tournamentId }: Props) {
               <MembersTab tournamentId={tournamentId} tournament={tournament} />
             )}
             {activeTab === 'scores' && (
-              <ScoresTab tournamentId={tournamentId} />
+              <ScoresTab tournamentId={tournamentId} tournament={tournament} />
             )}
             {activeTab === 'results' && (
               <ResultsTab tournamentId={tournamentId} />

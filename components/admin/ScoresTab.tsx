@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { C } from '@/lib/colors';
-import type { Member, Score, ScoreStatus } from '@/lib/types';
+import type { Member, Score, ScoreStatus, Tournament } from '@/lib/types';
 
 interface Props {
   tournamentId: number;
+  tournament: Tournament | null;
 }
 
 type RoundKey = 'r1' | 'r2' | 'r3' | 'r4' | 'r5' | 'r6' | 'r7' | 'r8';
@@ -113,7 +114,8 @@ function NumPad({ member, value, onChange, onConfirm, onClose, variant = 'score'
   );
 }
 
-export default function ScoresTab({ tournamentId }: Props) {
+export default function ScoresTab({ tournamentId, tournament }: Props) {
+  const hasTwoDays = !!(tournament?.day2_date);
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
   const [groupFilter, setGroupFilter] = useState<'all' | number>('all');
   const [members, setMembers] = useState<Member[]>([]);
@@ -332,9 +334,9 @@ export default function ScoresTab({ tournamentId }: Props) {
         />
       )}
 
-      {/* Day Tabs */}
+      {/* Day Tabs — 2日開催時のみ表示 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        {([1, 2] as const).map(day => (
+        {hasTwoDays && ([1, 2] as const).map(day => (
           <button
             key={day}
             onClick={() => { setSelectedDay(day); setGroupFilter('all'); }}
@@ -357,7 +359,7 @@ export default function ScoresTab({ tournamentId }: Props) {
           style={{
             background: 'transparent', color: C.muted,
             border: `1px solid ${C.border}`, borderRadius: 6,
-            padding: '7px 12px', fontSize: 15, cursor: 'pointer', marginLeft: 8,
+            padding: '7px 12px', fontSize: 15, cursor: 'pointer',
           }}
         >
           ↺ 再読込
