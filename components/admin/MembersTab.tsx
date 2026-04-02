@@ -26,14 +26,6 @@ interface Props {
   tournamentId: number;
 }
 
-interface MemberRow {
-  member_code: string;
-  name: string;
-  belong: string;
-  class: ClassType | '';
-  is_judge: boolean;
-}
-
 interface SlotItem {
   group: number;
   position: number;
@@ -41,7 +33,6 @@ interface SlotItem {
 }
 
 const POSITIONS = 6;
-const emptyRow = (): MemberRow => ({ member_code: '', name: '', belong: '', class: '', is_judge: false });
 
 function SortablePlayerRow({ slot }: { slot: SlotItem }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -93,7 +84,6 @@ export default function MembersTab({ tournamentId }: Props) {
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
   const [groupCount, setGroupCount] = useState<{ 1: number; 2: number }>({ 1: 1, 2: 1 });
   const [selectedGroup, setSelectedGroup] = useState(1);
-  const [groups, setGroups] = useState<{ [key: string]: MemberRow[] }>({});
   const [savedMembers, setSavedMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -118,20 +108,6 @@ export default function MembersTab({ tournamentId }: Props) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const groupKey = (day: number, group: number) => `${day}_${group}`;
-
-  const getRows = (day: number, group: number): MemberRow[] => {
-    const key = groupKey(day, group);
-    if (!groups[key]) {
-      return Array.from({ length: POSITIONS }, emptyRow);
-    }
-    return groups[key];
-  };
-
-  const setRows = (day: number, group: number, rows: MemberRow[]) => {
-    setGroups(prev => ({ ...prev, [groupKey(day, group)]: rows }));
-  };
-
   const fetchMembers = useCallback(async () => {
     try {
       setLoading(true);
@@ -141,31 +117,12 @@ export default function MembersTab({ tournamentId }: Props) {
       const members: Member[] = json.data;
       setSavedMembers(members);
 
-      // Rebuild group state from saved members
-      const newGroups: { [key: string]: MemberRow[] } = {};
       const maxGroupPerDay: { [day: number]: number } = { 1: 1, 2: 1 };
-
       for (const m of members) {
-        const key = groupKey(m.day, m.group_number);
-        if (!newGroups[key]) {
-          newGroups[key] = Array.from({ length: POSITIONS }, emptyRow);
-        }
-        const idx = m.position - 1;
-        if (idx >= 0 && idx < POSITIONS) {
-          newGroups[key][idx] = {
-            member_code: m.member_code ?? '',
-            name: m.name,
-            belong: m.belong ?? '',
-            class: (m.class ?? '') as ClassType | '',
-            is_judge: m.is_judge,
-          };
-        }
         if (m.group_number > (maxGroupPerDay[m.day] ?? 1)) {
           maxGroupPerDay[m.day] = m.group_number;
         }
       }
-
-      setGroups(prev => ({ ...prev, ...newGroups }));
       setGroupCount({ 1: maxGroupPerDay[1] ?? 1, 2: maxGroupPerDay[2] ?? 1 });
     } catch (e) {
       setError(e instanceof Error ? e.message : '選手の取得に失敗しました');
@@ -185,158 +142,30 @@ export default function MembersTab({ tournamentId }: Props) {
       const json = await res.json();
       if (json.success) setUnregistered(json.data);
     } catch {
-      // 警告表示は任意なのでエラーは無視
+      // ignore
     }
   }
 
-  const updateRow = (idx: number, field: keyof MemberRow, value: string | boolean) => {
-    const rows = [...getRows(selectedDay, selectedGroup)];
-    rows[idx] = { ...rows[idx], [field]: value };
-    setRows(selectedDay, selectedGroup, rows);
-  };
-
-  const clearRow = (idx: number) => {
-    const rows = [...getRows(selectedDay, selectedGroup)];
-    rows[idx] = emptyRow();
-    setRows(selectedDay, selectedGroup, rows);
-  };
-
-  const normalizeCode = (v: string) =>
-    v.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).trim();
-
-  async function lookupPlayer(idx: number, rawCode: string) {
-    const code = normalizeCode(rawCode);
-    if (!code) return;
-    updateRow(idx, 'member_code', code);
-    try {
-      const res = await fetch(`/api/players?code=${encodeURIComponent(code)}`);
-      if (!res.ok) return;
-      const json = await res.json();
-      if (!json.success) return;
-      const p = json.data;
-      const rows = [...getRows(selectedDay, selectedGroup)];
-      rows[idx] = {
-        ...rows[idx],
-        member_code: code,
-        name: p.name,
-        belong: p.affiliation ?? '',
-        is_judge: p.is_judge,
-        class: (p.class ?? '') as ClassType | '',
-      };
-      setRows(selectedDay, selectedGroup, rows);
-    } catch {
-      // マスター未登録の場合はそのまま手入力
-    }
-  }
-
-  async function handleSave() {
+  // Inline edit: PATCH a single member field
+  async function handleInlineEdit(memberId: number, field: 'belong' | 'class' | 'is_judge', value: string | boolean | null) {
     setError(null);
-    setSuccess(null);
-
-    const count = groupCount[selectedDay];
-    const allMembers: Array<{
-      day: 1 | 2;
-      group_number: number;
-      position: number;
-      member_code?: string;
-      name: string;
-      belong?: string;
-      class?: ClassType;
-      is_judge: boolean;
-    }> = [];
-
-    for (let g = 1; g <= count; g++) {
-      const rows = getRows(selectedDay, g);
-      for (let i = 0; i < POSITIONS; i++) {
-        const row = rows[i];
-        if (!row.name.trim()) continue;
-        const code = normalizeCode(row.member_code);
-        if (code && !/^\d+$/.test(code)) {
-          setError(`組${g} ${i + 1}番: 会員番号は数字のみ入力してください`);
-          return;
-        }
-        allMembers.push({
-          day: selectedDay,
-          group_number: g,
-          position: i + 1,
-          member_code: code || undefined,
-          name: row.name.trim(),
-          belong: row.belong.trim() || undefined,
-          class: row.class || undefined,
-          is_judge: row.is_judge,
-        });
-      }
-    }
-
-    // 重複チェック（具体的なメッセージ）
-    const codeMap = new Map<string, { group: number; position: number }>();
-    for (const m of allMembers) {
-      if (!m.member_code) continue;
-      const prev = codeMap.get(m.member_code);
-      if (prev) {
-        setError(`${m.group_number}組 ${m.position}番の会員番号「${m.member_code}」と${prev.group}組 ${prev.position}番の会員番号が重複しています`);
-        return;
-      }
-      codeMap.set(m.member_code, { group: m.group_number, position: m.position });
-    }
-
     try {
-      setSaving(true);
-      const res = await fetch(`/api/tournaments/${tournamentId}/members`, {
-        method: 'POST',
+      const res = await fetch(`/api/tournaments/${tournamentId}/members/${memberId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ day: selectedDay, members: allMembers }),
+        body: JSON.stringify({ [field]: value }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      setSavedMembers(prev => {
-        const other = prev.filter(m => m.day !== selectedDay);
-        return [...other, ...json.data];
-      });
-
-      // player_master のクラス・審判フラグを更新（member_codeがある選手のみ）
-      await Promise.allSettled(
-        allMembers
-          .filter(m => m.member_code)
-          .map(m =>
-            fetch(`/api/players/${m.member_code}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ is_judge: m.is_judge, class: m.class ?? null }),
-            })
-          )
-      );
-
+      // Update local state
+      setSavedMembers(prev => prev.map(m =>
+        m.id === memberId ? { ...m, [field]: value } : m
+      ));
       setSuccess('保存しました');
-      setTimeout(() => setSuccess(null), 3000);
+      setTimeout(() => setSuccess(null), 2000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存に失敗しました');
-    } finally {
-      setSaving(false);
+      setError(e instanceof Error ? e.message : '更新に失敗しました');
     }
-  }
-
-  async function handleCopyDay1() {
-    const count = groupCount[1];
-    const newGroups: { [key: string]: MemberRow[] } = {};
-    for (let g = 1; g <= count; g++) {
-      const rows = getRows(1, g).map(r => ({ ...r }));
-      newGroups[groupKey(2, g)] = rows;
-    }
-    setGroups(prev => ({ ...prev, ...newGroups }));
-    setGroupCount(prev => ({ ...prev, 2: count }));
-    setSuccess('1日目データをコピーしました');
-    setTimeout(() => setSuccess(null), 3000);
-  }
-
-  function addGroup() {
-    setGroupCount(prev => ({ ...prev, [selectedDay]: prev[selectedDay] + 1 }));
-    const newGroup = groupCount[selectedDay] + 1;
-    setGroups(prev => ({
-      ...prev,
-      [groupKey(selectedDay, newGroup)]: Array.from({ length: POSITIONS }, emptyRow),
-    }));
-    setSelectedGroup(newGroup);
   }
 
   async function handleDeleteMember(m: Member) {
@@ -349,6 +178,9 @@ export default function MembersTab({ tournamentId }: Props) {
 
     if (hasScores) {
       const confirmed = window.confirm(`${m.name}の点数データも削除されます。削除しますか？`);
+      if (!confirmed) return;
+    } else {
+      const confirmed = window.confirm(`${m.name}を削除しますか？`);
       if (!confirmed) return;
     }
 
@@ -363,6 +195,46 @@ export default function MembersTab({ tournamentId }: Props) {
     }
   }
 
+  function addGroup() {
+    setGroupCount(prev => ({ ...prev, [selectedDay]: prev[selectedDay] + 1 }));
+    const newGroup = groupCount[selectedDay] + 1;
+    setSelectedGroup(newGroup);
+  }
+
+  async function handleCopyDay1() {
+    // Copy day1 members to day2 via existing API
+    try {
+      setSaving(true);
+      const day1Members = savedMembers.filter(m => m.day === 1);
+      const allMembers = day1Members.map(m => ({
+        day: 2 as const,
+        group_number: m.group_number,
+        position: m.position,
+        member_code: m.member_code ?? undefined,
+        name: m.name,
+        belong: m.belong ?? undefined,
+        class: (m.class ?? undefined) as ClassType | undefined,
+        is_judge: m.is_judge,
+      }));
+
+      const res = await fetch(`/api/tournaments/${tournamentId}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ day: 2, members: allMembers }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      await fetchMembers();
+      setSuccess('1日目データをコピーしました');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'コピーに失敗しました');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Reorder mode
   function enterReorderMode() {
     const dayMems = savedMembers.filter(m => m.day === selectedDay);
     const count = groupCount[selectedDay];
@@ -386,7 +258,6 @@ export default function MembersTab({ tournamentId }: Props) {
       const newIdx = items.findIndex(s => `slot-${s.group}-${s.position}` === over.id);
       if (oldIdx === -1 || newIdx === -1) return items;
 
-      // Swap only member data, keep group/position fixed
       const newItems = items.map(item => ({ ...item }));
       const tempMember = newItems[oldIdx].member;
       newItems[oldIdx].member = newItems[newIdx].member;
@@ -447,24 +318,17 @@ export default function MembersTab({ tournamentId }: Props) {
   const dayMembers = savedMembers.filter(m => m.day === selectedDay);
   const groupsInDay = Array.from({ length: groupCount[selectedDay] }, (_, i) => i + 1);
 
-  // Generate all slots for registered list (including empty ones)
-  const allSlots: SlotItem[] = [];
-  for (let g = 1; g <= groupCount[selectedDay]; g++) {
-    for (let p = 1; p <= POSITIONS; p++) {
-      const member = dayMembers.find(m => m.group_number === g && m.position === p) || null;
-      allSlots.push({ group: g, position: p, member });
-    }
-  }
+  // Members in selected group
+  const groupMembers = dayMembers.filter(m => m.group_number === selectedGroup);
 
-  const inputStyle: React.CSSProperties = {
+  const selectStyle: React.CSSProperties = {
     background: C.inputBg,
     border: `1px solid ${C.border}`,
     borderRadius: 4,
     color: C.text,
-    padding: '5px 7px',
-    fontSize: 15,
-    width: '100%',
-    boxSizing: 'border-box',
+    padding: '4px 6px',
+    fontSize: 14,
+    cursor: 'pointer',
   };
 
   const dayLabel = (d: string) => d === 'day1' ? '1日目' : d === 'day2' ? '2日目' : '両日';
@@ -496,10 +360,11 @@ export default function MembersTab({ tournamentId }: Props) {
             ))}
           </div>
           <p style={{ margin: 0, fontSize: 13, color: '#a07840' }}>
-            選手登録するか、申込管理タブでキャンセル処理してください。
+            選手管理で確認するか、申込管理タブでキャンセル処理してください。
           </p>
         </div>
       )}
+
       {/* Day Tabs（1日目 / 2日目） */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
         {([1, 2] as const).map(day => (
@@ -559,24 +424,27 @@ export default function MembersTab({ tournamentId }: Props) {
         <>
           {/* Group Tabs */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-            {groupsInDay.map(g => (
-              <button
-                key={g}
-                onClick={() => setSelectedGroup(g)}
-                style={{
-                  background: selectedGroup === g ? C.surface2 : C.surface,
-                  color: selectedGroup === g ? C.gold : C.muted,
-                  border: `1px solid ${selectedGroup === g ? C.gold : C.border}`,
-                  borderRadius: 5,
-                  padding: '5px 14px',
-                  fontSize: 15,
-                  fontWeight: selectedGroup === g ? 700 : 400,
-                  cursor: 'pointer',
-                }}
-              >
-                {g}組
-              </button>
-            ))}
+            {groupsInDay.map(g => {
+              const count = dayMembers.filter(m => m.group_number === g).length;
+              return (
+                <button
+                  key={g}
+                  onClick={() => setSelectedGroup(g)}
+                  style={{
+                    background: selectedGroup === g ? C.surface2 : C.surface,
+                    color: selectedGroup === g ? C.gold : C.muted,
+                    border: `1px solid ${selectedGroup === g ? C.gold : C.border}`,
+                    borderRadius: 5,
+                    padding: '5px 14px',
+                    fontSize: 15,
+                    fontWeight: selectedGroup === g ? 700 : 400,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {g}組{count > 0 ? `（${count}名）` : ''}
+                </button>
+              );
+            })}
             <button
               onClick={addGroup}
               style={{
@@ -593,118 +461,112 @@ export default function MembersTab({ tournamentId }: Props) {
             </button>
           </div>
 
-          {/* Input Table */}
+          {/* Members Table (inline edit) */}
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
             <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 600, color: C.text, fontSize: 16 }}>
-                {selectedDay}日目 {selectedGroup}組 — 選手入力
+                {selectedDay}日目 {selectedGroup}組（{groupMembers.length}名）
               </span>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                style={{
-                  background: C.gold,
-                  color: '#000',
-                  border: 'none',
-                  borderRadius: 5,
-                  padding: '6px 16px',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.7 : 1,
-                }}
-              >
-                {saving ? '保存中...' : 'この組を保存'}
-              </button>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 580 }}>
                 <thead>
                   <tr style={{ background: C.surface2 }}>
                     {[
-                      { label: '番号', color: C.muted },
-                      { label: '会員番号', color: C.muted },
-                      { label: '氏名', color: C.muted },
-                      { label: '所属', color: C.muted },
-                      { label: 'クラス', color: C.muted },
-                      { label: '審判フラグ', color: C.muted },
-                      { label: '削除', color: '#e74c3c' },
+                      { label: '番号', width: 50 },
+                      { label: '会員番号', width: 90 },
+                      { label: '氏名', width: undefined },
+                      { label: '所属', width: 140 },
+                      { label: 'クラス', width: 80 },
+                      { label: '審判', width: 60 },
+                      { label: '操作', width: 60 },
                     ].map((h, i) => (
                       <th key={i} style={{
                         padding: '8px 10px',
                         fontSize: 14,
-                        color: h.color,
+                        color: C.muted,
                         fontWeight: 600,
                         textAlign: 'left',
                         borderBottom: `1px solid ${C.border}`,
                         whiteSpace: 'nowrap',
+                        width: h.width,
                       }}>{h.label}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {getRows(selectedDay, selectedGroup).map((row, idx) => (
-                    <tr key={idx} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td style={{ padding: '6px 10px', color: C.muted, fontSize: 15, width: 36 }}>{idx + 1}</td>
-                      <td style={{ padding: '4px 6px', width: 100 }}>
-                        <input
-                          type="text"
-                          value={row.member_code}
-                          onChange={e => updateRow(idx, 'member_code', e.target.value)}
-                          onBlur={e => lookupPlayer(idx, e.target.value)}
-                          style={inputStyle}
-                          placeholder="例: 12345"
-                        />
-                      </td>
-                      <td style={{ padding: '4px 6px', minWidth: 140 }}>
-                        <input
-                          type="text"
-                          value={row.name}
-                          onChange={e => updateRow(idx, 'name', e.target.value)}
-                          style={{ ...inputStyle }}
-                          placeholder="氏名"
-                        />
-                      </td>
-                      <td style={{ padding: '4px 6px', minWidth: 110 }}>
-                        <select
-                          value={row.belong}
-                          onChange={e => updateRow(idx, 'belong', e.target.value)}
-                          style={{ ...inputStyle, width: '100%' }}
-                        >
-                          <option value="">—</option>
-                          {associationNames.map(name => (
-                            <option key={name} value={name}>{name}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td style={{ padding: '4px 6px', width: 72 }}>
-                        <select
-                          value={row.class}
-                          onChange={e => updateRow(idx, 'class', e.target.value as ClassType | '')}
-                          style={{ ...inputStyle, width: 60 }}
-                        >
-                          <option value="">-</option>
-                          {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td style={{ padding: '4px 6px', width: 60, textAlign: 'center' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={row.is_judge}
-                            onChange={e => updateRow(idx, 'is_judge', e.target.checked)}
-                            style={{ width: 14, height: 14, cursor: 'pointer', accentColor: C.gold }}
-                          />
-                          <span style={{ fontSize: 15, color: row.is_judge ? C.gold : C.muted }}>⚑</span>
-                        </label>
-                      </td>
-                      <td style={{ padding: '4px 6px', width: 36, textAlign: 'center' }}>
-                        <button onClick={() => clearRow(idx)} style={{ background: 'transparent', color: C.muted, border: 'none', fontSize: 16, cursor: 'pointer' }}>✕</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    // Show all positions (1-6), with member data or empty slot
+                    const rows = [];
+                    for (let p = 1; p <= POSITIONS; p++) {
+                      const member = groupMembers.find(m => m.position === p);
+                      rows.push(
+                        <tr key={p} style={{
+                          borderBottom: `1px solid ${C.border}33`,
+                          borderLeft: !member ? `3px solid ${C.gold}` : '3px solid transparent',
+                          background: !member ? `${C.gold}0a` : 'transparent',
+                        }}>
+                          <td style={{ padding: '6px 10px', color: C.muted, fontSize: 15 }}>{p}</td>
+                          {member ? (
+                            <>
+                              <td style={{ padding: '6px 10px', fontSize: 15, color: C.text }}>{member.member_code ?? '-'}</td>
+                              <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, fontWeight: 500 }}>
+                                {member.name}
+                              </td>
+                              <td style={{ padding: '4px 6px' }}>
+                                <select
+                                  value={member.belong ?? ''}
+                                  onChange={e => handleInlineEdit(member.id, 'belong', e.target.value || null)}
+                                  style={selectStyle}
+                                >
+                                  <option value="">—</option>
+                                  {associationNames.map(name => (
+                                    <option key={name} value={name}>{name}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td style={{ padding: '4px 6px' }}>
+                                <select
+                                  value={member.class ?? ''}
+                                  onChange={e => handleInlineEdit(member.id, 'class', e.target.value || null)}
+                                  style={{ ...selectStyle, width: 60 }}
+                                >
+                                  <option value="">-</option>
+                                  {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'pointer' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={member.is_judge}
+                                    onChange={e => handleInlineEdit(member.id, 'is_judge', e.target.checked)}
+                                    style={{ width: 14, height: 14, cursor: 'pointer', accentColor: C.gold }}
+                                  />
+                                  <span style={{ fontSize: 15, color: member.is_judge ? C.gold : C.muted }}>⚑</span>
+                                </label>
+                              </td>
+                              <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                                <button
+                                  onClick={() => handleDeleteMember(member)}
+                                  style={{ background: 'transparent', color: C.red, border: `1px solid ${C.red}`, borderRadius: 4, padding: '3px 10px', fontSize: 13, cursor: 'pointer' }}
+                                >
+                                  削除
+                                </button>
+                              </td>
+                            </>
+                          ) : (
+                            <td colSpan={6} style={{ padding: '6px 10px', fontSize: 15, color: C.gold }}>
+                              －（空き）
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    }
+                    return rows;
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -763,62 +625,6 @@ export default function MembersTab({ tournamentId }: Props) {
                     </table>
                   </SortableContext>
                 </DndContext>
-              </div>
-            </div>
-          )}
-
-          {/* Saved Members List */}
-          {!reorderMode && dayMembers.length > 0 && (
-            <div style={{ marginTop: 28 }}>
-              <h3 style={{ fontSize: 17, color: C.muted, fontWeight: 600, marginBottom: 12 }}>
-                登録済み選手一覧（{selectedDay}日目 — {dayMembers.length}名）
-              </h3>
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
-                    <thead>
-                      <tr style={{ background: C.surface2 }}>
-                        {['組', '番', '会員番号', '氏名　審判フラグ', '所属', 'クラス', '操作'].map(h => (
-                          <th key={h} style={{
-                            padding: '7px 10px', fontSize: 13, color: C.muted, fontWeight: 600,
-                            textAlign: 'left', borderBottom: `1px solid ${C.border}`,
-                          }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allSlots.map(slot => (
-                        <tr key={`${slot.group}-${slot.position}`} style={{
-                          borderBottom: `1px solid ${C.border}33`,
-                          borderLeft: !slot.member ? `3px solid ${C.gold}` : '3px solid transparent',
-                          background: !slot.member ? `${C.gold}0a` : 'transparent',
-                        }}>
-                          <td style={{ padding: '5px 10px', fontSize: 15, color: C.muted }}>{slot.group}組</td>
-                          <td style={{ padding: '5px 10px', fontSize: 15, color: C.muted }}>{slot.position}</td>
-                          {slot.member ? (
-                            <>
-                              <td style={{ padding: '5px 10px', fontSize: 15, color: C.text }}>{slot.member.member_code ?? '-'}</td>
-                              <td style={{ padding: '5px 10px', fontSize: 15, color: C.text, fontWeight: slot.member.is_judge ? 600 : 400 }}>
-                                {slot.member.name}{slot.member.is_judge ? <span style={{ color: C.gold, marginLeft: 4 }}>⚑</span> : ''}
-                              </td>
-                              <td style={{ padding: '5px 10px', fontSize: 15, color: C.muted }}>{slot.member.belong ?? '-'}</td>
-                              <td style={{ padding: '5px 10px', fontSize: 15 }}>
-                                {slot.member.class ? <span style={{ background: classBadgeBg(slot.member.class), color: classBadgeColor(slot.member.class), borderRadius: 4, padding: '1px 7px', fontSize: 13, fontWeight: 700 }}>{slot.member.class}</span> : '-'}
-                              </td>
-                              <td style={{ padding: '5px 10px' }}>
-                                <button onClick={() => handleDeleteMember(slot.member!)} style={{ background: 'transparent', color: C.red, border: `1px solid ${C.red}`, borderRadius: 4, padding: '3px 10px', fontSize: 13, cursor: 'pointer' }}>削除</button>
-                              </td>
-                            </>
-                          ) : (
-                            <>
-                              <td colSpan={5} style={{ padding: '5px 10px', fontSize: 15, color: C.gold }}>－（空き）</td>
-                            </>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
               </div>
             </div>
           )}

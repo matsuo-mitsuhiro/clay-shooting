@@ -55,7 +55,7 @@ export default function AdminDetail({ tournamentId }: Props) {
   const tabs: { key: TabType; label: string }[] = [
     { key: 'settings', label: '大会設定' },
     { key: 'registrations', label: '申込管理' },
-    { key: 'members', label: '選手登録' },
+    { key: 'members', label: '選手管理' },
     { key: 'scores', label: '点数登録' },
     { key: 'results', label: '成績確認' },
     { key: 'history', label: '閲覧履歴' },

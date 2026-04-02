@@ -7,7 +7,7 @@ type Params = { params: Promise<{ id: string }> };
 
 const POSITIONS_PER_GROUP = 6;
 
-// POST /api/tournaments/[id]/registrations/transfer — 未移行の申込者を選手登録に移行（要認証）
+// POST /api/tournaments/[id]/registrations/transfer — 未移行の申込者を選手管理に移行（要認証）
 export async function POST(req: NextRequest, { params }: Params) {
   const jwtToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!jwtToken) {

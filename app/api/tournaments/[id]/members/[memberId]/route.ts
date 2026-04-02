@@ -40,6 +40,54 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   }
 }
 
+// PATCH /api/tournaments/[id]/members/[memberId] — インライン編集（belong, class, is_judge）
+export async function PATCH(req: NextRequest, { params }: Params) {
+  try {
+    const { id, memberId } = await params;
+    const tournamentId = Number(id);
+    const memberIdNum = Number(memberId);
+    const body = await req.json();
+
+    // Validate member exists
+    const members = await sql`SELECT * FROM members WHERE id = ${memberIdNum} AND tournament_id = ${tournamentId}`;
+    if (members.length === 0) {
+      return NextResponse.json<ApiResponse>({ success: false, error: '選手が見つかりません' }, { status: 404 });
+    }
+
+    const member = members[0] as { member_code: string | null; belong: string | null; class: string | null; is_judge: boolean };
+
+    const newBelong = body.belong !== undefined ? body.belong : member.belong;
+    const newClass = body.class !== undefined ? body.class : member.class;
+    const newIsJudge = body.is_judge !== undefined ? body.is_judge : member.is_judge;
+
+    await sql`
+      UPDATE members
+      SET belong = ${newBelong}, class = ${newClass}, is_judge = ${newIsJudge}
+      WHERE id = ${memberIdNum} AND tournament_id = ${tournamentId}
+    `;
+
+    // Also update player_master if member_code exists
+    if (member.member_code && (body.class !== undefined || body.is_judge !== undefined)) {
+      try {
+        await sql`
+          UPDATE player_master
+          SET class = ${newClass}, is_judge = ${newIsJudge}, updated_at = NOW()
+          WHERE member_code = ${member.member_code}
+        `;
+      } catch {
+        // player_master update failure is non-critical
+      }
+    }
+
+    // Return updated member
+    const updated = await sql`SELECT * FROM members WHERE id = ${memberIdNum}`;
+    return NextResponse.json<ApiResponse>({ success: true, data: updated[0] });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json<ApiResponse>({ success: false, error: '更新に失敗しました' }, { status: 500 });
+  }
+}
+
 // GET - check if member has scores
 export async function GET(req: NextRequest, { params }: Params) {
   try {

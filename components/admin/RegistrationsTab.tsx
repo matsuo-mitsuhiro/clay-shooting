@@ -185,7 +185,7 @@ export default function RegistrationsTab({ tournamentId }: Props) {
     setTransferError(null);
     const untransferred = registrations.filter(r => r.status === 'active' && !r.transferred_at);
     if (untransferred.length === 0) return;
-    if (!window.confirm(`未移行の ${untransferred.length} 名を選手登録に移行しますか？\n申込期間が終了している必要があります。`)) return;
+    if (!window.confirm(`未移行の ${untransferred.length} 名を選手管理に移行しますか？\n申込期間が終了している必要があります。`)) return;
     try {
       setTransferring(true);
       const res = await fetch(`/api/tournaments/${tournamentId}/registrations/transfer`, {
@@ -586,7 +586,7 @@ export default function RegistrationsTab({ tournamentId }: Props) {
             marginLeft: 'auto',
           }}
         >
-          {transferring ? '移行中...' : `未移行 ${untransferredCount}名 → 選手登録に移行`}
+          {transferring ? '移行中...' : `未移行 ${untransferredCount}名 → 選手管理に移行`}
         </button>
       </div>
 

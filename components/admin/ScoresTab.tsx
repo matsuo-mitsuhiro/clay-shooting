@@ -385,7 +385,7 @@ export default function ScoresTab({ tournamentId }: Props) {
           background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
           padding: '40px 24px', textAlign: 'center', color: C.muted,
         }}>
-          {selectedDay}日目の選手が登録されていません。先に選手登録を行ってください。
+          {selectedDay}日目の選手が登録されていません。先に選手管理で登録を行ってください。
         </div>
       ) : (
         <>
