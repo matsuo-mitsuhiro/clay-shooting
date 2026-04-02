@@ -15,15 +15,15 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
-  arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { C } from '@/lib/colors';
-import type { Member, ClassType } from '@/lib/types';
+import type { Member, ClassType, Tournament } from '@/lib/types';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface Props {
   tournamentId: number;
+  tournament: Tournament | null;
 }
 
 interface SlotItem {
@@ -80,7 +80,17 @@ interface UnregisteredEntry {
   participation_day: string;
 }
 
-export default function MembersTab({ tournamentId }: Props) {
+// Edit mode: data snapshot per member
+interface EditableMember {
+  id: number;
+  belong: string | null;
+  class: ClassType | null;
+  is_judge: boolean;
+}
+
+export default function MembersTab({ tournamentId, tournament }: Props) {
+  const hasTwoDays = !!(tournament?.day2_date);
+
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
   const [groupCount, setGroupCount] = useState<{ 1: number; 2: number }>({ 1: 1, 2: 1 });
   const [selectedGroup, setSelectedGroup] = useState(1);
@@ -93,6 +103,11 @@ export default function MembersTab({ tournamentId }: Props) {
   const [reorderItems, setReorderItems] = useState<SlotItem[]>([]);
   const [unregistered, setUnregistered] = useState<UnregisteredEntry[]>([]);
   const [associationNames, setAssociationNames] = useState<string[]>([]);
+
+  // Edit mode state
+  const [editing, setEditing] = useState(false);
+  const [editedMembers, setEditedMembers] = useState<EditableMember[]>([]);
+  const [snapshotMembers, setSnapshotMembers] = useState<EditableMember[]>([]);
 
   useEffect(() => {
     fetch('/api/associations')
@@ -146,25 +161,101 @@ export default function MembersTab({ tournamentId }: Props) {
     }
   }
 
-  // Inline edit: PATCH a single member field
-  async function handleInlineEdit(memberId: number, field: 'belong' | 'class' | 'is_judge', value: string | boolean | null) {
+  // --- Edit mode helpers ---
+  function enterEditMode() {
+    const snapshot: EditableMember[] = savedMembers.map(m => ({
+      id: m.id,
+      belong: m.belong,
+      class: m.class,
+      is_judge: m.is_judge,
+    }));
+    setSnapshotMembers(snapshot);
+    setEditedMembers(snapshot.map(s => ({ ...s })));
+    setEditing(true);
     setError(null);
+    setSuccess(null);
+  }
+
+  function cancelEditMode() {
+    // Restore savedMembers from snapshot
+    setSavedMembers(prev =>
+      prev.map(m => {
+        const snap = snapshotMembers.find(s => s.id === m.id);
+        if (!snap) return m;
+        return { ...m, belong: snap.belong, class: snap.class, is_judge: snap.is_judge };
+      })
+    );
+    setEditing(false);
+    setEditedMembers([]);
+    setSnapshotMembers([]);
+    setError(null);
+  }
+
+  function updateEditedMember(memberId: number, field: 'belong' | 'class' | 'is_judge', value: string | boolean | null) {
+    setEditedMembers(prev =>
+      prev.map(em => em.id === memberId ? { ...em, [field]: value } : em)
+    );
+    // Also update local display
+    setSavedMembers(prev =>
+      prev.map(m => m.id === memberId ? { ...m, [field]: value } : m)
+    );
+  }
+
+  async function saveEditMode() {
+    setError(null);
+    // Find changed rows
+    const changes: Array<{ id: number; belong: string | null; class: ClassType | null; is_judge: boolean }> = [];
+    for (const edited of editedMembers) {
+      const snap = snapshotMembers.find(s => s.id === edited.id);
+      if (!snap) continue;
+      if (edited.belong !== snap.belong || edited.class !== snap.class || edited.is_judge !== snap.is_judge) {
+        changes.push({ id: edited.id, belong: edited.belong, class: edited.class, is_judge: edited.is_judge });
+      }
+    }
+
+    if (changes.length === 0) {
+      setEditing(false);
+      setEditedMembers([]);
+      setSnapshotMembers([]);
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/tournaments/${tournamentId}/members/${memberId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value }),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      // Update local state
-      setSavedMembers(prev => prev.map(m =>
-        m.id === memberId ? { ...m, [field]: value } : m
-      ));
-      setSuccess('保存しました');
-      setTimeout(() => setSuccess(null), 2000);
+      setSaving(true);
+      const errors: string[] = [];
+      for (const c of changes) {
+        const body: Record<string, unknown> = {};
+        const snap = snapshotMembers.find(s => s.id === c.id);
+        if (snap) {
+          if (c.belong !== snap.belong) body.belong = c.belong;
+          if (c.class !== snap.class) body.class = c.class;
+          if (c.is_judge !== snap.is_judge) body.is_judge = c.is_judge;
+        }
+        const res = await fetch(`/api/tournaments/${tournamentId}/members/${c.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const json = await res.json();
+        if (!json.success) {
+          errors.push(json.error || `ID=${c.id}の更新に失敗`);
+        }
+      }
+      if (errors.length > 0) {
+        setError(errors.join('; '));
+      } else {
+        setSuccess(`${changes.length}件を保存しました`);
+        setTimeout(() => setSuccess(null), 3000);
+      }
+      setEditing(false);
+      setEditedMembers([]);
+      setSnapshotMembers([]);
+      // Re-fetch to get fresh data
+      await fetchMembers();
     } catch (e) {
-      setError(e instanceof Error ? e.message : '更新に失敗しました');
+      setError(e instanceof Error ? e.message : '保存に失敗しました');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -202,7 +293,6 @@ export default function MembersTab({ tournamentId }: Props) {
   }
 
   async function handleCopyDay1() {
-    // Copy day1 members to day2 via existing API
     try {
       setSaving(true);
       const day1Members = savedMembers.filter(m => m.day === 1);
@@ -365,44 +455,46 @@ export default function MembersTab({ tournamentId }: Props) {
         </div>
       )}
 
-      {/* Day Tabs（1日目 / 2日目） */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        {([1, 2] as const).map(day => (
-          <button
-            key={day}
-            onClick={() => { setSelectedDay(day); setSelectedGroup(1); setReorderMode(false); }}
-            style={{
-              background: selectedDay === day ? C.gold : C.surface,
-              color: selectedDay === day ? '#000' : C.muted,
-              border: `1px solid ${selectedDay === day ? C.gold : C.border}`,
-              borderRadius: 6,
-              padding: '7px 18px',
-              fontSize: 16,
-              fontWeight: selectedDay === day ? 700 : 400,
-              cursor: 'pointer',
-            }}
-          >
-            {day}日目
-          </button>
-        ))}
-        {selectedDay === 2 && (
-          <button
-            onClick={handleCopyDay1}
-            style={{
-              background: `${C.blue2}22`,
-              color: C.blue2,
-              border: `1px solid ${C.blue2}`,
-              borderRadius: 6,
-              padding: '7px 14px',
-              fontSize: 15,
-              cursor: 'pointer',
-              marginLeft: 8,
-            }}
-          >
-            1日目からコピー
-          </button>
-        )}
-      </div>
+      {/* Day Tabs（1日目 / 2日目） — 2日開催時のみ表示 */}
+      {hasTwoDays && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+          {([1, 2] as const).map(day => (
+            <button
+              key={day}
+              onClick={() => { setSelectedDay(day); setSelectedGroup(1); setReorderMode(false); setEditing(false); }}
+              style={{
+                background: selectedDay === day ? C.gold : C.surface,
+                color: selectedDay === day ? '#000' : C.muted,
+                border: `1px solid ${selectedDay === day ? C.gold : C.border}`,
+                borderRadius: 6,
+                padding: '7px 18px',
+                fontSize: 16,
+                fontWeight: selectedDay === day ? 700 : 400,
+                cursor: 'pointer',
+              }}
+            >
+              {day}日目
+            </button>
+          ))}
+          {selectedDay === 2 && (
+            <button
+              onClick={handleCopyDay1}
+              style={{
+                background: `${C.blue2}22`,
+                color: C.blue2,
+                border: `1px solid ${C.blue2}`,
+                borderRadius: 6,
+                padding: '7px 14px',
+                fontSize: 15,
+                cursor: 'pointer',
+                marginLeft: 8,
+              }}
+            >
+              1日目からコピー
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Error / Success */}
       {error && (
@@ -461,12 +553,67 @@ export default function MembersTab({ tournamentId }: Props) {
             </button>
           </div>
 
-          {/* Members Table (inline edit) */}
+          {/* Members Table */}
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
             <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 600, color: C.text, fontSize: 16 }}>
                 {selectedDay}日目 {selectedGroup}組（{groupMembers.length}名）
               </span>
+              {/* Edit / Save / Cancel buttons */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                {editing ? (
+                  <>
+                    <button
+                      onClick={cancelEditMode}
+                      style={{
+                        background: C.surface2,
+                        color: C.muted,
+                        border: `1px solid ${C.border}`,
+                        borderRadius: 5,
+                        padding: '5px 14px',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={saveEditMode}
+                      disabled={saving}
+                      style={{
+                        background: C.gold,
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: 5,
+                        padding: '5px 14px',
+                        fontSize: 14,
+                        fontWeight: 700,
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                        opacity: saving ? 0.7 : 1,
+                      }}
+                    >
+                      保存
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={enterEditMode}
+                    disabled={reorderMode}
+                    style={{
+                      background: C.surface2,
+                      color: C.gold,
+                      border: `1px solid ${C.gold}`,
+                      borderRadius: 5,
+                      padding: '5px 14px',
+                      fontSize: 14,
+                      cursor: reorderMode ? 'not-allowed' : 'pointer',
+                      opacity: reorderMode ? 0.5 : 1,
+                    }}
+                  >
+                    編集
+                  </button>
+                )}
+              </div>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 580 }}>
@@ -496,7 +643,6 @@ export default function MembersTab({ tournamentId }: Props) {
                 </thead>
                 <tbody>
                   {(() => {
-                    // Show all positions (1-6), with member data or empty slot
                     const rows = [];
                     for (let p = 1; p <= POSITIONS; p++) {
                       const member = groupMembers.find(m => m.position === p);
@@ -513,40 +659,66 @@ export default function MembersTab({ tournamentId }: Props) {
                               <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, fontWeight: 500 }}>
                                 {member.name}
                               </td>
+                              {/* 所属 */}
                               <td style={{ padding: '4px 6px' }}>
-                                <select
-                                  value={member.belong ?? ''}
-                                  onChange={e => handleInlineEdit(member.id, 'belong', e.target.value || null)}
-                                  style={selectStyle}
-                                >
-                                  <option value="">—</option>
-                                  {associationNames.map(name => (
-                                    <option key={name} value={name}>{name}</option>
-                                  ))}
-                                </select>
+                                {editing ? (
+                                  <select
+                                    value={member.belong ?? ''}
+                                    onChange={e => updateEditedMember(member.id, 'belong', e.target.value || null)}
+                                    style={selectStyle}
+                                  >
+                                    <option value="">---</option>
+                                    {associationNames.map(name => (
+                                      <option key={name} value={name}>{name}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span style={{ fontSize: 15, color: C.text }}>{member.belong ?? '-'}</span>
+                                )}
                               </td>
+                              {/* クラス */}
                               <td style={{ padding: '4px 6px' }}>
-                                <select
-                                  value={member.class ?? ''}
-                                  onChange={e => handleInlineEdit(member.id, 'class', e.target.value || null)}
-                                  style={{ ...selectStyle, width: 60 }}
-                                >
-                                  <option value="">-</option>
-                                  {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
-                                    <option key={c} value={c}>{c}</option>
-                                  ))}
-                                </select>
+                                {editing ? (
+                                  <select
+                                    value={member.class ?? ''}
+                                    onChange={e => updateEditedMember(member.id, 'class', e.target.value || null)}
+                                    style={{ ...selectStyle, width: 60 }}
+                                  >
+                                    <option value="">-</option>
+                                    {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
+                                      <option key={c} value={c}>{c}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  member.class ? (
+                                    <span style={{
+                                      background: classBadgeBg(member.class),
+                                      color: classBadgeColor(member.class),
+                                      borderRadius: 4,
+                                      padding: '1px 7px',
+                                      fontSize: 13,
+                                      fontWeight: 700,
+                                    }}>{member.class}</span>
+                                  ) : <span style={{ color: C.muted }}>-</span>
+                                )}
                               </td>
+                              {/* 審判 */}
                               <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'pointer' }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={member.is_judge}
-                                    onChange={e => handleInlineEdit(member.id, 'is_judge', e.target.checked)}
-                                    style={{ width: 14, height: 14, cursor: 'pointer', accentColor: C.gold }}
-                                  />
-                                  <span style={{ fontSize: 15, color: member.is_judge ? C.gold : C.muted }}>⚑</span>
-                                </label>
+                                {editing ? (
+                                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={member.is_judge}
+                                      onChange={e => updateEditedMember(member.id, 'is_judge', e.target.checked)}
+                                      style={{ width: 14, height: 14, cursor: 'pointer', accentColor: C.gold }}
+                                    />
+                                    <span style={{ fontSize: 15, color: member.is_judge ? C.gold : C.muted }}>⚑</span>
+                                  </label>
+                                ) : (
+                                  <span style={{ fontSize: 15, color: member.is_judge ? C.gold : C.muted }}>
+                                    {member.is_judge ? '⚑' : '-'}
+                                  </span>
+                                )}
                               </td>
                               <td style={{ padding: '4px 6px', textAlign: 'center' }}>
                                 <button
@@ -573,7 +745,7 @@ export default function MembersTab({ tournamentId }: Props) {
           </div>
 
           {/* 選手組替 button */}
-          {dayMembers.length > 0 && (
+          {dayMembers.length > 0 && !editing && (
             <div style={{ marginTop: 20, marginBottom: 4, display: 'flex', justifyContent: 'flex-start' }}>
               <button
                 onClick={() => {

@@ -214,7 +214,7 @@ export default function AdminDetail({ tournamentId }: Props) {
               <RegistrationsTab tournamentId={tournamentId} tournament={tournament} />
             )}
             {activeTab === 'members' && (
-              <MembersTab tournamentId={tournamentId} />
+              <MembersTab tournamentId={tournamentId} tournament={tournament} />
             )}
             {activeTab === 'scores' && (
               <ScoresTab tournamentId={tournamentId} />
