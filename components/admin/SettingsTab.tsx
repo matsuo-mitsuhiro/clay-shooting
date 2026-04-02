@@ -24,6 +24,41 @@ const ORGANIZERS = [
   { cd: 28, name: '兵庫' },
 ];
 
+// ---------- 日付変換ヘルパー ----------
+function isoStrToDate(s: string | null): Date | null {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function timeStrToDate(s: string | null): Date | null {
+  if (!s) return null;
+  const [h, m] = s.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+function dateToIsoStr(d: Date | null): string | null {
+  if (!d) return null;
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${y}-${mo}-${dd}T${h}:${mi}`;
+}
+
+function dateToTimeStr(d: Date | null): string | null {
+  if (!d) return null;
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+// ピッカーを開いたとき 00:00 を基準にする
+const MIDNIGHT = new Date(new Date().setHours(0, 0, 0, 0));
+
 export default function SettingsTab({ tournamentId, tournament, onUpdated }: Props) {
   const router = useRouter();
 
@@ -38,15 +73,26 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     organizer_cd: 27,
   });
 
-  const [applyForm, setApplyForm] = useState({
+  const [applyForm, setApplyForm] = useState<{
+    max_participants: string;
+    apply_start_at: Date | null;
+    apply_end_at: Date | null;
+    cancel_end_at: Date | null;
+    gate_open_time: Date | null;
+    reception_start_time: Date | null;
+    practice_clay_time: Date | null;
+    competition_start_time: Date | null;
+    cancellation_notice: string;
+    notes: string;
+  }>({
     max_participants: '',
-    apply_start_at: '',
-    apply_end_at: '',
-    cancel_end_at: '',
-    competition_start_time: '',
-    gate_open_time: '',
-    reception_start_time: '',
-    practice_clay_time: '',
+    apply_start_at: null,
+    apply_end_at: null,
+    cancel_end_at: null,
+    gate_open_time: null,
+    reception_start_time: null,
+    practice_clay_time: null,
+    competition_start_time: null,
     cancellation_notice: '',
     notes: '',
   });
@@ -76,13 +122,13 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     });
     setApplyForm({
       max_participants: tournament.max_participants != null ? String(tournament.max_participants) : '',
-      apply_start_at: tournament.apply_start_at ? tournament.apply_start_at.slice(0, 16) : '',
-      apply_end_at: tournament.apply_end_at ? tournament.apply_end_at.slice(0, 16) : '',
-      cancel_end_at: tournament.cancel_end_at ? tournament.cancel_end_at.slice(0, 16) : '',
-      competition_start_time: tournament.competition_start_time ?? '',
-      gate_open_time: tournament.gate_open_time ?? '',
-      reception_start_time: tournament.reception_start_time ?? '',
-      practice_clay_time: tournament.practice_clay_time ?? '',
+      apply_start_at: isoStrToDate(tournament.apply_start_at),
+      apply_end_at: isoStrToDate(tournament.apply_end_at),
+      cancel_end_at: isoStrToDate(tournament.cancel_end_at),
+      gate_open_time: timeStrToDate(tournament.gate_open_time),
+      reception_start_time: timeStrToDate(tournament.reception_start_time),
+      practice_clay_time: timeStrToDate(tournament.practice_clay_time),
+      competition_start_time: timeStrToDate(tournament.competition_start_time),
       cancellation_notice: tournament.cancellation_notice ?? '',
       notes: tournament.notes ?? '',
     });
@@ -128,6 +174,23 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     e.preventDefault();
     setError(null);
     setSuccess(null);
+
+    // 必須チェック（注意書き以外）
+    const missing: string[] = [];
+    if (!applyForm.max_participants) missing.push('参加人数上限');
+    if (!applyForm.apply_start_at) missing.push('募集開始日時');
+    if (!applyForm.apply_end_at) missing.push('募集終了日時');
+    if (!applyForm.cancel_end_at) missing.push('キャンセル可能日時');
+    if (!applyForm.gate_open_time) missing.push('射撃場開門時間');
+    if (!applyForm.reception_start_time) missing.push('受付開始時間');
+    if (!applyForm.practice_clay_time) missing.push('テストクレー放出時間');
+    if (!applyForm.competition_start_time) missing.push('競技開始時間');
+    if (!applyForm.cancellation_notice.trim()) missing.push('中止お知らせ方法');
+    if (missing.length > 0) {
+      setError(`以下の項目は必須です：${missing.join('、')}`);
+      return;
+    }
+
     try {
       setSavingApply(true);
       const res = await fetch(`/api/tournaments/${tournamentId}`, {
@@ -135,13 +198,13 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           max_participants: applyForm.max_participants ? Number(applyForm.max_participants) : null,
-          apply_start_at: applyForm.apply_start_at || null,
-          apply_end_at: applyForm.apply_end_at || null,
-          cancel_end_at: applyForm.cancel_end_at || null,
-          competition_start_time: applyForm.competition_start_time || null,
-          gate_open_time: applyForm.gate_open_time || null,
-          reception_start_time: applyForm.reception_start_time || null,
-          practice_clay_time: applyForm.practice_clay_time || null,
+          apply_start_at: dateToIsoStr(applyForm.apply_start_at),
+          apply_end_at: dateToIsoStr(applyForm.apply_end_at),
+          cancel_end_at: dateToIsoStr(applyForm.cancel_end_at),
+          gate_open_time: dateToTimeStr(applyForm.gate_open_time),
+          reception_start_time: dateToTimeStr(applyForm.reception_start_time),
+          practice_clay_time: dateToTimeStr(applyForm.practice_clay_time),
+          competition_start_time: dateToTimeStr(applyForm.competition_start_time),
           cancellation_notice: applyForm.cancellation_notice || null,
           notes: applyForm.notes || null,
         }),
@@ -166,7 +229,6 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     }
     const confirmed = window.confirm('メンバーと点数データを全て削除します。この操作は取り消せません。本当に実行しますか？');
     if (!confirmed) return;
-
     setError(null);
     setSuccess(null);
     try {
@@ -221,6 +283,14 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     marginBottom: 5,
   };
 
+  const requiredMark = <span style={{ color: C.red }}>*</span>;
+
+  // DatePicker 共通カスタムインプット（readOnly で直接テキスト入力不可）
+  const dpInputStyle: React.CSSProperties = {
+    ...inputStyle,
+    cursor: 'pointer',
+  };
+
   return (
     <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
       {/* Error / Success */}
@@ -258,7 +328,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               </select>
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>大会名 <span style={{ color: C.red }}>*</span></label>
+              <label style={labelStyle}>大会名 {requiredMark}</label>
               <input
                 type="text"
                 value={form.name}
@@ -294,7 +364,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 dateFormat="yyyy/MM/dd"
                 locale={ja}
                 placeholderText="日付を選択"
-                customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const }} />}
+                customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const, cursor: 'pointer' }} />}
               />
             </div>
             <div>
@@ -305,7 +375,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 dateFormat="yyyy/MM/dd"
                 locale={ja}
                 placeholderText="日付を選択"
-                customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const }} />}
+                customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const, cursor: 'pointer' }} />}
               />
             </div>
             <div>
@@ -334,15 +404,9 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               type="submit"
               disabled={saving}
               style={{
-                background: C.gold,
-                color: '#000',
-                border: 'none',
-                borderRadius: 5,
-                padding: '9px 24px',
-                fontWeight: 700,
-                fontSize: 16,
-                cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.7 : 1,
+                background: C.gold, color: '#000', border: 'none', borderRadius: 5,
+                padding: '9px 24px', fontWeight: 700, fontSize: 16,
+                cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
               }}
             >
               {saving ? '保存中...' : '保存'}
@@ -356,11 +420,16 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
         padding: '20px', marginBottom: 20,
       }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>申込設定</h3>
+        <h3 style={{ margin: '0 0 4px', fontSize: 17, color: C.gold }}>申込設定</h3>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: C.muted }}>
+          {requiredMark} 注意書き以外はすべて必須です
+        </p>
         <form onSubmit={handleSaveApply}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+
+            {/* 参加人数上限 */}
             <div>
-              <label style={labelStyle}>参加人数上限</label>
+              <label style={labelStyle}>参加人数上限 {requiredMark}</label>
               <input
                 type="number"
                 min={1}
@@ -370,77 +439,131 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 style={inputStyle}
               />
             </div>
+            <div>{/* spacer */}</div>
+
+            {/* 募集開始日時 */}
             <div>
-              {/* spacer */}
-            </div>
-            <div>
-              <label style={labelStyle}>募集開始日時</label>
-              <input
-                type="datetime-local"
-                value={applyForm.apply_start_at}
-                onChange={e => setApplyForm(f => ({ ...f, apply_start_at: e.target.value }))}
-                style={inputStyle}
+              <label style={labelStyle}>募集開始日時 {requiredMark}</label>
+              <DatePicker
+                selected={applyForm.apply_start_at}
+                onChange={(date: Date | null) => setApplyForm(f => ({ ...f, apply_start_at: date }))}
+                showTimeSelect
+                dateFormat="yyyy/MM/dd HH:mm"
+                timeFormat="HH:mm"
+                timeIntervals={15}
+                locale={ja}
+                placeholderText="日付・時刻を選択"
+                openToDate={MIDNIGHT}
+                customInput={<input style={dpInputStyle} readOnly />}
               />
             </div>
+
+            {/* 募集終了日時 */}
             <div>
-              <label style={labelStyle}>募集終了日時</label>
-              <input
-                type="datetime-local"
-                value={applyForm.apply_end_at}
-                onChange={e => setApplyForm(f => ({ ...f, apply_end_at: e.target.value }))}
-                style={inputStyle}
+              <label style={labelStyle}>募集終了日時 {requiredMark}</label>
+              <DatePicker
+                selected={applyForm.apply_end_at}
+                onChange={(date: Date | null) => setApplyForm(f => ({ ...f, apply_end_at: date }))}
+                showTimeSelect
+                dateFormat="yyyy/MM/dd HH:mm"
+                timeFormat="HH:mm"
+                timeIntervals={15}
+                locale={ja}
+                placeholderText="日付・時刻を選択"
+                openToDate={MIDNIGHT}
+                customInput={<input style={dpInputStyle} readOnly />}
               />
             </div>
+
+            {/* キャンセル可能日時 */}
             <div>
-              <label style={labelStyle}>キャンセル可能日時</label>
-              <input
-                type="datetime-local"
-                value={applyForm.cancel_end_at}
-                onChange={e => setApplyForm(f => ({ ...f, cancel_end_at: e.target.value }))}
-                style={inputStyle}
+              <label style={labelStyle}>キャンセル可能日時 {requiredMark}</label>
+              <DatePicker
+                selected={applyForm.cancel_end_at}
+                onChange={(date: Date | null) => setApplyForm(f => ({ ...f, cancel_end_at: date }))}
+                showTimeSelect
+                dateFormat="yyyy/MM/dd HH:mm"
+                timeFormat="HH:mm"
+                timeIntervals={15}
+                locale={ja}
+                placeholderText="日付・時刻を選択"
+                openToDate={MIDNIGHT}
+                customInput={<input style={dpInputStyle} readOnly />}
               />
             </div>
+            <div>{/* spacer */}</div>
+
+            {/* 射撃場開門時間 */}
             <div>
-              {/* spacer */}
-            </div>
-            <div>
-              <label style={labelStyle}>射撃場開門時間</label>
-              <input
-                type="time"
-                value={applyForm.gate_open_time}
-                onChange={e => setApplyForm(f => ({ ...f, gate_open_time: e.target.value }))}
-                style={inputStyle}
+              <label style={labelStyle}>射撃場開門時間 {requiredMark}</label>
+              <DatePicker
+                selected={applyForm.gate_open_time}
+                onChange={(date: Date | null) => setApplyForm(f => ({ ...f, gate_open_time: date }))}
+                showTimeSelect
+                showTimeSelectOnly
+                timeFormat="HH:mm"
+                dateFormat="HH:mm"
+                timeIntervals={15}
+                placeholderText="時刻を選択"
+                openToDate={MIDNIGHT}
+                customInput={<input style={dpInputStyle} readOnly />}
               />
             </div>
+
+            {/* 受付開始時間 */}
             <div>
-              <label style={labelStyle}>受付開始時間</label>
-              <input
-                type="time"
-                value={applyForm.reception_start_time}
-                onChange={e => setApplyForm(f => ({ ...f, reception_start_time: e.target.value }))}
-                style={inputStyle}
+              <label style={labelStyle}>受付開始時間 {requiredMark}</label>
+              <DatePicker
+                selected={applyForm.reception_start_time}
+                onChange={(date: Date | null) => setApplyForm(f => ({ ...f, reception_start_time: date }))}
+                showTimeSelect
+                showTimeSelectOnly
+                timeFormat="HH:mm"
+                dateFormat="HH:mm"
+                timeIntervals={15}
+                placeholderText="時刻を選択"
+                openToDate={MIDNIGHT}
+                customInput={<input style={dpInputStyle} readOnly />}
               />
             </div>
+
+            {/* テストクレー放出時間 */}
             <div>
-              <label style={labelStyle}>テストクレー放出時間</label>
-              <input
-                type="time"
-                value={applyForm.practice_clay_time}
-                onChange={e => setApplyForm(f => ({ ...f, practice_clay_time: e.target.value }))}
-                style={inputStyle}
+              <label style={labelStyle}>テストクレー放出時間 {requiredMark}</label>
+              <DatePicker
+                selected={applyForm.practice_clay_time}
+                onChange={(date: Date | null) => setApplyForm(f => ({ ...f, practice_clay_time: date }))}
+                showTimeSelect
+                showTimeSelectOnly
+                timeFormat="HH:mm"
+                dateFormat="HH:mm"
+                timeIntervals={15}
+                placeholderText="時刻を選択"
+                openToDate={MIDNIGHT}
+                customInput={<input style={dpInputStyle} readOnly />}
               />
             </div>
+
+            {/* 競技開始時間 */}
             <div>
-              <label style={labelStyle}>競技開始時間</label>
-              <input
-                type="time"
-                value={applyForm.competition_start_time}
-                onChange={e => setApplyForm(f => ({ ...f, competition_start_time: e.target.value }))}
-                style={inputStyle}
+              <label style={labelStyle}>競技開始時間 {requiredMark}</label>
+              <DatePicker
+                selected={applyForm.competition_start_time}
+                onChange={(date: Date | null) => setApplyForm(f => ({ ...f, competition_start_time: date }))}
+                showTimeSelect
+                showTimeSelectOnly
+                timeFormat="HH:mm"
+                dateFormat="HH:mm"
+                timeIntervals={15}
+                placeholderText="時刻を選択"
+                openToDate={MIDNIGHT}
+                customInput={<input style={dpInputStyle} readOnly />}
               />
             </div>
+
+            {/* 中止お知らせ方法 */}
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>中止お知らせ方法（400文字以内）</label>
+              <label style={labelStyle}>中止お知らせ方法（400文字以内）{requiredMark}</label>
               <textarea
                 value={applyForm.cancellation_notice}
                 onChange={e => setApplyForm(f => ({ ...f, cancellation_notice: e.target.value }))}
@@ -450,6 +573,8 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 style={{ ...inputStyle, resize: 'vertical', height: 'auto' }}
               />
             </div>
+
+            {/* 注意書き（任意） */}
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>注意書き（400文字以内）</label>
               <textarea
@@ -462,6 +587,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               />
             </div>
           </div>
+
           <div style={{ marginTop: 16 }}>
             <button
               type="submit"
@@ -536,25 +662,16 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
 
       {/* Danger Zone */}
       <section style={{
-        background: `${C.red}11`,
-        border: `1px solid ${C.red}66`,
-        borderRadius: 8,
-        padding: '20px',
+        background: `${C.red}11`, border: `1px solid ${C.red}66`, borderRadius: 8, padding: '20px',
       }}>
         <h3 style={{ margin: '0 0 8px', fontSize: 17, color: C.red }}>危険ゾーン</h3>
         <p style={{ margin: '0 0 16px', fontSize: 15, color: C.muted }}>
           以下の操作は取り消せません。十分注意して実行してください。
         </p>
-
-        {/* Reset */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
           <div>
-            <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>
-              メンバー・点数をリセット
-            </p>
-            <p style={{ margin: 0, fontSize: 14, color: C.muted }}>
-              大会情報・QRコードは保持されます
-            </p>
+            <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>メンバー・点数をリセット</p>
+            <p style={{ margin: 0, fontSize: 14, color: C.muted }}>大会情報・QRコードは保持されます</p>
           </div>
           <button
             onClick={handleReset}
@@ -562,23 +679,16 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
             style={{
               background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
               borderRadius: 5, padding: '8px 18px', fontSize: 16, fontWeight: 600,
-              cursor: resetting ? 'not-allowed' : 'pointer', opacity: resetting ? 0.7 : 1,
-              whiteSpace: 'nowrap',
+              cursor: resetting ? 'not-allowed' : 'pointer', opacity: resetting ? 0.7 : 1, whiteSpace: 'nowrap',
             }}
           >
             {resetting ? 'リセット中...' : 'リセット実行'}
           </button>
         </div>
-
-        {/* Delete tournament */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', paddingTop: 16, borderTop: `1px solid ${C.red}33` }}>
           <div>
-            <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>
-              大会を削除
-            </p>
-            <p style={{ margin: 0, fontSize: 14, color: C.muted }}>
-              この大会のすべてのデータ（選手・点数・申込）を削除します
-            </p>
+            <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>大会を削除</p>
+            <p style={{ margin: 0, fontSize: 14, color: C.muted }}>この大会のすべてのデータ（選手・点数・申込）を削除します</p>
           </div>
           <button
             onClick={handleDelete}
@@ -586,8 +696,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
             style={{
               background: C.red, color: '#fff', border: `1px solid ${C.red}`,
               borderRadius: 5, padding: '8px 18px', fontSize: 16, fontWeight: 600,
-              cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1,
-              whiteSpace: 'nowrap',
+              cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1, whiteSpace: 'nowrap',
             }}
           >
             {deleting ? '削除中...' : '大会を削除'}

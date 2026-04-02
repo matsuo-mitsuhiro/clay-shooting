@@ -315,8 +315,8 @@ export default function ApplyPage() {
             padding: '20px', textAlign: 'center',
           }}>
             <p style={{ color: C.muted, fontSize: 16 }}>
-              {t.apply_start_at && Date.now() < new Date(t.apply_start_at).getTime()
-                ? '申込受付はまだ開始されていません'
+              {(!t.apply_start_at || Date.now() < new Date(t.apply_start_at).getTime())
+                ? '募集が開始されていません'
                 : '申込受付は終了しました'}
             </p>
             {t.apply_start_at && t.apply_end_at && (
