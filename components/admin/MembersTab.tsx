@@ -20,7 +20,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { C } from '@/lib/colors';
 import type { Member, ClassType } from '@/lib/types';
-import BulkRegisterTab from './BulkRegisterTab';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface Props {
@@ -91,7 +90,6 @@ interface UnregisteredEntry {
 }
 
 export default function MembersTab({ tournamentId }: Props) {
-  const [showBulk, setShowBulk] = useState(false);
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
   const [groupCount, setGroupCount] = useState<{ 1: number; 2: number }>({ 1: 1, 2: 1 });
   const [selectedGroup, setSelectedGroup] = useState(1);
@@ -472,7 +470,7 @@ export default function MembersTab({ tournamentId }: Props) {
   const dayLabel = (d: string) => d === 'day1' ? '1日目' : d === 'day2' ? '2日目' : '両日';
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ padding: '20px 16px' }}>
       <LoadingOverlay show={loading || saving} message={loading ? '読み込み中...' : '保存中...'} />
 
       {/* 申込済み・未登録 警告バナー */}
@@ -502,42 +500,27 @@ export default function MembersTab({ tournamentId }: Props) {
           </p>
         </div>
       )}
-      {/* Day Tabs（選手一括登録 / 1日目 / 2日目） */}
+      {/* Day Tabs（1日目 / 2日目） */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        <button
-          onClick={() => { setShowBulk(true); setReorderMode(false); }}
-          style={{
-            background: showBulk ? C.gold : C.surface,
-            color: showBulk ? '#000' : C.muted,
-            border: `1px solid ${showBulk ? C.gold : C.border}`,
-            borderRadius: 6,
-            padding: '7px 18px',
-            fontSize: 16,
-            fontWeight: showBulk ? 700 : 400,
-            cursor: 'pointer',
-          }}
-        >
-          選手一括登録
-        </button>
         {([1, 2] as const).map(day => (
           <button
             key={day}
-            onClick={() => { setShowBulk(false); setSelectedDay(day); setSelectedGroup(1); setReorderMode(false); }}
+            onClick={() => { setSelectedDay(day); setSelectedGroup(1); setReorderMode(false); }}
             style={{
-              background: !showBulk && selectedDay === day ? C.gold : C.surface,
-              color: !showBulk && selectedDay === day ? '#000' : C.muted,
-              border: `1px solid ${!showBulk && selectedDay === day ? C.gold : C.border}`,
+              background: selectedDay === day ? C.gold : C.surface,
+              color: selectedDay === day ? '#000' : C.muted,
+              border: `1px solid ${selectedDay === day ? C.gold : C.border}`,
               borderRadius: 6,
               padding: '7px 18px',
               fontSize: 16,
-              fontWeight: !showBulk && selectedDay === day ? 700 : 400,
+              fontWeight: selectedDay === day ? 700 : 400,
               cursor: 'pointer',
             }}
           >
             {day}日目
           </button>
         ))}
-        {!showBulk && selectedDay === 2 && (
+        {selectedDay === 2 && (
           <button
             onClick={handleCopyDay1}
             style={{
@@ -570,14 +553,9 @@ export default function MembersTab({ tournamentId }: Props) {
         }}>{success}</div>
       )}
 
-      {/* 選手一括登録タブ */}
-      {showBulk && (
-        <BulkRegisterTab tournamentId={tournamentId} onSaved={fetchMembers} />
-      )}
-
-      {!showBulk && loading ? (
+      {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.muted }}>読み込み中...</div>
-      ) : !showBulk ? (
+      ) : (
         <>
           {/* Group Tabs */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -845,7 +823,7 @@ export default function MembersTab({ tournamentId }: Props) {
             </div>
           )}
         </>
-      ) : null}
+      )}
     </div>
   );
 }

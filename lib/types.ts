@@ -199,6 +199,8 @@ export interface Registration {
   cancelled_by: 'user' | 'admin' | null;
   cancelled_by_name: string | null;
   applied_at: string;
+  source: 'web' | 'manual';
+  transferred_at: string | null;
 }
 
 export interface RegistrationToken {

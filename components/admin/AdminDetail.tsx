@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { C } from '@/lib/colors';
-import type { Tournament, Registration } from '@/lib/types';
+import type { Tournament } from '@/lib/types';
 import ContactButton from '@/components/ContactButton';
 import MembersTab from './MembersTab';
 import ScoresTab from './ScoresTab';
@@ -12,15 +12,14 @@ import ResultsTab from './ResultsTab';
 import SettingsTab from './SettingsTab';
 import ViewerHistoryTab from './ViewerHistoryTab';
 import RegistrationsTab from './RegistrationsTab';
-import BulkRegisterTab from './BulkRegisterTab';
 
-type TabType = 'members' | 'scores' | 'results' | 'settings' | 'history' | 'registrations' | 'bulk';
+type TabType = 'members' | 'scores' | 'results' | 'settings' | 'history' | 'registrations';
 
 interface Props {
   tournamentId: number;
 }
 
-const VALID_TABS: TabType[] = ['members', 'scores', 'results', 'settings', 'history', 'registrations', 'bulk'];
+const VALID_TABS: TabType[] = ['members', 'scores', 'results', 'settings', 'history', 'registrations'];
 
 export default function AdminDetail({ tournamentId }: Props) {
   const router = useRouter();
@@ -34,8 +33,6 @@ export default function AdminDetail({ tournamentId }: Props) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [transferredRegistrations, setTransferredRegistrations] = useState<Registration[] | null>(null);
-
   useEffect(() => {
     fetchTournament();
   }, [tournamentId]);
@@ -212,20 +209,7 @@ export default function AdminDetail({ tournamentId }: Props) {
         {!loading && !error && tournament && (
           <>
             {activeTab === 'registrations' && (
-              <RegistrationsTab
-                tournamentId={tournamentId}
-                onTransferToBulk={(regs) => {
-                  setTransferredRegistrations(regs);
-                  setActiveTab('bulk');
-                }}
-              />
-            )}
-            {activeTab === 'bulk' && (
-              <BulkRegisterTab
-                tournamentId={tournamentId}
-                initialRegistrations={transferredRegistrations ?? undefined}
-                onSaved={() => setActiveTab('members')}
-              />
+              <RegistrationsTab tournamentId={tournamentId} />
             )}
             {activeTab === 'members' && (
               <MembersTab tournamentId={tournamentId} />
