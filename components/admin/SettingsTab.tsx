@@ -117,7 +117,8 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
   const [savingApply, setSavingApply] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);         // 大会情報フォーム用
+  const [applyError, setApplyError] = useState<string | null>(null); // 申込設定フォーム用
   const [success, setSuccess] = useState<string | null>(null);
   const [adminCopied, setAdminCopied] = useState(false);
   const [viewerCopied, setViewerCopied] = useState(false);
@@ -235,7 +236,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
 
   async function handleSaveApply(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setApplyError(null);
     setSuccess(null);
 
     // 必須チェック（注意書き以外）
@@ -250,7 +251,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     if (!applyForm.competition_start_time) missing.push('競技開始時間');
     if (!applyForm.cancellation_notice.trim()) missing.push('中止お知らせ方法');
     if (missing.length > 0) {
-      setError(`以下の項目は必須です：${missing.join('、')}`);
+      setApplyError(`以下の項目は必須です：${missing.join('、')}`);
       return;
     }
 
@@ -273,7 +274,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       }
     }
     if (errors.length > 0) {
-      setError(errors.join('\n'));
+      setApplyError(errors.join('\n'));
       return;
     }
 
@@ -301,7 +302,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       onUpdated();
       setTimeout(() => setSuccess(null), 3000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存に失敗しました');
+      setApplyError(e instanceof Error ? e.message : '保存に失敗しました');
     } finally {
       setSavingApply(false);
     }
@@ -503,6 +504,13 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       </section>
 
       {/* Apply Settings Section */}
+      {applyError && (
+        <div style={{
+          background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
+          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 15,
+          whiteSpace: 'pre-line',
+        }}>{applyError}</div>
+      )}
       <section style={{
         background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
         padding: '20px', marginBottom: 20,
