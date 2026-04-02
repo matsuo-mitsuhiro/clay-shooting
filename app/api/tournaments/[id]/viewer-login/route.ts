@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { normalizeKanji } from '@/lib/kanji-normalize';
 
 function normalizeSpaces(s: string): string {
   return s.replace(/[\s\u3000]/g, '');
@@ -35,10 +36,10 @@ export async function POST(
       ORDER BY name
     `;
 
-    // スペース正規化して部分一致チェック
-    const normInput = normalizeSpaces(name.trim());
+    // スペース正規化 + 旧字体→新字体変換して部分一致チェック
+    const normInput = normalizeKanji(normalizeSpaces(name.trim()));
     const matches = members.filter(m => {
-      const normMember = normalizeSpaces(m.name as string);
+      const normMember = normalizeKanji(normalizeSpaces(m.name as string));
       // 部分一致
       if (!normMember.includes(normInput) && !normInput.includes(normMember)) return false;
       // 所属フィルタ（指定がある場合のみ）

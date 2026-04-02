@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { normalizeKanji } from '@/lib/kanji-normalize';
 
 export interface PlayerMaster {
   member_code: string;
@@ -46,17 +47,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: rows[0] as PlayerMaster });
     }
 
-    // 氏名スペース正規化検索（一括登録用）
+    // 氏名スペース正規化検索（一括登録用）— 旧字体→新字体変換も適用
     const qName = searchParams.get('q_name');
     if (qName) {
       const normName = normalizeSpaces(qName);
+      const kanjiNormName = normalizeKanji(normName);
       const pattern = '%' + normName + '%';
+      const kanjiPattern = '%' + kanjiNormName + '%';
       const qBelong = searchParams.get('q_belong');
       let rows;
       if (qBelong) {
         rows = await sql`
           SELECT * FROM player_master
-          WHERE REPLACE(REPLACE(name, ' ', ''), '　', '') ILIKE ${pattern}
+          WHERE (
+            REPLACE(REPLACE(name, ' ', ''), '　', '') ILIKE ${pattern}
+            OR REPLACE(REPLACE(name, ' ', ''), '　', '') ILIKE ${kanjiPattern}
+          )
             AND affiliation = ${qBelong}
           ORDER BY member_code
         `;
@@ -64,6 +70,7 @@ export async function GET(req: NextRequest) {
         rows = await sql`
           SELECT * FROM player_master
           WHERE REPLACE(REPLACE(name, ' ', ''), '　', '') ILIKE ${pattern}
+            OR REPLACE(REPLACE(name, ' ', ''), '　', '') ILIKE ${kanjiPattern}
           ORDER BY member_code
         `;
       }

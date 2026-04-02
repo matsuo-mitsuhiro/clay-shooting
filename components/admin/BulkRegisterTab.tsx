@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { C } from '@/lib/colors';
+import { normalizeKanji } from '@/lib/kanji-normalize';
 import type { ClassType, Member, ParticipationDay, Registration } from '@/lib/types';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
@@ -141,8 +142,8 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
           const json = await res.json();
           if (json.success && json.data) {
             const p: PlayerMaster = json.data;
-            const normInput = normalizeSpaces(name);
-            const normDB = normalizeSpaces(p.name);
+            const normInput = normalizeKanji(normalizeSpaces(name));
+            const normDB = normalizeKanji(normalizeSpaces(p.name));
             if (normDB.includes(normInput) || normInput.includes(normDB)) {
               newRows.push({
                 ...row,

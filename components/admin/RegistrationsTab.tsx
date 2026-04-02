@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { C } from '@/lib/colors';
+import { normalizeKanji } from '@/lib/kanji-normalize';
 import type { Registration, ParticipationDay, ClassType, Tournament } from '@/lib/types';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
@@ -266,8 +267,8 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
           const json = await res.json();
           if (json.success && json.data) {
             const p: PlayerMaster = json.data;
-            const normInput = normalizeSpaces(name);
-            const normDB = normalizeSpaces(p.name);
+            const normInput = normalizeKanji(normalizeSpaces(name));
+            const normDB = normalizeKanji(normalizeSpaces(p.name));
             if (normDB.includes(normInput) || normInput.includes(normDB)) {
               newRows.push({
                 ...row, member_code: p.member_code, name: p.name,
