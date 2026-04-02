@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -24,6 +25,8 @@ const ORGANIZERS = [
 ];
 
 export default function SettingsTab({ tournamentId, tournament, onUpdated }: Props) {
+  const router = useRouter();
+
   const [form, setForm] = useState({
     name: '',
     venue: '',
@@ -34,13 +37,30 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     day2_set: '',
     organizer_cd: 27,
   });
+
+  const [applyForm, setApplyForm] = useState({
+    max_participants: '',
+    apply_start_at: '',
+    apply_end_at: '',
+    cancel_end_at: '',
+    competition_start_time: '',
+    gate_open_time: '',
+    reception_start_time: '',
+    practice_clay_time: '',
+    cancellation_notice: '',
+    notes: '',
+  });
+
   const [origin, setOrigin] = useState('');
   const [saving, setSaving] = useState(false);
+  const [savingApply, setSavingApply] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [adminCopied, setAdminCopied] = useState(false);
   const [viewerCopied, setViewerCopied] = useState(false);
+  const [applyCopied, setApplyCopied] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -53,6 +73,18 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       day1_set: tournament.day1_set ?? '',
       day2_set: tournament.day2_set ?? '',
       organizer_cd: tournament.organizer_cd ?? 27,
+    });
+    setApplyForm({
+      max_participants: tournament.max_participants != null ? String(tournament.max_participants) : '',
+      apply_start_at: tournament.apply_start_at ? tournament.apply_start_at.slice(0, 16) : '',
+      apply_end_at: tournament.apply_end_at ? tournament.apply_end_at.slice(0, 16) : '',
+      cancel_end_at: tournament.cancel_end_at ? tournament.cancel_end_at.slice(0, 16) : '',
+      competition_start_time: tournament.competition_start_time ?? '',
+      gate_open_time: tournament.gate_open_time ?? '',
+      reception_start_time: tournament.reception_start_time ?? '',
+      practice_clay_time: tournament.practice_clay_time ?? '',
+      cancellation_notice: tournament.cancellation_notice ?? '',
+      notes: tournament.notes ?? '',
     });
   }, [tournament]);
 
@@ -92,6 +124,40 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     }
   }
 
+  async function handleSaveApply(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    try {
+      setSavingApply(true);
+      const res = await fetch(`/api/tournaments/${tournamentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          max_participants: applyForm.max_participants ? Number(applyForm.max_participants) : null,
+          apply_start_at: applyForm.apply_start_at || null,
+          apply_end_at: applyForm.apply_end_at || null,
+          cancel_end_at: applyForm.cancel_end_at || null,
+          competition_start_time: applyForm.competition_start_time || null,
+          gate_open_time: applyForm.gate_open_time || null,
+          reception_start_time: applyForm.reception_start_time || null,
+          practice_clay_time: applyForm.practice_clay_time || null,
+          cancellation_notice: applyForm.cancellation_notice || null,
+          notes: applyForm.notes || null,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setSuccess('申込設定を保存しました');
+      onUpdated();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '保存に失敗しました');
+    } finally {
+      setSavingApply(false);
+    }
+  }
+
   async function handleReset() {
     const pw = window.prompt('確認のため「repros」と入力してください');
     if (pw !== 'repros') {
@@ -118,6 +184,22 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       setError(e instanceof Error ? e.message : 'リセットに失敗しました');
     } finally {
       setResetting(false);
+    }
+  }
+
+  async function handleDelete() {
+    const confirmed = window.confirm('この大会のすべてのデータが削除されますが良いですか？\nこの操作は取り消せません。');
+    if (!confirmed) return;
+    setError(null);
+    try {
+      setDeleting(true);
+      const res = await fetch(`/api/tournaments/${tournamentId}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      router.push('/admin');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '削除に失敗しました');
+      setDeleting(false);
     }
   }
 
@@ -269,6 +351,133 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         </form>
       </section>
 
+      {/* Apply Settings Section */}
+      <section style={{
+        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+        padding: '20px', marginBottom: 20,
+      }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>申込設定</h3>
+        <form onSubmit={handleSaveApply}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <label style={labelStyle}>参加人数上限</label>
+              <input
+                type="number"
+                min={1}
+                value={applyForm.max_participants}
+                onChange={e => setApplyForm(f => ({ ...f, max_participants: e.target.value }))}
+                placeholder="例: 60"
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              {/* spacer */}
+            </div>
+            <div>
+              <label style={labelStyle}>募集開始日時</label>
+              <input
+                type="datetime-local"
+                value={applyForm.apply_start_at}
+                onChange={e => setApplyForm(f => ({ ...f, apply_start_at: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>募集終了日時</label>
+              <input
+                type="datetime-local"
+                value={applyForm.apply_end_at}
+                onChange={e => setApplyForm(f => ({ ...f, apply_end_at: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>キャンセル可能日時</label>
+              <input
+                type="datetime-local"
+                value={applyForm.cancel_end_at}
+                onChange={e => setApplyForm(f => ({ ...f, cancel_end_at: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              {/* spacer */}
+            </div>
+            <div>
+              <label style={labelStyle}>射撃場開門時間</label>
+              <input
+                type="time"
+                value={applyForm.gate_open_time}
+                onChange={e => setApplyForm(f => ({ ...f, gate_open_time: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>受付開始時間</label>
+              <input
+                type="time"
+                value={applyForm.reception_start_time}
+                onChange={e => setApplyForm(f => ({ ...f, reception_start_time: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>テストクレー放出時間</label>
+              <input
+                type="time"
+                value={applyForm.practice_clay_time}
+                onChange={e => setApplyForm(f => ({ ...f, practice_clay_time: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>競技開始時間</label>
+              <input
+                type="time"
+                value={applyForm.competition_start_time}
+                onChange={e => setApplyForm(f => ({ ...f, competition_start_time: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>中止お知らせ方法（400文字以内）</label>
+              <textarea
+                value={applyForm.cancellation_notice}
+                onChange={e => setApplyForm(f => ({ ...f, cancellation_notice: e.target.value }))}
+                maxLength={400}
+                rows={4}
+                placeholder="大会中止・中断時のお知らせ方法を入力"
+                style={{ ...inputStyle, resize: 'vertical', height: 'auto' }}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>注意書き（400文字以内）</label>
+              <textarea
+                value={applyForm.notes}
+                onChange={e => setApplyForm(f => ({ ...f, notes: e.target.value }))}
+                maxLength={400}
+                rows={4}
+                placeholder="参加者への注意事項などを入力"
+                style={{ ...inputStyle, resize: 'vertical', height: 'auto' }}
+              />
+            </div>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <button
+              type="submit"
+              disabled={savingApply}
+              style={{
+                background: C.gold, color: '#000', border: 'none', borderRadius: 5,
+                padding: '9px 24px', fontWeight: 700, fontSize: 16,
+                cursor: savingApply ? 'not-allowed' : 'pointer', opacity: savingApply ? 0.7 : 1,
+              }}
+            >
+              {savingApply ? '保存中...' : '申込設定を保存'}
+            </button>
+          </div>
+        </form>
+      </section>
+
       {/* QR Code Section */}
       <section style={{
         background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
@@ -276,18 +485,18 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       }}>
         <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>QRコード確認</h3>
         {origin ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
             {/* Admin QR */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               <p style={{ margin: 0, fontSize: 15, color: C.muted }}>管理者用QR</p>
               <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
-                <QRCodeSVG value={`${origin}/admin/${tournamentId}`} size={140} />
+                <QRCodeSVG value={`${origin}/admin/${tournamentId}`} size={120} />
               </div>
-              <p style={{ margin: 0, fontSize: 13, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+              <p style={{ margin: 0, fontSize: 12, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
                 {origin}/admin/{tournamentId}
               </p>
               <button onClick={() => { navigator.clipboard.writeText(`${origin}/admin/${tournamentId}`); setAdminCopied(true); setTimeout(() => setAdminCopied(false), 2000); }}
-                style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '8px 16px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
+                style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
                 {adminCopied ? 'コピーしました！' : 'URLをコピー'}
               </button>
             </div>
@@ -295,14 +504,28 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               <p style={{ margin: 0, fontSize: 15, color: C.muted }}>閲覧者用QR</p>
               <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
-                <QRCodeSVG value={`${origin}/viewer`} size={140} />
+                <QRCodeSVG value={`${origin}/viewer`} size={120} />
               </div>
-              <p style={{ margin: 0, fontSize: 13, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+              <p style={{ margin: 0, fontSize: 12, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
                 {origin}/viewer
               </p>
               <button onClick={() => { navigator.clipboard.writeText(`${origin}/viewer`); setViewerCopied(true); setTimeout(() => setViewerCopied(false), 2000); }}
-                style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '8px 16px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
+                style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
                 {viewerCopied ? 'コピーしました！' : 'URLをコピー'}
+              </button>
+            </div>
+            {/* Apply QR */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <p style={{ margin: 0, fontSize: 15, color: C.muted }}>申込用QR</p>
+              <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
+                <QRCodeSVG value={`${origin}/tournaments/${tournamentId}/apply`} size={120} />
+              </div>
+              <p style={{ margin: 0, fontSize: 12, color: C.muted, textAlign: 'center', wordBreak: 'break-all' }}>
+                {origin}/tournaments/{tournamentId}/apply
+              </p>
+              <button onClick={() => { navigator.clipboard.writeText(`${origin}/tournaments/${tournamentId}/apply`); setApplyCopied(true); setTimeout(() => setApplyCopied(false), 2000); }}
+                style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
+                {applyCopied ? 'コピーしました！' : 'URLをコピー'}
               </button>
             </div>
           </div>
@@ -322,7 +545,9 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         <p style={{ margin: '0 0 16px', fontSize: 15, color: C.muted }}>
           以下の操作は取り消せません。十分注意して実行してください。
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+
+        {/* Reset */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
           <div>
             <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>
               メンバー・点数をリセット
@@ -335,19 +560,37 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
             onClick={handleReset}
             disabled={resetting}
             style={{
-              background: 'transparent',
-              color: C.red,
-              border: `1px solid ${C.red}`,
-              borderRadius: 5,
-              padding: '8px 18px',
-              fontSize: 16,
-              fontWeight: 600,
-              cursor: resetting ? 'not-allowed' : 'pointer',
-              opacity: resetting ? 0.7 : 1,
+              background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
+              borderRadius: 5, padding: '8px 18px', fontSize: 16, fontWeight: 600,
+              cursor: resetting ? 'not-allowed' : 'pointer', opacity: resetting ? 0.7 : 1,
               whiteSpace: 'nowrap',
             }}
           >
             {resetting ? 'リセット中...' : 'リセット実行'}
+          </button>
+        </div>
+
+        {/* Delete tournament */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', paddingTop: 16, borderTop: `1px solid ${C.red}33` }}>
+          <div>
+            <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>
+              大会を削除
+            </p>
+            <p style={{ margin: 0, fontSize: 14, color: C.muted }}>
+              この大会のすべてのデータ（選手・点数・申込）を削除します
+            </p>
+          </div>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            style={{
+              background: C.red, color: '#fff', border: `1px solid ${C.red}`,
+              borderRadius: 5, padding: '8px 18px', fontSize: 16, fontWeight: 600,
+              cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {deleting ? '削除中...' : '大会を削除'}
           </button>
         </div>
       </section>

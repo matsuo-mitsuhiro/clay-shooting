@@ -21,6 +21,18 @@ export interface Tournament {
   viewer_qr: string | null;
   created_at: string;
   updated_at: string;
+  // 申込設定
+  max_participants: number | null;
+  apply_start_at: string | null;
+  apply_end_at: string | null;
+  cancel_end_at: string | null;
+  competition_start_time: string | null;
+  gate_open_time: string | null;
+  reception_start_time: string | null;
+  practice_clay_time: string | null;
+  cancellation_notice: string | null;
+  notes: string | null;
+  apply_qr: string | null;
 }
 
 export interface TournamentInput {
@@ -34,6 +46,18 @@ export interface TournamentInput {
   organizer_cd?: number | null;
   admin_qr?: string;
   viewer_qr?: string;
+  // 申込設定（オプショナル）
+  max_participants?: number | null;
+  apply_start_at?: string | null;
+  apply_end_at?: string | null;
+  cancel_end_at?: string | null;
+  competition_start_time?: string | null;
+  gate_open_time?: string | null;
+  reception_start_time?: string | null;
+  practice_clay_time?: string | null;
+  cancellation_notice?: string | null;
+  notes?: string | null;
+  apply_qr?: string | null;
 }
 
 // ---------- Member ----------
@@ -151,6 +175,38 @@ export interface TournamentAdmin {
   is_active: boolean;
   created_at: string;
   current_affiliation: string | null;
+}
+
+// ---------- Registration ----------
+export type ParticipationDay = 'day1' | 'day2' | 'both';
+
+export interface Registration {
+  id: number;
+  tournament_id: number;
+  member_code: string;
+  name: string;
+  belong: string | null;
+  email: string;
+  event_type: string;
+  participation_day: ParticipationDay;
+  class: ClassType | null;
+  status: 'active' | 'cancelled';
+  cancelled_at: string | null;
+  cancelled_by: 'user' | 'admin' | null;
+  cancelled_by_name: string | null;
+  applied_at: string;
+}
+
+export interface RegistrationToken {
+  id: number;
+  tournament_id: number;
+  email: string;
+  token: string;
+  purpose: 'apply' | 'cancel';
+  registration_id: number | null;
+  expires_at: string;
+  used_at: string | null;
+  created_at: string;
 }
 
 // ---------- API Response ----------

@@ -115,6 +115,99 @@ export async function sendAnswerNotification(
   });
 }
 
+// ============================================================
+// 申込関連メール送信関数
+// ============================================================
+
+export async function sendApplyToken(to: string, tournamentName: string, applyUrl: string): Promise<void> {
+  await getTransporter().sendMail({
+    from: `"クレー射撃 成績管理システム" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: `「${tournamentName}」申込フォームのご案内`,
+    html: `
+      <p>この度は「${tournamentName}」へのお申込みありがとうございます。</p>
+      <p>以下のURLから <strong>1時間以内</strong> に申込を完了してください。</p>
+      <p><a href="${applyUrl}">${applyUrl}</a></p>
+      <p>※このURLは1回のみ有効です。</p>
+      <p>※このリンクに心当たりがない場合は、このメールを無視してください。</p>
+      <br>
+      <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
+      <p>クレー射撃 成績管理システム</p>
+    `,
+  });
+}
+
+export async function sendApplyConfirmation(
+  to: string,
+  name: string,
+  tournament: {
+    name: string;
+    venue: string | null;
+    day1_date: string | null;
+    day2_date: string | null;
+    event_type: string;
+    competition_start_time: string | null;
+    gate_open_time: string | null;
+    reception_start_time: string | null;
+    practice_clay_time: string | null;
+    notes: string | null;
+  }
+): Promise<void> {
+  const fmtDate = (d: string | null) =>
+    d ? new Date(d).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+  const eventLabel = tournament.event_type === 'trap' ? 'トラップ' : 'スキート';
+  const dateStr = tournament.day1_date
+    ? fmtDate(tournament.day1_date) + (tournament.day2_date ? ` / ${fmtDate(tournament.day2_date)}` : '')
+    : '';
+
+  const lines: string[] = [
+    `【大会名】${tournament.name}`,
+    tournament.venue ? `【会場】${tournament.venue}` : '',
+    dateStr ? `【開催日】${dateStr}` : '',
+    `【種目】${eventLabel}`,
+    tournament.gate_open_time ? `【射撃場開門】${tournament.gate_open_time}` : '',
+    tournament.reception_start_time ? `【受付開始】${tournament.reception_start_time}` : '',
+    tournament.practice_clay_time ? `【テストクレー放出】${tournament.practice_clay_time}` : '',
+    tournament.competition_start_time ? `【競技開始】${tournament.competition_start_time}` : '',
+    tournament.notes ? `\n【注意事項】\n${tournament.notes}` : '',
+  ].filter(Boolean);
+
+  await getTransporter().sendMail({
+    from: `"クレー射撃 成績管理システム" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: `「${tournament.name}」申込完了のお知らせ`,
+    html: `
+      <p>${name} 様</p>
+      <p>「${tournament.name}」へのお申込みが完了しました。</p>
+      <hr>
+      <pre style="font-family: sans-serif; white-space: pre-wrap;">${lines.join('\n')}</pre>
+      <hr>
+      <br>
+      <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
+      <p>クレー射撃 成績管理システム</p>
+    `,
+  });
+}
+
+export async function sendCancelToken(to: string, tournamentName: string, cancelUrl: string): Promise<void> {
+  await getTransporter().sendMail({
+    from: `"クレー射撃 成績管理システム" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: `「${tournamentName}」キャンセル手続きのご案内`,
+    html: `
+      <p>「${tournamentName}」のキャンセル手続きのご案内です。</p>
+      <p>以下のURLから <strong>1時間以内</strong> にキャンセルを完了してください。</p>
+      <p><a href="${cancelUrl}">${cancelUrl}</a></p>
+      <p>※申込時のメールアドレスを入力してください。</p>
+      <p>※このURLは1回のみ有効です。</p>
+      <p>※このリンクに心当たりがない場合は、このメールを無視してください。</p>
+      <br>
+      <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
+      <p>クレー射撃 成績管理システム</p>
+    `,
+  });
+}
+
 export async function sendPasswordReset(to: string, name: string, token: string) {
   const url = `${BASE_URL}/admin/reset-password/${token}`;
   await getTransporter().sendMail({

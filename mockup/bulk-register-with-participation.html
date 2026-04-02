@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>選手一括登録（参加列追加）モックアップ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    padding: 24px;
+  }
+
+  /* タブ */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .tab {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    background: #252540;
+    color: #aaa;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 400;
+  }
+  .tab.active-gold {
+    background: #f0a500;
+    color: #000;
+    border-color: #f0a500;
+    font-weight: 700;
+  }
+  .tab.active-blue {
+    background: #3498db;
+    color: #fff;
+    border-color: #3498db;
+    font-weight: 700;
+  }
+
+  /* 登録先セレクタ */
+  .day-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .day-selector span {
+    color: #aaa;
+    font-size: 14px;
+  }
+  .day-btn {
+    padding: 6px 18px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    background: #252540;
+    color: #aaa;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .day-btn.active {
+    background: #f0a500;
+    color: #000;
+    border-color: #f0a500;
+    font-weight: 700;
+  }
+
+  /* 申込移行バナー */
+  .import-banner {
+    background: #1a3a1a;
+    border: 1px solid #2ecc71;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #2ecc71;
+  }
+
+  /* ボタン行 */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 8px 18px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .btn-add    { background: #f0a500; color: #000; }
+  .btn-search { background: #3498db; color: #fff; }
+  .btn-save   { background: #2c3e70; color: #7ec8e3; border: 1px solid #7ec8e3; }
+  .hint {
+    font-size: 13px;
+    color: #888;
+  }
+
+  /* テーブル */
+  .table-wrap {
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+  }
+  thead tr {
+    background: #252540;
+  }
+  th {
+    padding: 9px 10px;
+    font-size: 13px;
+    color: #aaa;
+    font-weight: 600;
+    text-align: center;
+    border-bottom: 1px solid #333;
+    white-space: nowrap;
+  }
+  td {
+    padding: 5px 6px;
+    border-bottom: 1px solid #2a2a3a;
+    text-align: center;
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  .num-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #2a2a3a;
+    border: 1px solid #444;
+    font-size: 13px;
+    color: #aaa;
+  }
+  input[type=text] {
+    background: #1e1e30;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #e0e0e0;
+    padding: 6px 8px;
+    font-size: 14px;
+    width: 100%;
+  }
+  input.code { width: 90px; }
+  select {
+    background: #1e1e30;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #e0e0e0;
+    padding: 6px 6px;
+    font-size: 13px;
+  }
+
+  /* 参加バッジ */
+  .badge {
+    display: inline-block;
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .badge-day1  { background: #f0a50022; color: #f0a500; border: 1px solid #f0a500; }
+  .badge-day2  { background: #3498db22; color: #3498db; border: 1px solid #3498db; }
+  .badge-both  { background: #9b59b622; color: #9b59b6; border: 1px solid #9b59b6; }
+  .badge-empty { background: #33333322; color: #666;    border: 1px solid #444; }
+
+  /* 参加セレクト（空行用） */
+  select.participation {
+    width: 80px;
+    font-size: 12px;
+    padding: 5px 4px;
+  }
+
+  /* 審判チェック */
+  .judge-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: center;
+  }
+  .judge-wrap input[type=checkbox] { width: 16px; height: 16px; }
+  .flag { color: #f0a500; font-size: 14px; }
+
+  /* 削除ボタン */
+  .btn-del {
+    background: transparent;
+    border: 1px solid #e74c3c;
+    color: #e74c3c;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  /* Web申込行（薄いハイライト） */
+  tr.from-web td { background: #1a2a1a88; }
+  tr.from-web:hover td { background: #1a2a2a; }
+
+  /* 注釈 */
+  .note-block {
+    background: #1e1e30;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #aaa;
+    line-height: 1.8;
+  }
+  .note-block strong { color: #f0a500; }
+  .note-block .purple { color: #9b59b6; font-weight: 700; }
+  .note-block .blue   { color: #3498db; font-weight: 700; }
+  .note-block .gold   { color: #f0a500; font-weight: 700; }
+
+  .section-title {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #333;
+  }
+</style>
+</head>
+<body>
+
+<!-- タブ -->
+<div class="tabs">
+  <button class="tab active-gold">選手一括登録</button>
+  <button class="tab">1日目</button>
+  <button class="tab">2日目</button>
+</div>
+
+<!-- 登録先 -->
+<div class="day-selector">
+  <span>登録先：</span>
+  <button class="day-btn active">1日目</button>
+  <button class="day-btn">2日目</button>
+</div>
+
+<!-- 申込移行バナー（移行後に表示） -->
+<div class="import-banner">
+  ✓ Web申込から5名のデータをコピーしました（1日目3名・2日目1名・両方1名）
+</div>
+
+<!-- ボタン行 -->
+<div class="btn-row">
+  <button class="btn btn-add">＋追加（6行）</button>
+  <button class="btn btn-search">🔍 検索・設定</button>
+  <button class="btn btn-save">💾 保存</button>
+  <span class="hint">※「検索・設定」を実行してから保存できます</span>
+</div>
+
+<!-- テーブル -->
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:48px">人数</th>
+        <th style="width:100px">会員番号</th>
+        <th>氏名</th>
+        <th style="width:68px">参加</th>
+        <th style="width:140px">所属</th>
+        <th style="width:80px">クラス</th>
+        <th style="width:60px">審判</th>
+        <th style="width:44px">削除</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <!-- Web申込からコピーされた行 -->
+      <tr class="from-web">
+        <td><span class="num-badge">1</span></td>
+        <td><input type="text" class="code" value="35313" /></td>
+        <td><input type="text" value="松尾 充泰" /></td>
+        <td><span class="badge badge-day1">1日目</span></td>
+        <td>
+          <select><option>大阪</option></select>
+        </td>
+        <td>
+          <select><option>-</option><option>A</option><option selected>B</option><option>C</option><option>D</option></select>
+        </td>
+        <td>
+          <div class="judge-wrap">
+            <input type="checkbox" /><span class="flag">🚩</span>
+          </div>
+        </td>
+        <td><button class="btn-del">×</button></td>
+      </tr>
+
+      <tr class="from-web">
+        <td><span class="num-badge">2</span></td>
+        <td><input type="text" class="code" value="35324" /></td>
+        <td><input type="text" value="小谷 敏之" /></td>
+        <td><span class="badge badge-day1">1日目</span></td>
+        <td>
+          <select><option>大阪</option></select>
+        </td>
+        <td>
+          <select><option selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select>
+        </td>
+        <td>
+          <div class="judge-wrap">
+            <input type="checkbox" /><span class="flag">🚩</span>
+          </div>
+        </td>
+        <td><button class="btn-del">×</button></td>
+      </tr>
+
+      <tr class="from-web">
+        <td><span class="num-badge">3</span></td>
+        <td><input type="text" class="code" value="35260" /></td>
+        <td><input type="text" value="坂本 雄輔" /></td>
+        <td><span class="badge badge-day1">1日目</span></td>
+        <td>
+          <select><option>京都</option></select>
+        </td>
+        <td>
+          <select><option>-</option><option selected>A</option><option>B</option><option>C</option><option>D</option></select>
+        </td>
+        <td>
+          <div class="judge-wrap">
+            <input type="checkbox" /><span class="flag">🚩</span>
+          </div>
+        </td>
+        <td><button class="btn-del">×</button></td>
+      </tr>
+
+      <tr class="from-web">
+        <td><span class="num-badge">4</span></td>
+        <td><input type="text" class="code" value="35401" /></td>
+        <td><input type="text" value="田中 信泰" /></td>
+        <td><span class="badge badge-day2">2日目</span></td>
+        <td>
+          <select><option>大阪</option></select>
+        </td>
+        <td>
+          <select><option selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select>
+        </td>
+        <td>
+          <div class="judge-wrap">
+            <input type="checkbox" /><span class="flag">🚩</span>
+          </div>
+        </td>
+        <td><button class="btn-del">×</button></td>
+      </tr>
+
+      <tr class="from-web">
+        <td><span class="num-badge">5</span></td>
+        <td><input type="text" class="code" value="35412" /></td>
+        <td><input type="text" value="木吉 省三" /></td>
+        <td><span class="badge badge-both">両方</span></td>
+        <td>
+          <select><option>大阪</option></select>
+        </td>
+        <td>
+          <select><option>-</option><option selected>A</option><option>B</option><option>C</option><option>D</option></select>
+        </td>
+        <td>
+          <div class="judge-wrap">
+            <input type="checkbox" checked /><span class="flag">🚩</span>
+          </div>
+        </td>
+        <td><button class="btn-del">×</button></td>
+      </tr>
+
+      <!-- 手動追加の空行 -->
+      <tr>
+        <td><span class="num-badge">6</span></td>
+        <td><input type="text" class="code" placeholder="番号" /></td>
+        <td><input type="text" placeholder="氏名" /></td>
+        <td>
+          <select class="participation">
+            <option value="">—</option>
+            <option value="day1">1日目</option>
+            <option value="day2">2日目</option>
+            <option value="both">両方</option>
+          </select>
+        </td>
+        <td>
+          <select><option value="">—</option></select>
+        </td>
+        <td>
+          <select><option>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select>
+        </td>
+        <td>
+          <div class="judge-wrap">
+            <input type="checkbox" /><span class="flag">🚩</span>
+          </div>
+        </td>
+        <td><button class="btn-del">×</button></td>
+      </tr>
+
+      <tr>
+        <td><span class="num-badge">7</span></td>
+        <td><input type="text" class="code" placeholder="番号" /></td>
+        <td><input type="text" placeholder="氏名" /></td>
+        <td>
+          <select class="participation">
+            <option value="">—</option>
+            <option value="day1">1日目</option>
+            <option value="day2">2日目</option>
+            <option value="both">両方</option>
+          </select>
+        </td>
+        <td>
+          <select><option value="">—</option></select>
+        </td>
+        <td>
+          <select><option>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select>
+        </td>
+        <td>
+          <div class="judge-wrap">
+            <input type="checkbox" /><span class="flag">🚩</span>
+          </div>
+        </td>
+        <td><button class="btn-del">×</button></td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+<!-- 凡例・注釈 -->
+<div class="note-block" style="margin-top:16px">
+  <div class="section-title">「参加」列について</div>
+  <span class="gold">■ 1日目</span>　1日目のみ参加 → 保存時に day=1 で登録<br>
+  <span class="blue">■ 2日目</span>　2日目のみ参加 → 保存時に day=2 で登録<br>
+  <span class="purple">■ 両方</span>　　両日参加 → 保存時に day=1・day=2 の <strong>2レコードを自動作成</strong><br>
+  <br>
+  ※ 薄緑色の行はWeb申込からコピーされたデータです（手動入力行と区別）<br>
+  ※ 手動追加行は「参加」をドロップダウンで選択してください
+</div>
+
+<div class="note-block" style="margin-top:10px; border-color:#e74c3c33">
+  <div class="section-title" style="color:#e74c3c88">保存時エラー例</div>
+  申込上限 <strong>30件</strong> に対して既にWeb申込から <strong>28件</strong> 申込があり、<br>
+  一括登録からの申込は <strong>5件</strong> はオーバーしていますので、保存できません。
+</div>
+
+</body>
+</html>

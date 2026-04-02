@@ -4,15 +4,17 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { C } from '@/lib/colors';
-import type { Tournament } from '@/lib/types';
+import type { Tournament, Registration } from '@/lib/types';
 import ContactButton from '@/components/ContactButton';
 import MembersTab from './MembersTab';
 import ScoresTab from './ScoresTab';
 import ResultsTab from './ResultsTab';
 import SettingsTab from './SettingsTab';
 import ViewerHistoryTab from './ViewerHistoryTab';
+import RegistrationsTab from './RegistrationsTab';
+import BulkRegisterTab from './BulkRegisterTab';
 
-type TabType = 'members' | 'scores' | 'results' | 'settings' | 'history';
+type TabType = 'members' | 'scores' | 'results' | 'settings' | 'history' | 'registrations' | 'bulk';
 
 interface Props {
   tournamentId: number;
@@ -26,6 +28,7 @@ export default function AdminDetail({ tournamentId }: Props) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [transferredRegistrations, setTransferredRegistrations] = useState<Registration[] | null>(null);
 
   useEffect(() => {
     fetchTournament();
@@ -48,6 +51,7 @@ export default function AdminDetail({ tournamentId }: Props) {
 
   const tabs: { key: TabType; label: string }[] = [
     { key: 'settings', label: '大会設定' },
+    { key: 'registrations', label: '申込管理' },
     { key: 'members', label: '選手登録' },
     { key: 'scores', label: '点数登録' },
     { key: 'results', label: '成績確認' },
@@ -201,6 +205,22 @@ export default function AdminDetail({ tournamentId }: Props) {
       <div style={{ padding: '0' }}>
         {!loading && !error && tournament && (
           <>
+            {activeTab === 'registrations' && (
+              <RegistrationsTab
+                tournamentId={tournamentId}
+                onTransferToBulk={(regs) => {
+                  setTransferredRegistrations(regs);
+                  setActiveTab('bulk');
+                }}
+              />
+            )}
+            {activeTab === 'bulk' && (
+              <BulkRegisterTab
+                tournamentId={tournamentId}
+                initialRegistrations={transferredRegistrations ?? undefined}
+                onSaved={() => setActiveTab('members')}
+              />
+            )}
             {activeTab === 'members' && (
               <MembersTab tournamentId={tournamentId} />
             )}

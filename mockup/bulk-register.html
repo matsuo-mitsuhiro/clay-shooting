@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>選手一括登録 — 画面イメージ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f1115; color: #f0f2f8; font-family: 'Segoe UI', sans-serif; font-size: 14px; padding: 24px; }
+
+  .screen-label {
+    background: #22262f; border: 1px solid #2e3340; border-radius: 4px;
+    display: inline-block; padding: 3px 12px; font-size: 11px; color: #a8b4cc;
+    margin-bottom: 14px; letter-spacing: 1px;
+  }
+
+  /* タブ行 */
+  .tab-row { display: flex; gap: 6px; margin-bottom: 0; align-items: center; flex-wrap: wrap; }
+  .tab {
+    padding: 8px 18px; border-radius: 6px 6px 0 0; border: 1px solid #2e3340;
+    font-size: 15px; cursor: pointer; background: #1a1d24; color: #a8b4cc;
+    border-bottom: none;
+  }
+  .tab.active { background: #1e2230; border-color: #e8a020; color: #e8a020; font-weight: 700; border-bottom: 1px solid #1e2230; }
+
+  /* メインパネル */
+  .main-panel {
+    background: #1e2230; border: 1px solid #2e3340; border-radius: 0 8px 8px 8px;
+    overflow: hidden;
+  }
+  .panel-toolbar {
+    padding: 12px 16px; border-bottom: 1px solid #2e3340;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: #22262f;
+  }
+  .panel-body { padding: 16px; }
+
+  /* ボタン */
+  .btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; }
+  .btn-gold { background: #e8a020; color: #000; }
+  .btn-blue { background: #2a7a9a; color: #fff; }
+  .btn-gray { background: #22262f; color: #f0f2f8; border: 1px solid #2e3340; }
+  .btn-green { background: #1a6a3a; color: #fff; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* テーブル */
+  .tbl-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; border: 1px solid #2e3340; border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  thead { position: sticky; top: 0; z-index: 2; }
+  th {
+    background: #22262f; text-align: center; padding: 8px 10px;
+    font-size: 12px; color: #a8b4cc; border-bottom: 2px solid #2e3340;
+    white-space: nowrap;
+  }
+  td { padding: 5px 8px; border-bottom: 1px solid #1e2228; vertical-align: middle; }
+  tr.group-sep td { border-top: 2px solid #3a4050; }
+  tr.dup-row td { background: #1e0f0f; }
+  tr.dup-row:first-of-type td { border-top: 2px dashed #c0392b; }
+
+  /* 入力要素 */
+  input.cell-in {
+    background: #0d0f14; border: 1px solid #2e3340; border-radius: 4px;
+    color: #f0f2f8; padding: 4px 7px; font-size: 13px; width: 100%;
+  }
+  input.cell-in:focus { outline: none; border-color: #e8a020; }
+  select.cell-sel {
+    background: #0d0f14; border: 1px solid #2e3340; border-radius: 4px;
+    color: #f0f2f8; padding: 4px 6px; font-size: 13px; width: 100%;
+  }
+  input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #e8a020; }
+
+  /* 番号セル */
+  .num-cell { text-align: center; color: #a8b4cc; font-size: 12px; white-space: nowrap; }
+  .num-badge {
+    display: inline-block; background: #22262f; border: 1px solid #2e3340;
+    border-radius: 4px; padding: 2px 7px; font-size: 12px; min-width: 52px; text-align: center;
+  }
+  .num-badge.dup { background: #2a0a0a; border-color: #c0392b; color: #e57373; }
+
+  /* 削除ボタン */
+  .del-btn {
+    background: none; border: 1px solid #c0392b; color: #c0392b;
+    border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 13px;
+  }
+  .del-btn:hover { background: #2a0a0a; }
+
+  /* エラーバナー */
+  .error-banner {
+    background: #2a0a0a; border: 1px solid #c0392b; border-radius: 6px;
+    color: #e57373; padding: 10px 16px; margin-bottom: 12px; font-size: 14px; display: none;
+  }
+  .error-banner.show { display: block; }
+
+  /* 区切り */
+  hr.section { border: none; border-top: 3px dashed #2e3340; margin: 40px 0 28px; }
+
+  .note { font-size: 12px; color: #a8b4cc; margin-top: 8px; }
+  .note span { color: #e8a020; }
+</style>
+</head>
+<body>
+
+<div class="screen-label">画面イメージ — 選手一括登録タブ（MembersTabの左端タブ）</div>
+
+<!-- =====================================================
+     状態① 初期表示（36行）
+     ===================================================== -->
+<div style="margin-bottom:8px;font-size:12px;color:#e8a020;">▼ 状態①：初期表示（24行・6名×4組・入力前）</div>
+
+<div class="tab-row">
+  <div class="tab active">選手一括登録</div>
+  <div class="tab">1日目</div>
+  <div class="tab">2日目</div>
+</div>
+
+<div class="main-panel">
+  <!-- ツールバー -->
+  <div class="panel-toolbar">
+    <button class="btn btn-gold">＋追加（6行）</button>
+    <button class="btn btn-blue">🔍 検索・設定</button>
+    <button class="btn btn-green" disabled>💾 保存</button>
+    <span style="font-size:12px;color:#a8b4cc;margin-left:8px;">
+      ※「検索・設定」を実行してから保存できます
+    </span>
+  </div>
+
+  <div class="panel-body">
+    <!-- エラーバナー（初期は非表示） -->
+    <div class="error-banner">⚠ 番号○が重複しています。どちらかを削除してください。</div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:64px;">番号</th>
+            <th style="width:110px;">会員番号</th>
+            <th style="min-width:130px;">氏名</th>
+            <th style="min-width:110px;">所属</th>
+            <th style="width:80px;">クラス</th>
+            <th style="width:70px;">審判</th>
+            <th style="width:56px;">削除</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- 1組 -->
+          <tr><td class="num-cell"><span class="num-badge">1組 1番</span></td><td><input class="cell-in" placeholder="会員番号 / 氏名"></td><td><input class="cell-in" placeholder="—"></td><td><select class="cell-sel"><option value="">—</option><option>大阪</option><option>兵庫</option><option>京都</option></select></td><td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td><td style="text-align:center;"><input type="checkbox"></td><td style="text-align:center;"><button class="del-btn">×</button></td></tr>
+          <tr><td class="num-cell"><span class="num-badge">1組 2番</span></td><td><input class="cell-in" placeholder="会員番号 / 氏名"></td><td><input class="cell-in" placeholder="—"></td><td><select class="cell-sel"><option value="">—</option><option>大阪</option></select></td><td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td><td style="text-align:center;"><input type="checkbox"></td><td style="text-align:center;"><button class="del-btn">×</button></td></tr>
+          <tr><td class="num-cell"><span class="num-badge">1組 3番</span></td><td><input class="cell-in" placeholder="会員番号 / 氏名"></td><td><input class="cell-in" placeholder="—"></td><td><select class="cell-sel"><option value="">—</option><option>大阪</option></select></td><td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td><td style="text-align:center;"><input type="checkbox"></td><td style="text-align:center;"><button class="del-btn">×</button></td></tr>
+          <tr><td class="num-cell"><span class="num-badge">1組 4番</span></td><td><input class="cell-in" placeholder="会員番号 / 氏名"></td><td><input class="cell-in" placeholder="—"></td><td><select class="cell-sel"><option value="">—</option><option>大阪</option></select></td><td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td><td style="text-align:center;"><input type="checkbox"></td><td style="text-align:center;"><button class="del-btn">×</button></td></tr>
+          <tr><td class="num-cell"><span class="num-badge">1組 5番</span></td><td><input class="cell-in" placeholder="会員番号 / 氏名"></td><td><input class="cell-in" placeholder="—"></td><td><select class="cell-sel"><option value="">—</option><option>大阪</option></select></td><td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td><td style="text-align:center;"><input type="checkbox"></td><td style="text-align:center;"><button class="del-btn">×</button></td></tr>
+          <tr><td class="num-cell"><span class="num-badge">1組 6番</span></td><td><input class="cell-in" placeholder="会員番号 / 氏名"></td><td><input class="cell-in" placeholder="—"></td><td><select class="cell-sel"><option value="">—</option><option>大阪</option></select></td><td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td><td style="text-align:center;"><input type="checkbox"></td><td style="text-align:center;"><button class="del-btn">×</button></td></tr>
+          <!-- 2組 -->
+          <tr class="group-sep"><td class="num-cell"><span class="num-badge">2組 1番</span></td><td><input class="cell-in" placeholder="会員番号 / 氏名"></td><td><input class="cell-in" placeholder="—"></td><td><select class="cell-sel"><option value="">—</option><option>大阪</option></select></td><td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td><td style="text-align:center;"><input type="checkbox"></td><td style="text-align:center;"><button class="del-btn">×</button></td></tr>
+          <tr><td class="num-cell"><span class="num-badge">2組 2番</span></td><td><input class="cell-in" placeholder="会員番号 / 氏名"></td><td><input class="cell-in" placeholder="—"></td><td><select class="cell-sel"><option value="">—</option><option>大阪</option></select></td><td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td><td style="text-align:center;"><input type="checkbox"></td><td style="text-align:center;"><button class="del-btn">×</button></td></tr>
+          <tr><td class="num-cell"><span class="num-badge">2組 3番</span></td><td><input class="cell-in" placeholder="会員番号 / 氏名"></td><td><input class="cell-in" placeholder="—"></td><td><select class="cell-sel"><option value="">—</option><option>大阪</option></select></td><td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td><td style="text-align:center;"><input type="checkbox"></td><td style="text-align:center;"><button class="del-btn">×</button></td></tr>
+          <tr><td style="text-align:center;color:#3a4050;font-size:11px;" colspan="7">… 3〜4組（残り12行）スクロールで表示 …</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <span>●</span> 会員番号欄に「会員番号」または「氏名（部分一致）」を入力して「検索・設定」を押すと自動補完されます<br>
+      <span>●</span> 氏名が空欄の行は保存しません（NULLデータは無視）
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     状態② 検索・設定後（複数ヒットで行展開）
+     ===================================================== -->
+<hr class="section">
+<div style="margin-bottom:8px;font-size:12px;color:#e8a020;">▼ 状態②：「検索・設定」実行後 — 「森」で2件ヒット → 同じ番号に2行展開</div>
+
+<div class="tab-row">
+  <div class="tab active">選手一括登録</div>
+  <div class="tab">1日目</div>
+  <div class="tab">2日目</div>
+</div>
+
+<div class="main-panel">
+  <div class="panel-toolbar">
+    <button class="btn btn-gold">＋追加（6行）</button>
+    <button class="btn btn-blue">🔍 検索・設定</button>
+    <button class="btn btn-green">💾 保存</button>
+    <span style="font-size:12px;color:#a8b4cc;margin-left:8px;">検索・設定済み</span>
+  </div>
+
+  <div class="panel-body">
+    <!-- エラーバナー：重複あり -->
+    <div class="error-banner show">⚠ 1組 4番 が重複しています。どちらかを削除してください。</div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:64px;">番号</th>
+            <th style="width:110px;">会員番号</th>
+            <th style="min-width:130px;">氏名</th>
+            <th style="min-width:110px;">所属</th>
+            <th style="width:80px;">クラス</th>
+            <th style="width:70px;">審判</th>
+            <th style="width:56px;">削除</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- 1組1番 (照合済み) -->
+          <tr>
+            <td class="num-cell"><span class="num-badge">1組 1番</span></td>
+            <td><input class="cell-in" value="35015"></td>
+            <td><input class="cell-in" value="赤崎 俊夫"></td>
+            <td>
+              <select class="cell-sel">
+                <option value="">—</option><option selected>大阪</option><option>兵庫</option><option>京都</option>
+              </select>
+            </td>
+            <td><select class="cell-sel"><option value="">—</option><option selected>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td>
+            <td style="text-align:center;"><input type="checkbox" checked></td>
+            <td style="text-align:center;"><button class="del-btn">×</button></td>
+          </tr>
+          <!-- 1組2番 -->
+          <tr>
+            <td class="num-cell"><span class="num-badge">1組 2番</span></td>
+            <td><input class="cell-in" value="35018"></td>
+            <td><input class="cell-in" value="犬星 達也"></td>
+            <td><select class="cell-sel"><option value="">—</option><option selected>大阪</option></select></td>
+            <td><select class="cell-sel"><option value="">—</option><option>A</option><option selected>B</option><option>C</option><option>D</option><option>E</option></select></td>
+            <td style="text-align:center;"><input type="checkbox"></td>
+            <td style="text-align:center;"><button class="del-btn">×</button></td>
+          </tr>
+          <!-- 1組3番 -->
+          <tr>
+            <td class="num-cell"><span class="num-badge">1組 3番</span></td>
+            <td><input class="cell-in" value="35029"></td>
+            <td><input class="cell-in" value="木吉 省三"></td>
+            <td><select class="cell-sel"><option value="">—</option><option selected>大阪</option></select></td>
+            <td><select class="cell-sel"><option value="">—</option><option selected>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td>
+            <td style="text-align:center;"><input type="checkbox" checked></td>
+            <td style="text-align:center;"><button class="del-btn">×</button></td>
+          </tr>
+
+          <!-- 1組4番 ← 「森」で2件ヒット → 2行に展開（どちらか削除が必要） -->
+          <tr class="dup-row">
+            <td class="num-cell"><span class="num-badge dup">1組 4番</span></td>
+            <td><input class="cell-in" value="35054" style="border-color:#c0392b;"></td>
+            <td><input class="cell-in" value="森中 榮一"></td>
+            <td><select class="cell-sel"><option value="">—</option><option selected>大阪</option></select></td>
+            <td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option></select></td>
+            <td style="text-align:center;"><input type="checkbox"></td>
+            <td style="text-align:center;"><button class="del-btn">×</button></td>
+          </tr>
+          <tr class="dup-row">
+            <td class="num-cell"><span class="num-badge dup">1組 4番</span></td>
+            <td><input class="cell-in" value="35060" style="border-color:#c0392b;"></td>
+            <td><input class="cell-in" value="森山 健一"></td>
+            <td><select class="cell-sel"><option value="">—</option><option selected>大阪</option></select></td>
+            <td><select class="cell-sel"><option value="">—</option><option>A</option><option selected>B</option><option>C</option><option>D</option><option>E</option></select></td>
+            <td style="text-align:center;"><input type="checkbox"></td>
+            <td style="text-align:center;"><button class="del-btn">×</button></td>
+          </tr>
+
+          <!-- 1組5番 -->
+          <tr>
+            <td class="num-cell"><span class="num-badge">1組 5番</span></td>
+            <td><input class="cell-in" value="35092"></td>
+            <td><input class="cell-in" value="正木 尚武"></td>
+            <td><select class="cell-sel"><option value="">—</option><option selected>大阪</option></select></td>
+            <td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option></select></td>
+            <td style="text-align:center;"><input type="checkbox" checked></td>
+            <td style="text-align:center;"><button class="del-btn">×</button></td>
+          </tr>
+          <!-- 1組6番 -->
+          <tr>
+            <td class="num-cell"><span class="num-badge">1組 6番</span></td>
+            <td><input class="cell-in" value="35135"></td>
+            <td><input class="cell-in" value="荒井 石也"></td>
+            <td><select class="cell-sel"><option value="">—</option><option selected>大阪</option></select></td>
+            <td><select class="cell-sel"><option value="">—</option><option>A</option><option>B</option><option>C</option><option selected>D</option><option>E</option></select></td>
+            <td style="text-align:center;"><input type="checkbox"></td>
+            <td style="text-align:center;"><button class="del-btn">×</button></td>
+          </tr>
+          <!-- 2組1番 -->
+          <tr class="group-sep">
+            <td class="num-cell"><span class="num-badge">2組 1番</span></td>
+            <td><input class="cell-in" value="34170"></td>
+            <td><input class="cell-in" value="甲谷 輝彦"></td>
+            <td><select class="cell-sel"><option value="">—</option><option>大阪</option><option selected>京都</option></select></td>
+            <td><select class="cell-sel"><option value="">—</option><option selected>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></td>
+            <td style="text-align:center;"><input type="checkbox" checked></td>
+            <td style="text-align:center;"><button class="del-btn">×</button></td>
+          </tr>
+          <!-- 2組 空行の例（保存しない） -->
+          <tr>
+            <td class="num-cell"><span class="num-badge">2組 2番</span></td>
+            <td><input class="cell-in" placeholder="会員番号 / 氏名" style="border-color:#444;"></td>
+            <td><input class="cell-in" placeholder="—（空欄は保存しない）" style="color:#555;"></td>
+            <td><select class="cell-sel"><option value="">—</option><option>大阪</option></select></td>
+            <td><select class="cell-sel"><option value="">—</option><option>A</option></select></td>
+            <td style="text-align:center;"><input type="checkbox"></td>
+            <td style="text-align:center;"><button class="del-btn">×</button></td>
+          </tr>
+          <tr><td style="text-align:center;color:#3a4050;font-size:11px;" colspan="7">… 残り行（スクロール）…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note" style="margin-top:10px;">
+      <span style="color:#c0392b;">●</span>
+      赤枠の行は同じ番号が重複しています。不要な方の「×」で削除してから保存してください。<br>
+      <span>●</span> 氏名が空欄の行（2組2番など）は保存ボタンを押しても保存されません。
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     状態③ 保存成功後
+     ===================================================== -->
+<hr class="section">
+<div style="margin-bottom:8px;font-size:12px;color:#e8a020;">▼ 状態③：保存成功後のメッセージ</div>
+
+<div style="background:#0d3a1a;border:1px solid #27ae60;border-radius:8px;padding:14px 20px;color:#27ae60;font-size:15px;font-weight:600;">
+  ✔ 20名を登録しました（1〜4組 各6名 ／ 氏名空欄4行はスキップ）
+</div>
+
+</body>
+</html>

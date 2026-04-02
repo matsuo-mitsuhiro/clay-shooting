@@ -27,17 +27,28 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const rows = await sql`
       UPDATE tournaments SET
-        name         = COALESCE(${body.name         ?? null}, name),
-        venue        = COALESCE(${body.venue        ?? null}, venue),
-        day1_date    = COALESCE(${body.day1_date    ?? null}::date, day1_date),
-        day2_date    = ${body.day2_date !== undefined ? (body.day2_date || null) : sql`day2_date`},
-        event_type   = COALESCE(${body.event_type   ?? null}, event_type),
-        day1_set     = COALESCE(${body.day1_set     ?? null}, day1_set),
-        day2_set     = COALESCE(${body.day2_set     ?? null}, day2_set),
-        organizer_cd = COALESCE(${body.organizer_cd ?? null}, organizer_cd),
-        admin_qr     = COALESCE(${body.admin_qr     ?? null}, admin_qr),
-        viewer_qr    = COALESCE(${body.viewer_qr    ?? null}, viewer_qr),
-        updated_at   = NOW()
+        name                 = COALESCE(${body.name         ?? null}, name),
+        venue                = COALESCE(${body.venue        ?? null}, venue),
+        day1_date            = COALESCE(${body.day1_date    ?? null}::date, day1_date),
+        day2_date            = ${body.day2_date !== undefined ? (body.day2_date || null) : sql`day2_date`},
+        event_type           = COALESCE(${body.event_type   ?? null}, event_type),
+        day1_set             = COALESCE(${body.day1_set     ?? null}, day1_set),
+        day2_set             = COALESCE(${body.day2_set     ?? null}, day2_set),
+        organizer_cd         = COALESCE(${body.organizer_cd ?? null}, organizer_cd),
+        admin_qr             = COALESCE(${body.admin_qr     ?? null}, admin_qr),
+        viewer_qr            = COALESCE(${body.viewer_qr    ?? null}, viewer_qr),
+        max_participants     = ${body.max_participants     !== undefined ? (body.max_participants ?? null) : sql`max_participants`},
+        apply_start_at       = ${body.apply_start_at       !== undefined ? (body.apply_start_at ? sql`${body.apply_start_at}::timestamptz` : null) : sql`apply_start_at`},
+        apply_end_at         = ${body.apply_end_at         !== undefined ? (body.apply_end_at ? sql`${body.apply_end_at}::timestamptz` : null) : sql`apply_end_at`},
+        cancel_end_at        = ${body.cancel_end_at        !== undefined ? (body.cancel_end_at ? sql`${body.cancel_end_at}::timestamptz` : null) : sql`cancel_end_at`},
+        competition_start_time = ${body.competition_start_time !== undefined ? (body.competition_start_time || null) : sql`competition_start_time`},
+        gate_open_time       = ${body.gate_open_time       !== undefined ? (body.gate_open_time || null) : sql`gate_open_time`},
+        reception_start_time = ${body.reception_start_time !== undefined ? (body.reception_start_time || null) : sql`reception_start_time`},
+        practice_clay_time   = ${body.practice_clay_time   !== undefined ? (body.practice_clay_time || null) : sql`practice_clay_time`},
+        cancellation_notice  = ${body.cancellation_notice  !== undefined ? (body.cancellation_notice || null) : sql`cancellation_notice`},
+        notes                = ${body.notes                !== undefined ? (body.notes || null) : sql`notes`},
+        apply_qr             = ${body.apply_qr             !== undefined ? (body.apply_qr || null) : sql`apply_qr`},
+        updated_at           = NOW()
       WHERE id = ${Number(id)}
       RETURNING *
     `;

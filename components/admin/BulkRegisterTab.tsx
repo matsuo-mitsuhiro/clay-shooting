@@ -3,12 +3,13 @@
 import { useState, useRef } from 'react';
 import { C } from '@/lib/colors';
 import { PREFECTURES } from '@/lib/prefectures';
-import type { ClassType, Member } from '@/lib/types';
+import type { ClassType, Member, ParticipationDay, Registration } from '@/lib/types';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface Props {
   tournamentId: number;
   onSaved?: () => void;
+  initialRegistrations?: Registration[];
 }
 
 type SearchStatus = 'idle' | 'found' | 'not_found';
@@ -22,6 +23,7 @@ interface BulkRow {
   class: ClassType | '';
   is_judge: boolean;
   searchStatus: SearchStatus;
+  participation_day?: ParticipationDay;
 }
 
 interface PlayerMaster {
@@ -52,10 +54,26 @@ function generateInitialRows(): BulkRow[] {
   }));
 }
 
-export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
+function registrationsToRows(regs: Registration[]): BulkRow[] {
+  return regs.map((r, i) => ({
+    id: i,
+    seq: i + 1,
+    member_code: r.member_code,
+    name: r.name,
+    belong: r.belong ?? '',
+    class: (r.class ?? '') as ClassType | '',
+    is_judge: false,
+    searchStatus: 'found' as SearchStatus,
+    participation_day: r.participation_day,
+  }));
+}
+
+export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistrations }: Props) {
   const [bulkDay, setBulkDay] = useState<1 | 2>(1);
-  const [bulkRows, setBulkRows] = useState<BulkRow[]>(generateInitialRows);
-  const [searched, setSearched] = useState(false);
+  const [bulkRows, setBulkRows] = useState<BulkRow[]>(() =>
+    initialRegistrations ? registrationsToRows(initialRegistrations) : generateInitialRows()
+  );
+  const [searched, setSearched] = useState(() => !!initialRegistrations);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -216,6 +234,24 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
 
     try {
       setSaving(true);
+
+      // 定員チェック
+      const applyInfoRes = await fetch(`/api/tournaments/${tournamentId}/apply-info`);
+      const applyInfoJson = await applyInfoRes.json();
+      if (applyInfoJson.success) {
+        const applyInfo = applyInfoJson.data;
+        const max: number | null = applyInfo.tournament.max_participants;
+        if (max) {
+          const bulkCount = validRows.length;
+          const webCount = Math.max(applyInfo.day1_count, applyInfo.day2_count);
+          const total = bulkCount + webCount;
+          if (total > max) {
+            setError(`申込上限${max}件に対して既にWeb申込から${webCount}件申込があり、一括登録からの申込は${total - max}件はオーバーしていますので、保存できません。`);
+            setSaving(false);
+            return;
+          }
+        }
+      }
 
       // 既存の登録済み選手を取得して空きスロットを特定
       const membersRes = await fetch(`/api/tournaments/${tournamentId}/members`);
@@ -412,6 +448,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
                 { label: '人数',   w: 52  },
                 { label: '会員番号', w: 100 },
                 { label: '氏名',   w: undefined },
+                { label: '参加',   w: 80  },
                 { label: '所属',   w: 110 },
                 { label: 'クラス', w: 68  },
                 { label: '審判',   w: 52  },
@@ -475,6 +512,19 @@ export default function BulkRegisterTab({ tournamentId, onSaved }: Props) {
                       style={inputStyle}
                       placeholder="氏名"
                     />
+                  </td>
+
+                  {/* 参加 */}
+                  <td style={{ padding: '3px 6px' }}>
+                    <select
+                      value={row.participation_day ?? 'day1'}
+                      onChange={e => updateRow(row.id, 'participation_day', e.target.value)}
+                      style={{ ...inputStyle, width: 70 }}
+                    >
+                      <option value="day1">1日目</option>
+                      <option value="day2">2日目</option>
+                      <option value="both">両方</option>
+                    </select>
                   </td>
 
                   {/* 所属 */}

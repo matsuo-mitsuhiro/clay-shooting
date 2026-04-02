@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import type { Tournament } from '@/lib/types';
 
 export default function ViewerListPage() {
+  const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,37 +54,58 @@ export default function ViewerListPage() {
         )}
 
         <div className="flex flex-col gap-3">
-          {tournaments.map((t) => (
-            <Link
-              key={t.id}
-              href={`/viewer/${t.id}`}
-              className="flex items-center justify-between rounded-xl px-5 py-4 border transition-all hover:scale-[1.01]"
-              style={{
-                background: C.surface,
-                borderColor: C.border,
-                textDecoration: 'none',
-              }}
-            >
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-base" style={{ color: C.text }}>{t.name}</span>
-                  <span
-                    className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                    style={{ background: C.gold, color: '#000' }}
-                  >
-                    {eventLabel(t.event_type)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 text-xs" style={{ color: '#ffffff' }}>
-                  {t.venue && <span>📍 {t.venue}</span>}
-                  {t.day1_date && (
-                    <span>📅 {fmtDate(t.day1_date)}{t.day2_date ? ` / ${fmtDate(t.day2_date)}` : ''}</span>
+          {tournaments.map((t) => {
+            const now = Date.now();
+            const hasApply = !!(t.apply_start_at && t.apply_end_at);
+            const applyOpen = hasApply &&
+              now >= new Date(t.apply_start_at!).getTime() &&
+              now <= new Date(t.apply_end_at!).getTime() + 5 * 60 * 1000;
+
+            return (
+              <div
+                key={t.id}
+                className="flex items-center justify-between rounded-xl px-5 py-4 border"
+                style={{ background: C.surface, borderColor: C.border }}
+              >
+                <Link
+                  href={`/viewer/${t.id}`}
+                  className="flex flex-col gap-1 flex-1 transition-all hover:scale-[1.01]"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-base" style={{ color: C.text }}>{t.name}</span>
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                      style={{ background: C.gold, color: '#000' }}
+                    >
+                      {eventLabel(t.event_type)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs" style={{ color: '#ffffff' }}>
+                    {t.venue && <span>📍 {t.venue}</span>}
+                    {t.day1_date && (
+                      <span>📅 {fmtDate(t.day1_date)}{t.day2_date ? ` / ${fmtDate(t.day2_date)}` : ''}</span>
+                    )}
+                  </div>
+                </Link>
+                <div className="flex items-center gap-3">
+                  {applyOpen && (
+                    <button
+                      onClick={() => router.push(`/tournaments/${t.id}/apply`)}
+                      style={{
+                        background: C.gold, color: '#000', border: 'none',
+                        borderRadius: 6, padding: '7px 16px', fontSize: 14, fontWeight: 700,
+                        cursor: 'pointer', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      申込
+                    </button>
                   )}
+                  <Link href={`/viewer/${t.id}`} style={{ color: C.gold, fontSize: 20, textDecoration: 'none' }}>→</Link>
                 </div>
               </div>
-              <span style={{ color: C.gold, fontSize: 20 }}>→</span>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       </main>
     </div>

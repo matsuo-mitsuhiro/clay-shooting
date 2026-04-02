@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>選手マスター管理 — 画面イメージ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f1115; color: #f0f2f8; font-family: 'Segoe UI', sans-serif; font-size: 14px; }
+
+  /* ===== トップナビ（/admin 一覧ページ） ===== */
+  .page { max-width: 900px; margin: 0 auto; padding: 24px; }
+  .section-label { color: #a8b4cc; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .subtitle { color: #a8b4cc; font-size: 13px; margin-bottom: 28px; }
+
+  /* ===== 管理トップのカード群 ===== */
+  .card-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
+  .card {
+    background: #1a1d24; border: 1px solid #2e3340; border-radius: 8px;
+    padding: 20px 24px; cursor: pointer; transition: border-color 0.15s;
+    min-width: 200px;
+  }
+  .card:hover { border-color: #e8a020; }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .card-desc { font-size: 12px; color: #a8b4cc; }
+  .card-icon { font-size: 24px; margin-bottom: 8px; }
+  .card.highlight { border-color: #e8a020; background: #1e2028; }
+  .card.highlight .card-title { color: #e8a020; }
+
+  hr { border: none; border-top: 1px solid #2e3340; margin: 32px 0; }
+
+  /* ===== 選手マスター管理画面 ===== */
+  .toolbar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .search-box {
+    background: #0d0f14; border: 1px solid #2e3340; border-radius: 6px;
+    color: #f0f2f8; padding: 8px 12px; font-size: 14px; width: 220px;
+  }
+  .search-box:focus { outline: none; border-color: #e8a020; }
+  select.filter-select {
+    background: #0d0f14; border: 1px solid #2e3340; border-radius: 6px;
+    color: #f0f2f8; padding: 8px 10px; font-size: 14px;
+  }
+  .btn {
+    padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 600;
+  }
+  .btn-gold { background: #e8a020; color: #000; }
+  .btn-gold:hover { background: #c07010; }
+  .btn-gray { background: #22262f; color: #f0f2f8; border: 1px solid #2e3340; }
+  .btn-gray:hover { background: #2e3340; }
+  .btn-red { background: transparent; color: #c0392b; border: 1px solid #c0392b; padding: 4px 10px; font-size: 12px; }
+  .btn-sm { padding: 4px 12px; font-size: 12px; }
+  .btn-blue { background: #2a7a9a; color: #fff; }
+
+  .count-badge {
+    background: #22262f; border: 1px solid #2e3340; border-radius: 20px;
+    padding: 4px 12px; font-size: 12px; color: #a8b4cc; margin-left: auto;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: #22262f; }
+  th {
+    text-align: left; padding: 10px 12px; font-size: 12px;
+    color: #a8b4cc; letter-spacing: 0.5px; border-bottom: 1px solid #2e3340;
+    white-space: nowrap;
+  }
+  th.red { color: #c0392b; }
+  td { padding: 10px 12px; border-bottom: 1px solid #1e2228; vertical-align: middle; }
+  tr:hover td { background: #1e2228; }
+  .class-badge {
+    display: inline-block; width: 26px; height: 26px; line-height: 26px;
+    text-align: center; border-radius: 4px; font-weight: 700; font-size: 13px;
+    background: #22262f; border: 1px solid #2e3340;
+  }
+  .class-A { background: #1a3a2a; border-color: #27ae60; color: #27ae60; }
+  .class-B { background: #1a2a3a; border-color: #2a7a9a; color: #2a7a9a; }
+  .class-C { background: #2a2a1a; border-color: #e8a020; color: #e8a020; }
+  .class-D { background: #2a1a1a; border-color: #c0392b; color: #c0392b; }
+  .judge-flag { color: #c0392b; font-size: 14px; }
+  .muted { color: #a8b4cc; }
+  .table-wrap { background: #1a1d24; border: 1px solid #2e3340; border-radius: 8px; overflow: hidden; }
+
+  /* ===== 登録・編集モーダル ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal {
+    background: #1a1d24; border: 1px solid #2e3340; border-radius: 10px;
+    padding: 28px; width: 420px; max-width: 95vw;
+  }
+  .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+  .form-row { margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: #a8b4cc; margin-bottom: 5px; display: block; }
+  .form-input {
+    width: 100%; background: #0d0f14; border: 1px solid #2e3340; border-radius: 6px;
+    color: #f0f2f8; padding: 9px 12px; font-size: 14px;
+  }
+  .form-input:focus { outline: none; border-color: #e8a020; }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+  .auto-filled { border-color: #27ae60 !important; }
+  .auto-label { color: #27ae60; font-size: 11px; margin-left: 6px; }
+
+  /* ===== 一括インポート ===== */
+  .import-box {
+    background: #22262f; border: 2px dashed #2e3340; border-radius: 8px;
+    padding: 20px; text-align: center; margin-bottom: 16px;
+  }
+  .import-box p { color: #a8b4cc; font-size: 13px; margin-bottom: 10px; }
+
+  /* ===== MembersTab の自動補完イメージ ===== */
+  .members-demo { background: #1a1d24; border: 1px solid #2e3340; border-radius: 8px; overflow: hidden; }
+  .members-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid #2e3340;
+  }
+  .members-header span { font-size: 14px; font-weight: 600; }
+  .members-table { width: 100%; border-collapse: collapse; }
+  .members-table th {
+    background: #22262f; text-align: left; padding: 8px 10px;
+    font-size: 11px; color: #a8b4cc; border-bottom: 1px solid #2e3340;
+  }
+  .members-table td { padding: 8px 10px; border-bottom: 1px solid #1e2228; }
+  .mini-input {
+    background: #0d0f14; border: 1px solid #2e3340; border-radius: 4px;
+    color: #f0f2f8; padding: 5px 8px; font-size: 13px; width: 100%;
+  }
+  .mini-input.found { border-color: #27ae60; background: #0d140e; }
+  .mini-input.readonly { color: #a8b4cc; }
+  .mini-select {
+    background: #0d0f14; border: 1px solid #2e3340; border-radius: 4px;
+    color: #f0f2f8; padding: 5px 6px; font-size: 12px; width: 100%;
+  }
+  .tooltip {
+    display: inline-block; background: #27ae60; color: #fff;
+    font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-left: 4px;
+  }
+
+  .page-divider { margin: 48px 0 32px; border-top: 2px dashed #2e3340; padding-top: 24px; }
+  .screen-title {
+    background: #22262f; border: 1px solid #2e3340; border-radius: 6px;
+    display: inline-block; padding: 4px 14px; font-size: 11px; color: #a8b4cc;
+    margin-bottom: 16px; letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===== SCREEN 1: /admin トップ ===== -->
+  <div class="screen-title">画面① — /admin トップ（管理メニュー）</div>
+  <h1>大会管理</h1>
+  <p class="subtitle">クレー射撃大会 成績管理システム</p>
+
+  <div class="section-label">メニュー</div>
+  <div class="card-grid">
+    <div class="card highlight">
+      <div class="card-icon">👤</div>
+      <div class="card-title">選手マスター管理</div>
+      <div class="card-desc">160名登録済み · 自動補完データ</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">＋</div>
+      <div class="card-title">新規大会を作成</div>
+      <div class="card-desc">大会名・日程・主催を設定</div>
+    </div>
+  </div>
+
+  <div class="section-label">大会一覧</div>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">第1次大阪大会</div>
+      <div class="card-desc">2026-04-10 · 大阪</div>
+    </div>
+    <div class="card">
+      <div class="card-title">第2次滋賀大会</div>
+      <div class="card-desc">2026-05-01 · 滋賀</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ===== SCREEN 2: /admin/players 選手マスター一覧 ===== -->
+  <div class="page-divider"></div>
+  <div class="screen-title">画面② — /admin/players 選手マスター管理</div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <h2 style="margin-bottom:2px;">選手マスター管理</h2>
+      <p class="muted" style="font-size:12px;">← 大会管理に戻る</p>
+    </div>
+    <button class="btn btn-gold">＋ 新規選手登録</button>
+  </div>
+
+  <!-- 検索・フィルタ -->
+  <div class="toolbar">
+    <input class="search-box" type="text" placeholder="🔍 会員番号 または 氏名で検索">
+    <select class="filter-select">
+      <option>所属：すべて</option>
+      <option>大阪</option>
+      <option>京都</option>
+      <option>兵庫</option>
+      <option>三重</option>
+    </select>
+    <select class="filter-select">
+      <option>クラス：すべて</option>
+      <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+    </select>
+    <select class="filter-select">
+      <option>審判：すべて</option>
+      <option>⚑ 審判のみ</option>
+      <option>審判以外</option>
+    </select>
+    <span class="count-badge">160名</span>
+    <button class="btn btn-gray btn-sm" style="margin-left:8px;">📥 CSVエクスポート</button>
+  </div>
+
+  <!-- 一覧テーブル -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>会員番号</th>
+          <th>氏名</th>
+          <th>所属</th>
+          <th>クラス</th>
+          <th>審判フラグ</th>
+          <th>最終更新</th>
+          <th class="red">編集 / 削除</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>35313</td>
+          <td>松尾 充泰</td>
+          <td>大阪</td>
+          <td><span class="class-badge class-B">B</span></td>
+          <td>—</td>
+          <td class="muted">2026-03-30</td>
+          <td>
+            <button class="btn btn-gray btn-sm" style="margin-right:6px;">編集</button>
+            <button class="btn btn-red">削除</button>
+          </td>
+        </tr>
+        <tr>
+          <td>34170</td>
+          <td>甲谷 輝彦</td>
+          <td>京都</td>
+          <td><span class="class-badge class-A">A</span></td>
+          <td><span class="judge-flag">⚑</span></td>
+          <td class="muted">2026-03-28</td>
+          <td>
+            <button class="btn btn-gray btn-sm" style="margin-right:6px;">編集</button>
+            <button class="btn btn-red">削除</button>
+          </td>
+        </tr>
+        <tr>
+          <td>36117</td>
+          <td>長尾 秀俊</td>
+          <td>兵庫</td>
+          <td><span class="class-badge class-C">C</span></td>
+          <td>—</td>
+          <td class="muted">2026-03-25</td>
+          <td>
+            <button class="btn btn-gray btn-sm" style="margin-right:6px;">編集</button>
+            <button class="btn btn-red">削除</button>
+          </td>
+        </tr>
+        <tr>
+          <td>28204</td>
+          <td>矢谷 義紀</td>
+          <td>三重</td>
+          <td><span class="class-badge">—</span></td>
+          <td>—</td>
+          <td class="muted">—</td>
+          <td>
+            <button class="btn btn-gray btn-sm" style="margin-right:6px;">編集</button>
+            <button class="btn btn-red">削除</button>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="7" style="text-align:center;color:#a8b4cc;font-size:12px;padding:8px;">
+            … 残り 156名 …
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+
+  <!-- ===== SCREEN 3: 登録・編集モーダル ===== -->
+  <div class="screen-title">画面③ — 新規登録 / 編集 モーダル</div>
+
+  <div style="position:relative;height:440px;background:#22262f;border-radius:8px;overflow:hidden;">
+    <!-- 背景（一覧画面）-->
+    <div style="opacity:0.3;padding:20px;">
+      <div class="toolbar" style="margin-bottom:12px;">
+        <input class="search-box" type="text" placeholder="🔍 検索">
+      </div>
+    </div>
+    <!-- モーダル本体 -->
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+      <div class="modal">
+        <h3>選手情報を編集</h3>
+        <div class="form-row">
+          <label class="form-label">会員番号 <span style="color:#c0392b">*</span></label>
+          <input class="form-input" type="text" value="35313" readonly style="color:#a8b4cc;">
+        </div>
+        <div class="form-row">
+          <label class="form-label">氏名 <span style="color:#c0392b">*</span></label>
+          <input class="form-input" type="text" value="松尾 充泰">
+        </div>
+        <div class="form-row">
+          <label class="form-label">所属</label>
+          <select class="form-input">
+            <option>大阪</option>
+            <option>京都</option>
+            <option>兵庫</option>
+            <option>三重</option>
+          </select>
+        </div>
+        <div class="form-row-2">
+          <div>
+            <label class="form-label">クラス</label>
+            <select class="form-input">
+              <option>（未設定）</option>
+              <option selected>B</option>
+              <option>A</option><option>C</option><option>D</option><option>E</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">審判フラグ</label>
+            <div class="checkbox-row" style="margin-top:8px;">
+              <input type="checkbox" id="j1">
+              <label for="j1">審判 ⚑</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-gray">キャンセル</button>
+          <button class="btn btn-gold">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ===== SCREEN 4: MembersTab — 自動補完の動作イメージ ===== -->
+  <div class="screen-title">画面④ — 選手登録（MembersTab）自動補完の動作イメージ</div>
+  <p class="muted" style="margin-bottom:16px;font-size:12px;">会員番号を入力してフォーカスを外すと、DBから氏名・所属・審判フラグ・クラスを自動取得します（変更可能）。</p>
+
+  <div class="members-demo">
+    <div class="members-header">
+      <span>1日目 1組 — 選手入力</span>
+      <button class="btn btn-gold btn-sm">この組を保存</button>
+    </div>
+    <table class="members-table">
+      <thead>
+        <tr>
+          <th style="width:36px;">番号</th>
+          <th style="width:100px;">会員番号</th>
+          <th style="width:150px;">氏名</th>
+          <th style="width:70px;">審判フラグ</th>
+          <th>所属</th>
+          <th style="width:80px;">クラス</th>
+          <th style="width:30px;color:#c0392b;">削除</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- マスターに存在・審判フラグ＋クラスあり → 全項目自動補完 -->
+        <tr>
+          <td>1</td>
+          <td><input class="mini-input found" value="34170" style="width:90px;"></td>
+          <td>
+            <input class="mini-input found readonly" value="甲谷 輝彦" readonly>
+          </td>
+          <td style="text-align:center;">
+            <input type="checkbox" checked style="accent-color:#27ae60;"> <span style="color:#c0392b;">⚑</span>
+            <span class="tooltip" style="display:block;font-size:9px;margin-top:2px;">自動</span>
+          </td>
+          <td>
+            <select class="mini-select" style="border-color:#27ae60;background:#0d140e;">
+              <option selected>京都</option>
+            </select>
+            <span class="tooltip">自動取得</span>
+          </td>
+          <td>
+            <select class="mini-select" style="border-color:#27ae60;background:#0d140e;">
+              <option selected>A</option><option>B</option><option>C</option>
+            </select>
+            <span style="font-size:9px;color:#27ae60;display:block;text-align:center;">自動</span>
+          </td>
+          <td style="text-align:center;">✕</td>
+        </tr>
+        <!-- マスターに存在しない → 手入力 -->
+        <tr>
+          <td>2</td>
+          <td><input class="mini-input" value="99999" style="width:90px;border-color:#c0392b;"></td>
+          <td>
+            <input class="mini-input" placeholder="氏名を入力" value="">
+          </td>
+          <td style="text-align:center;">□ ⚑</td>
+          <td>
+            <select class="mini-select">
+              <option>大阪</option>
+              <option>京都</option>
+              <option>兵庫</option>
+            </select>
+            <span style="font-size:10px;color:#c0392b;display:block;margin-top:2px;">※ マスター未登録</span>
+          </td>
+          <td><select class="mini-select"><option>（未）</option><option>A</option><option>B</option></select></td>
+          <td style="text-align:center;">✕</td>
+        </tr>
+        <!-- 空行 -->
+        <tr>
+          <td>3</td>
+          <td><input class="mini-input" style="width:90px;" placeholder="番号入力"></td>
+          <td><input class="mini-input" placeholder="氏名"></td>
+          <td style="text-align:center;">□ ⚑</td>
+          <td><select class="mini-select"><option>大阪</option></select></td>
+          <td><select class="mini-select"><option>—</option></select></td>
+          <td style="text-align:center;">✕</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:24px;background:#22262f;border-radius:8px;padding:16px;font-size:12px;color:#a8b4cc;">
+    <strong style="color:#f0f2f8;">「この組を保存」時の動作：</strong><br>
+    各選手の <strong style="color:#e8a020;">審判フラグ・クラス</strong> を <code>player_master</code> テーブルに自動更新（UPSERT）します。<br>
+    マスター未登録の選手（赤枠）は、氏名・所属を入力すれば保存可能です。
+  </div>
+
+</div>
+</body>
+</html>
