@@ -86,24 +86,6 @@ export default function AdminDetail({ tournamentId }: Props) {
         gap: 16,
         flexWrap: 'wrap',
       }}>
-        <button
-          onClick={() => window.history.length > 1 ? router.back() : router.push('/admin')}
-          style={{
-            background: 'transparent',
-            color: C.muted,
-            border: `1px solid ${C.border}`,
-            borderRadius: 5,
-            padding: '6px 12px',
-            fontSize: 15,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          ← 戻る
-        </button>
         <div style={{ flex: 1 }}>
           {loading ? (
             <span style={{ color: C.muted, fontSize: 18 }}>読み込み中...</span>
