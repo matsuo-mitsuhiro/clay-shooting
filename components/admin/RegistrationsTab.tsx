@@ -127,6 +127,21 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
     }
   }
 
+  async function handleRestore(reg: Registration) {
+    if (!window.confirm(`${reg.name} さんの申込を未移行に戻しますか？`)) return;
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      fetchRegistrations();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : '復元に失敗しました');
+    }
+  }
+
   async function handleDeleteManual(reg: Registration) {
     if (!window.confirm(`${reg.name} さんの手動登録を削除しますか？`)) return;
     try {
@@ -836,7 +851,15 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
 
                     {/* 操作 */}
                     <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }}>
-                      {!isCancelled && !isTransferred && !isManual && (
+                      {isCancelled ? (
+                        <button onClick={() => handleRestore(reg)}
+                          style={{
+                            background: 'transparent', color: C.blue2, border: `1px solid ${C.blue2}`,
+                            borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
+                          }}>
+                          未移行に戻す
+                        </button>
+                      ) : isTransferred ? (
                         <button onClick={() => handleCancel(reg)}
                           style={{
                             background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
@@ -844,14 +867,21 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                           }}>
                           キャンセル
                         </button>
-                      )}
-                      {!isCancelled && !isTransferred && isManual && (
+                      ) : isManual ? (
                         <button onClick={() => handleDeleteManual(reg)}
                           style={{
                             background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
                             borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
                           }}>
                           x
+                        </button>
+                      ) : (
+                        <button onClick={() => handleCancel(reg)}
+                          style={{
+                            background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
+                            borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
+                          }}>
+                          キャンセル
                         </button>
                       )}
                     </td>
