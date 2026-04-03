@@ -231,7 +231,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 ↺ 更新
               </button>
               <a
-                href="/manual/viewer/scores"
+                href="/manual/viewer/scores.html"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

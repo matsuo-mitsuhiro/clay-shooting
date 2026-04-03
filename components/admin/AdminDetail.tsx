@@ -131,39 +131,51 @@ export default function AdminDetail({ tournamentId }: Props) {
             </div>
           ) : null}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
-          <ContactButton />
-          {session?.user && (
-            <>
-              <span style={{ fontSize: 13, color: C.muted }}>{session.user.name ?? session.user.email}</span>
-              <span style={{
-                background: isSystem ? `${C.gold}33` : `${C.blue2}33`,
-                color: isSystem ? C.gold : C.blue2,
-                border: `1px solid ${isSystem ? C.gold : C.blue2}`,
-                borderRadius: 4,
-                padding: '2px 8px',
-                fontSize: 11,
-                fontWeight: 600,
-              }}>
-                {isSystem ? 'システム管理者' : '大会管理者'}
-              </span>
-            </>
-          )}
-          <button
-            onClick={() => signOut({ callbackUrl: '/admin/login' })}
-            style={{
-              background: 'transparent',
-              color: C.muted,
-              border: `1px solid ${C.border}`,
-              borderRadius: 5,
-              padding: '4px 10px',
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
-          >
-            ログアウト
-          </button>
-        </div>
+        {/* PC用: ヘッダー右側ボタン群 */}
+        {!isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
+            <ContactButton />
+            {session?.user && (
+              <>
+                <span style={{ fontSize: 13, color: C.muted }}>{session.user.name ?? session.user.email}</span>
+                <span style={{
+                  background: isSystem ? `${C.gold}33` : `${C.blue2}33`,
+                  color: isSystem ? C.gold : C.blue2,
+                  border: `1px solid ${isSystem ? C.gold : C.blue2}`,
+                  borderRadius: 4,
+                  padding: '2px 8px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                }}>
+                  {isSystem ? 'システム管理者' : '大会管理者'}
+                </span>
+              </>
+            )}
+            <a
+              href="/manual/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: C.muted, fontSize: 18, textDecoration: 'none', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+              title="マニュアル"
+            >
+              ℹ️
+            </a>
+            <button
+              onClick={() => signOut({ callbackUrl: '/admin/login' })}
+              style={{
+                background: 'transparent',
+                color: C.muted,
+                border: `1px solid ${C.border}`,
+                borderRadius: 5,
+                padding: '4px 10px',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              ログアウト
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Tabs — PC: 横並び / スマホ: ハンバーガーメニュー */}
@@ -239,6 +251,7 @@ export default function AdminDetail({ tournamentId }: Props) {
                 flexDirection: 'column',
                 zIndex: 1,
               }}>
+                {/* ドロワーヘッダー */}
                 <div style={{
                   padding: '14px 16px',
                   borderBottom: `1px solid ${C.border}`,
@@ -254,6 +267,28 @@ export default function AdminDetail({ tournamentId }: Props) {
                     ✕
                   </button>
                 </div>
+
+                {/* ユーザー情報（最上部） */}
+                {session?.user && (
+                  <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: 14, color: C.text, fontWeight: 600, marginBottom: 4 }}>
+                      {session.user.name ?? session.user.email}
+                    </div>
+                    <span style={{
+                      background: isSystem ? `${C.gold}33` : `${C.blue2}33`,
+                      color: isSystem ? C.gold : C.blue2,
+                      border: `1px solid ${isSystem ? C.gold : C.blue2}`,
+                      borderRadius: 4,
+                      padding: '2px 8px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}>
+                      {isSystem ? 'システム管理者' : '大会管理者'}
+                    </span>
+                  </div>
+                )}
+
+                {/* タブ一覧 */}
                 {tabs.map(tab => (
                   <button
                     key={tab.key}
@@ -314,6 +349,24 @@ export default function AdminDetail({ tournamentId }: Props) {
                   お問合せ
                 </button>
 
+                {/* マニュアル */}
+                <a
+                  href="/manual/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    display: 'block',
+                    color: C.muted,
+                    textDecoration: 'none',
+                    padding: '12px 20px',
+                    fontSize: 15,
+                    borderLeft: '3px solid transparent',
+                  }}
+                >
+                  ℹ️ マニュアル ↗
+                </a>
+
                 {/* 大会一覧 */}
                 <button
                   onClick={() => { router.push('/admin'); setMenuOpen(false); }}
@@ -330,6 +383,27 @@ export default function AdminDetail({ tournamentId }: Props) {
                   }}
                 >
                   ← 大会一覧
+                </button>
+
+                {/* 区切り線 */}
+                <div style={{ height: 1, background: C.border, margin: '8px 16px' }} />
+
+                {/* ログアウト */}
+                <button
+                  onClick={() => { setMenuOpen(false); signOut({ callbackUrl: '/admin/login' }); }}
+                  style={{
+                    background: 'transparent',
+                    color: C.muted,
+                    border: 'none',
+                    borderLeft: '3px solid transparent',
+                    padding: '12px 20px',
+                    fontSize: 15,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    width: '100%',
+                  }}
+                >
+                  ログアウト
                 </button>
               </div>
             </div>
