@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body style="background:#333;margin:0;padding:20px;">
+<div id="out"><p style="color:white">Loading PDF...</p></div>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+fetch('http://localhost:9876/pdf')
+  .then(r => r.arrayBuffer())
+  .then(buf => pdfjsLib.getDocument({data: buf}).promise)
+  .then(async pdf => {
+    document.getElementById('out').innerHTML = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const vp = page.getViewport({scale: 1.8});
+      const c = document.createElement('canvas');
+      c.width = vp.width; c.height = vp.height;
+      c.style.cssText = 'display:block;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.5);';
+      document.getElementById('out').appendChild(c);
+      await page.render({canvasContext: c.getContext('2d'), viewport: vp}).promise;
+    }
+  })
+  .catch(e => { document.getElementById('out').innerHTML = '<p style="color:red;font-size:18px">Error: ' + e.message + '</p>'; });
+</script>
+</body></html>
