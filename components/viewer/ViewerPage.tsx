@@ -328,7 +328,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflowX: 'auto', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 60px)', WebkitOverflowScrolling: 'touch' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560 }}>
                     <thead style={{ position: 'sticky', top: 0, zIndex: 3 }}>
                       <tr style={{ background: C.surface2 }}>
@@ -363,7 +363,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                             onClick={() => setHighlightedCode(prev => prev === r.member_code ? null : r.member_code)}
                             style={{
                               borderBottom: `1px solid ${C.border}33`,
-                              background: isHighlighted ? `${C.gold}22` : 'transparent',
+                              background: isHighlighted ? '#2a2518' : 'transparent',
                               cursor: 'pointer',
                               transition: 'background 0.15s',
                             }}
