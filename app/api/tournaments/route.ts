@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { sql } from '@/lib/db';
+import { writeOperationLog } from '@/lib/operation-log';
 import type { Tournament, TournamentInput, ApiResponse } from '@/lib/types';
 
 // GET /api/tournaments — 大会一覧取得（member_count / score_count 付き）
@@ -39,6 +42,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json<ApiResponse>({ success: false, error: '大会名は必須です' }, { status: 400 });
     }
 
+    const session = await getServerSession(authOptions);
+    const adminName = session?.user?.name ?? session?.user?.email ?? null;
+    const adminAffiliation = session?.user?.affiliation ?? null;
+
     const rows = await sql`
       INSERT INTO tournaments (name, venue, day1_date, day2_date, event_type, day1_set, day2_set, organizer_cd)
       VALUES (
@@ -53,7 +60,17 @@ export async function POST(req: NextRequest) {
       )
       RETURNING *
     `;
-    return NextResponse.json<ApiResponse<Tournament>>({ success: true, data: rows[0] as Tournament }, { status: 201 });
+    const created = rows[0] as Tournament;
+
+    await writeOperationLog({
+      tournamentId: created.id,
+      tournamentName: created.name,
+      adminName,
+      adminAffiliation,
+      action: 'tournament_create',
+    });
+
+    return NextResponse.json<ApiResponse<Tournament>>({ success: true, data: created }, { status: 201 });
   } catch (e) {
     console.error(e);
     return NextResponse.json<ApiResponse>({ success: false, error: '大会の作成に失敗しました' }, { status: 500 });

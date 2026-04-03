@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
+import { writeOperationLog } from '@/lib/operation-log';
 import type { ApiResponse } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string; regId: string }> };
@@ -17,17 +18,36 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     const tid = Number(id);
     const rid = Number(regId);
 
-    const rows = await sql`
-      DELETE FROM registrations
+    // 削除前に情報を取得（ログ用）
+    const regRows = await sql`
+      SELECT member_code, name FROM registrations
       WHERE id = ${rid} AND tournament_id = ${tid} AND source = 'manual'
-      RETURNING id
     `;
-    if (!rows.length) {
+    if (!regRows.length) {
       return NextResponse.json<ApiResponse>({
         success: false,
         error: '削除対象が見つかりません（手動登録のみ削除可能です）',
       }, { status: 404 });
     }
+    const reg = regRows[0] as { member_code: string; name: string };
+
+    await sql`
+      DELETE FROM registrations
+      WHERE id = ${rid} AND tournament_id = ${tid} AND source = 'manual'
+    `;
+
+    // 操作ログ
+    const tRows = await sql`SELECT name FROM tournaments WHERE id = ${tid}`;
+    const tournamentName = tRows.length ? (tRows[0] as { name: string }).name : null;
+
+    await writeOperationLog({
+      tournamentId: tid,
+      tournamentName,
+      adminName: (jwtToken.name as string) ?? null,
+      adminAffiliation: (jwtToken.affiliation as string) ?? null,
+      action: 'registration_delete',
+      detail: `${reg.member_code} ${reg.name}`,
+    });
 
     return NextResponse.json<ApiResponse>({ success: true });
   } catch (e) {

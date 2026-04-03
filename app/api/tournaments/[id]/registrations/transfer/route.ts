@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
+import { writeOperationLog } from '@/lib/operation-log';
 import type { ApiResponse, Registration, Member, ClassType } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string }> };
@@ -170,6 +171,19 @@ export async function POST(req: NextRequest, { params }: Params) {
           }).catch(() => {})
         )
     );
+
+    // 大会名取得
+    const tNameRows = await sql`SELECT name FROM tournaments WHERE id = ${tid}`;
+    const tournamentName = tNameRows.length ? (tNameRows[0] as { name: string }).name : (t.name as string) ?? null;
+
+    await writeOperationLog({
+      tournamentId: tid,
+      tournamentName,
+      adminName: (jwtToken.name as string) ?? null,
+      adminAffiliation: (jwtToken.affiliation as string) ?? null,
+      action: 'registration_transfer',
+      detail: `${registrations.length}名を移行`,
+    });
 
     return NextResponse.json<ApiResponse<{ count: number }>>({
       success: true,

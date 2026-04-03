@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
+import { writeOperationLog } from '@/lib/operation-log';
 import type { ApiResponse, Registration, ClassType, ParticipationDay } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string }> };
@@ -90,7 +91,22 @@ export async function POST(req: NextRequest, { params }: Params) {
       }
     }
 
-    return NextResponse.json<ApiResponse<Registration>>({ success: true, data: rows[0] as Registration });
+    const created = rows[0] as Registration;
+
+    // 大会名取得
+    const tNameRows = await sql`SELECT name FROM tournaments WHERE id = ${tid}`;
+    const tournamentName = tNameRows.length ? (tNameRows[0] as { name: string }).name : null;
+
+    await writeOperationLog({
+      tournamentId: tid,
+      tournamentName,
+      adminName: (jwtToken.name as string) ?? null,
+      adminAffiliation: (jwtToken.affiliation as string) ?? null,
+      action: 'registration_manual',
+      detail: `${member_code} ${name}`,
+    });
+
+    return NextResponse.json<ApiResponse<Registration>>({ success: true, data: created });
   } catch (e) {
     console.error(e);
     return NextResponse.json<ApiResponse>({ success: false, error: '登録に失敗しました' }, { status: 500 });

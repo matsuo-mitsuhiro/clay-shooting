@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { getToken } from 'next-auth/jwt';
+import { writeOperationLog } from '@/lib/operation-log';
 import type { ApiResponse } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string; memberId: string }> };
@@ -16,7 +18,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     if (members.length === 0) {
       return NextResponse.json<ApiResponse>({ success: false, error: '選手が見つかりません' }, { status: 404 });
     }
-    const member = members[0] as { member_code: string | null };
+    const member = members[0] as { member_code: string | null; name: string };
 
     // Check if scores exist
     let hasScores = false;
@@ -32,6 +34,20 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     if (hasScores && member.member_code) {
       await sql`DELETE FROM scores WHERE tournament_id = ${tournamentId} AND member_code = ${member.member_code}`;
     }
+
+    // 操作ログ
+    const jwtToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const tRows = await sql`SELECT name FROM tournaments WHERE id = ${tournamentId}`;
+    const tournamentName = tRows.length ? (tRows[0] as { name: string }).name : null;
+
+    await writeOperationLog({
+      tournamentId,
+      tournamentName,
+      adminName: (jwtToken?.name as string) ?? null,
+      adminAffiliation: (jwtToken?.affiliation as string) ?? null,
+      action: 'member_delete',
+      detail: `${member.member_code ?? ''} ${member.name}`.trim(),
+    });
 
     return NextResponse.json<ApiResponse<{ hadScores: boolean }>>({ success: true, data: { hadScores: hasScores } });
   } catch (e) {

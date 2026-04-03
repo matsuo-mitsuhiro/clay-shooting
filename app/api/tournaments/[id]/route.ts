@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { sql } from '@/lib/db';
+import { writeOperationLog } from '@/lib/operation-log';
 import type { Tournament, TournamentInput, ApiResponse } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string }> };
@@ -81,7 +82,18 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (!rows.length) {
       return NextResponse.json<ApiResponse>({ success: false, error: '大会が見つかりません' }, { status: 404 });
     }
-    return NextResponse.json<ApiResponse<Tournament>>({ success: true, data: rows[0] as Tournament });
+    const updated = rows[0] as Tournament;
+    const actionType = saveType === 'apply' ? 'apply_settings' as const : 'tournament_update' as const;
+
+    await writeOperationLog({
+      tournamentId: updated.id,
+      tournamentName: updated.name,
+      adminName: userName,
+      adminAffiliation: session?.user?.affiliation ?? null,
+      action: actionType,
+    });
+
+    return NextResponse.json<ApiResponse<Tournament>>({ success: true, data: updated });
   } catch (e) {
     console.error(e);
     return NextResponse.json<ApiResponse>({ success: false, error: '大会情報の更新に失敗しました' }, { status: 500 });
@@ -92,7 +104,26 @@ export async function PUT(req: NextRequest, { params }: Params) {
 export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
-    await sql`DELETE FROM tournaments WHERE id = ${Number(id)}`;
+    const tournamentId = Number(id);
+
+    // 削除前に大会名を取得（ログ用）
+    const tRows = await sql`SELECT name FROM tournaments WHERE id = ${tournamentId}`;
+    const tournamentName = tRows.length ? (tRows[0] as { name: string }).name : null;
+
+    const session = await getServerSession(authOptions);
+    const adminName = session?.user?.name ?? session?.user?.email ?? null;
+    const adminAffiliation = session?.user?.affiliation ?? null;
+
+    await sql`DELETE FROM tournaments WHERE id = ${tournamentId}`;
+
+    await writeOperationLog({
+      tournamentId,
+      tournamentName,
+      adminName,
+      adminAffiliation,
+      action: 'tournament_delete',
+    });
+
     return NextResponse.json<ApiResponse>({ success: true });
   } catch (e) {
     console.error(e);

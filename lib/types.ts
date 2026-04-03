@@ -237,6 +237,31 @@ export interface ShootingRange {
   name: string;
 }
 
+// ---------- Operation Log ----------
+export type OperationAction =
+  | 'tournament_delete'
+  | 'tournament_reset'
+  | 'tournament_create'
+  | 'tournament_update'
+  | 'apply_settings'
+  | 'registration_manual'
+  | 'registration_transfer'
+  | 'registration_cancel'
+  | 'registration_delete'
+  | 'registration_restore'
+  | 'member_delete';
+
+export interface OperationLog {
+  id: number;
+  tournament_id: number | null;
+  tournament_name: string | null;
+  logged_at: string;
+  admin_name: string | null;
+  admin_affiliation: string | null;
+  action: OperationAction;
+  detail: string | null;
+}
+
 // ---------- API Response ----------
 export interface ApiResponse<T = unknown> {
   success: boolean;
