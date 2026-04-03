@@ -164,7 +164,7 @@ export default function ResultsTab({ tournamentId }: Props) {
   };
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ padding: '0 16px', maxWidth: 1200, margin: '0 auto', maxHeight: 'calc(100vh - 110px)', overflow: 'auto' }}>
 
       {/* 手動順位モーダル */}
       {manualModalOpen && (
@@ -308,7 +308,7 @@ export default function ResultsTab({ tournamentId }: Props) {
       )}
 
       {/* Header Row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <h3 style={{ margin: 0, fontSize: 18, color: C.text }}>成績一覧</h3>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {hasManualRank && (
@@ -450,32 +450,30 @@ export default function ResultsTab({ tournamentId }: Props) {
               成績データがありません
             </div>
           ) : (
-            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 820 : 600 }}>
-                  <thead>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 820 : 600, background: C.surface }}>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr style={{ background: C.surface2 }}>
-                      <th style={thS}>順位</th>
-                      <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: C.surface2 }}>氏名</th>
-                      <th style={thS}>組</th>
-                      <th style={{ ...thS, textAlign: 'left' }}>所属協会</th>
-                      <th style={thS}>クラス</th>
-                      <th style={thS}>R1</th>
-                      <th style={thS}>R2</th>
-                      <th style={thS}>R3</th>
-                      <th style={thS}>R4</th>
-                      <th style={thS}>1日計</th>
+                      <th style={{ ...thS, background: C.surface2 }}>順位</th>
+                      <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 0, zIndex: 11, background: C.surface2 }}>氏名</th>
+                      <th style={{ ...thS, background: C.surface2 }}>組</th>
+                      <th style={{ ...thS, textAlign: 'left', background: C.surface2 }}>所属協会</th>
+                      <th style={{ ...thS, background: C.surface2 }}>クラス</th>
+                      <th style={{ ...thS, background: C.surface2 }}>R1</th>
+                      <th style={{ ...thS, background: C.surface2 }}>R2</th>
+                      <th style={{ ...thS, background: C.surface2 }}>R3</th>
+                      <th style={{ ...thS, background: C.surface2 }}>R4</th>
+                      <th style={{ ...thS, background: C.surface2 }}>1日計</th>
                       {has2ndDay && <>
-                        <th style={{ ...thS, color: C.blue2 }}>R5</th>
-                        <th style={{ ...thS, color: C.blue2 }}>R6</th>
-                        <th style={{ ...thS, color: C.blue2 }}>R7</th>
-                        <th style={{ ...thS, color: C.blue2 }}>R8</th>
-                        <th style={{ ...thS, color: C.blue2 }}>2日計</th>
+                        <th style={{ ...thS, color: C.blue2, background: C.surface2 }}>R5</th>
+                        <th style={{ ...thS, color: C.blue2, background: C.surface2 }}>R6</th>
+                        <th style={{ ...thS, color: C.blue2, background: C.surface2 }}>R7</th>
+                        <th style={{ ...thS, color: C.blue2, background: C.surface2 }}>R8</th>
+                        <th style={{ ...thS, color: C.blue2, background: C.surface2 }}>2日計</th>
                       </>}
-                      <th style={{ ...thS, color: C.gold }}>合計</th>
-                      <th style={thS}>平均</th>
-                      {hasCB && <th style={{ ...thS, color: '#e67e22' }}>CB</th>}
-                      {hasFR && <th style={{ ...thS, color: '#9b59b6' }}>FR</th>}
+                      <th style={{ ...thS, color: C.gold, background: C.surface2 }}>合計</th>
+                      <th style={{ ...thS, background: C.surface2 }}>平均</th>
+                      {hasCB && <th style={{ ...thS, color: '#e67e22', background: C.surface2 }}>CB</th>}
+                      {hasFR && <th style={{ ...thS, color: '#9b59b6', background: C.surface2 }}>FR</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -564,8 +562,6 @@ export default function ResultsTab({ tournamentId }: Props) {
                     })}
                   </tbody>
                 </table>
-              </div>
-            </div>
           )}
 
           {highlightedCode && (
