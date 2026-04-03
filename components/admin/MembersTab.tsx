@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { C } from '@/lib/colors';
-import type { Member, ClassType, Tournament } from '@/lib/types';
+import type { Member, ClassType, ScoreStatus, Tournament } from '@/lib/types';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface Props {
@@ -103,6 +103,7 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
   const [reorderItems, setReorderItems] = useState<SlotItem[]>([]);
   const [unregistered, setUnregistered] = useState<UnregisteredEntry[]>([]);
   const [associationNames, setAssociationNames] = useState<string[]>([]);
+  const [statusMap, setStatusMap] = useState<Record<string, ScoreStatus>>({});
 
   // Edit mode state
   const [editing, setEditing] = useState(false);
@@ -146,10 +147,25 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
     }
   }, [tournamentId]);
 
+  const fetchScoreStatuses = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/scores`);
+      const json = await res.json();
+      if (json.success) {
+        const map: Record<string, ScoreStatus> = {};
+        for (const s of json.data as { member_code: string; status?: ScoreStatus }[]) {
+          if (s.member_code) map[s.member_code] = s.status ?? 'valid';
+        }
+        setStatusMap(map);
+      }
+    } catch { /* ignore */ }
+  }, [tournamentId]);
+
   useEffect(() => {
     fetchMembers();
     fetchUnregistered();
-  }, [fetchMembers]);
+    fetchScoreStatuses();
+  }, [fetchMembers, fetchScoreStatuses]);
 
   async function fetchUnregistered() {
     try {
@@ -256,6 +272,24 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
       setError(e instanceof Error ? e.message : '保存に失敗しました');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleStatusChange(memberCode: string, status: ScoreStatus) {
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/scores/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_code: memberCode, status }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setStatusMap(prev => ({ ...prev, [memberCode]: status }));
+      } else {
+        setError(json.error || 'ステータスの変更に失敗しました');
+      }
+    } catch {
+      setError('ステータスの変更に失敗しました');
     }
   }
 
@@ -626,6 +660,7 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
                       { label: '所属協会', width: 140 },
                       { label: 'クラス', width: 80 },
                       { label: '審判', width: 60 },
+                      { label: '成績', width: 80 },
                       { label: '操作', width: 60 },
                     ].map((h, i) => (
                       <th key={i} style={{
@@ -720,6 +755,29 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
                                   </span>
                                 )}
                               </td>
+                              {/* 成績 */}
+                              <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                                {member.member_code ? (
+                                  <select
+                                    value={statusMap[member.member_code] ?? 'valid'}
+                                    onChange={e => handleStatusChange(member.member_code!, e.target.value as ScoreStatus)}
+                                    style={{
+                                      background: C.inputBg,
+                                      border: `1px solid ${(statusMap[member.member_code] === 'disqualified' || statusMap[member.member_code] === 'withdrawn') ? '#e74c3c' : C.border}`,
+                                      borderRadius: 4,
+                                      color: (statusMap[member.member_code] === 'disqualified' || statusMap[member.member_code] === 'withdrawn') ? '#e74c3c' : C.text,
+                                      padding: '4px 6px', fontSize: 13, cursor: 'pointer',
+                                      fontWeight: (statusMap[member.member_code] === 'disqualified' || statusMap[member.member_code] === 'withdrawn') ? 700 : 400,
+                                    }}
+                                  >
+                                    <option value="valid">有効</option>
+                                    <option value="disqualified">失格</option>
+                                    <option value="withdrawn">棄権</option>
+                                  </select>
+                                ) : (
+                                  <span style={{ color: C.muted, fontSize: 13 }}>-</span>
+                                )}
+                              </td>
                               <td style={{ padding: '4px 6px', textAlign: 'center' }}>
                                 <button
                                   onClick={() => handleDeleteMember(member)}
@@ -730,7 +788,7 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
                               </td>
                             </>
                           ) : (
-                            <td colSpan={6} style={{ padding: '6px 10px', fontSize: 15, color: C.gold }}>
+                            <td colSpan={7} style={{ padding: '6px 10px', fontSize: 15, color: C.gold }}>
                               －（空き）
                             </td>
                           )}

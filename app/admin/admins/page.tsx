@@ -328,12 +328,12 @@ export default function AdminsPage() {
 
         {/* 管理者一覧テーブル */}
         {!loading && (
-          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
               <thead>
                 <tr style={{ background: C.surface2 }}>
                   <th style={th}>会員番号</th>
-                  <th style={th}>氏名</th>
+                  <th style={{ ...th, position: 'sticky' as const, left: 0, zIndex: 2, background: C.surface2 }}>氏名</th>
                   <th style={th}>メール</th>
                   <th style={th}>現在の所属協会</th>
                   <th style={th}>状態</th>
@@ -346,7 +346,7 @@ export default function AdminsPage() {
                 ) : filteredAdmins.map(a => (
                   <tr key={a.id} style={{ borderBottom: `1px solid ${C.border}33`, background: a.member_code === myCode ? `${C.gold}11` : 'transparent' }}>
                     <td style={td}>{a.member_code}</td>
-                    <td style={{ ...td, fontWeight: 500 }}>{a.name}</td>
+                    <td style={{ ...td, fontWeight: 500, position: 'sticky' as const, left: 0, zIndex: 1, background: a.member_code === myCode ? `#e8a02011` : C.surface }}>{a.name}</td>
                     <td style={{ ...td, fontSize: 13 }}>{a.email}</td>
                     <td style={{ ...td, color: C.muted }}>{a.current_affiliation ?? '—'}</td>
                     <td style={td}>

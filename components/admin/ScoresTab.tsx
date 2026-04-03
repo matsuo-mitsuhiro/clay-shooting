@@ -457,8 +457,8 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
                     <thead>
                       <tr style={{ background: `${C.surface2}88` }}>
-                        <th style={thStyle}>氏名</th>
-                        <th style={thStyle}>成績</th>
+                        <th style={{ ...thStyle, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: C.surface2 }}>氏名</th>
+                        <th style={thStyle}>所属協会</th>
                         {roundLabels.map(l => (
                           <th key={l} style={thStyle}>{l}</th>
                         ))}
@@ -483,38 +483,17 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                             }}
                           >
                             {/* 氏名 */}
-                            <td style={{ padding: '6px 10px', fontSize: 15, color: isDQ ? '#e74c3c' : C.text, whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '6px 10px', fontSize: 15, color: isDQ ? '#e74c3c' : C.text, whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: isDQ ? '#1a1d24' : C.surface }}>
                               {m.is_judge ? <span style={{ color: C.gold }}>⚑ </span> : ''}
-                              {m.name}
+                              {m.position}. {m.name}
                               {!code && (
                                 <span style={{ fontSize: 13, color: C.red, marginLeft: 6 }}>(会員番号なし)</span>
                               )}
                             </td>
 
-                            {/* 成績ドロップダウン */}
-                            <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-                              {code ? (
-                                <select
-                                  value={entry.status}
-                                  onChange={e => updateStatus(code, e.target.value as ScoreStatus)}
-                                  style={{
-                                    background: C.inputBg,
-                                    border: `1px solid ${isDQ ? '#e74c3c' : C.border}`,
-                                    borderRadius: 4,
-                                    color: isDQ ? '#e74c3c' : C.text,
-                                    padding: '5px 6px',
-                                    fontSize: 13,
-                                    cursor: 'pointer',
-                                    fontWeight: isDQ ? 700 : 400,
-                                  }}
-                                >
-                                  <option value="valid">有効</option>
-                                  <option value="disqualified">失格</option>
-                                  <option value="withdrawn">棄権</option>
-                                </select>
-                              ) : (
-                                <span style={{ color: C.muted, fontSize: 13 }}>-</span>
-                              )}
+                            {/* 所属協会 */}
+                            <td style={{ padding: '6px 10px', fontSize: 13, color: C.muted, whiteSpace: 'nowrap' }}>
+                              {m.belong ?? '-'}
                             </td>
 
                             {/* ラウンド点数 */}

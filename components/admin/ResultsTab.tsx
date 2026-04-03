@@ -456,7 +456,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                   <thead>
                     <tr style={{ background: C.surface2 }}>
                       <th style={thS}>順位</th>
-                      <th style={{ ...thS, textAlign: 'left' }}>氏名</th>
+                      <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: C.surface2 }}>氏名</th>
                       <th style={thS}>組</th>
                       <th style={{ ...thS, textAlign: 'left' }}>所属協会</th>
                       <th style={thS}>クラス</th>
@@ -506,7 +506,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                           </td>
 
                           {/* 氏名 */}
-                          <td style={{ ...tdS, textAlign: 'left', whiteSpace: 'nowrap' }}>
+                          <td style={{ ...tdS, textAlign: 'left', whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: isDQ ? '#1a1d24' : isHighlighted ? '#27ae6036' : C.surface }}>
                             <span style={{ color: isDQ ? '#e74c3c' : C.text, fontWeight: 500 }}>{r.name}</span>
                             {r.status === 'disqualified' && (
                               <span style={{ color: '#e74c3c', fontSize: 12, marginLeft: 6, fontWeight: 700 }}>失格</span>

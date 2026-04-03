@@ -64,9 +64,8 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [adminCopied, setAdminCopied] = useState(false);
-  const [viewerCopied, setViewerCopied] = useState(false);
-  const [applyCopied, setApplyCopied] = useState(false);
+  const [qrCopied, setQrCopied] = useState(false);
+  const [qrTab, setQrTab] = useState<'viewer' | 'admin' | 'apply'>('viewer');
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -382,67 +381,57 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         padding: '20px', marginBottom: 20,
       }}>
         <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>QRコード確認</h3>
-        {origin ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
-            {/* Admin QR */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <p style={{ margin: 0, fontSize: 15, color: C.muted }}>管理者用QR</p>
-              <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
-                <QRCodeSVG value={`${origin}/admin/${tournamentId}`} size={120} />
+        {origin ? (() => {
+          const qrTabs = [
+            { key: 'viewer' as const, label: '閲覧者用', url: `${origin}/viewer` },
+            { key: 'admin' as const, label: '管理者用', url: `${origin}/admin/${tournamentId}` },
+            { key: 'apply' as const, label: '申込用', url: `${origin}/tournaments/${tournamentId}/apply` },
+          ];
+          const activeTab = qrTabs.find(t => t.key === qrTab)!;
+          return (
+            <div>
+              {/* タブ */}
+              <div style={{ display: 'flex', gap: 4, marginBottom: 20 }}>
+                {qrTabs.map(t => (
+                  <button
+                    key={t.key}
+                    onClick={() => { setQrTab(t.key); setQrCopied(false); }}
+                    style={{
+                      background: qrTab === t.key ? C.surface2 : 'transparent',
+                      color: qrTab === t.key ? C.gold : C.muted,
+                      border: `1px solid ${qrTab === t.key ? C.gold : C.border}`,
+                      borderRadius: 5, padding: '7px 18px', fontSize: 14,
+                      fontWeight: qrTab === t.key ? 700 : 400, cursor: 'pointer',
+                      flex: 1,
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
-              <a
-                href={`${origin}/admin/${tournamentId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ margin: 0, fontSize: 12, color: '#3498db', textAlign: 'center', wordBreak: 'break-all', textDecoration: 'underline' }}
-              >
-                {origin}/admin/{tournamentId}
-              </a>
-              <button onClick={() => { navigator.clipboard.writeText(`${origin}/admin/${tournamentId}`); setAdminCopied(true); setTimeout(() => setAdminCopied(false), 2000); }}
-                style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
-                {adminCopied ? 'コピーしました！' : 'URLをコピー'}
-              </button>
-            </div>
-            {/* Viewer QR */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <p style={{ margin: 0, fontSize: 15, color: C.muted }}>閲覧者用QR</p>
-              <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
-                <QRCodeSVG value={`${origin}/viewer`} size={120} />
+              {/* QRコード表示 */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
+                  <QRCodeSVG value={activeTab.url} size={160} />
+                </div>
+                <a
+                  href={activeTab.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ margin: 0, fontSize: 12, color: '#3498db', textAlign: 'center', wordBreak: 'break-all', textDecoration: 'underline' }}
+                >
+                  {activeTab.url}
+                </a>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(activeTab.url); setQrCopied(true); setTimeout(() => setQrCopied(false), 2000); }}
+                  style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '8px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  {qrCopied ? 'コピーしました！' : 'URLをコピー'}
+                </button>
               </div>
-              <a
-                href={`${origin}/viewer`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ margin: 0, fontSize: 12, color: '#3498db', textAlign: 'center', wordBreak: 'break-all', textDecoration: 'underline' }}
-              >
-                {origin}/viewer
-              </a>
-              <button onClick={() => { navigator.clipboard.writeText(`${origin}/viewer`); setViewerCopied(true); setTimeout(() => setViewerCopied(false), 2000); }}
-                style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
-                {viewerCopied ? 'コピーしました！' : 'URLをコピー'}
-              </button>
             </div>
-            {/* Apply QR */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <p style={{ margin: 0, fontSize: 15, color: C.muted }}>申込用QR</p>
-              <div style={{ background: '#fff', padding: 10, borderRadius: 8 }}>
-                <QRCodeSVG value={`${origin}/tournaments/${tournamentId}/apply`} size={120} />
-              </div>
-              <a
-                href={`${origin}/tournaments/${tournamentId}/apply`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ margin: 0, fontSize: 12, color: '#3498db', textAlign: 'center', wordBreak: 'break-all', textDecoration: 'underline' }}
-              >
-                {origin}/tournaments/{tournamentId}/apply
-              </a>
-              <button onClick={() => { navigator.clipboard.writeText(`${origin}/tournaments/${tournamentId}/apply`); setApplyCopied(true); setTimeout(() => setApplyCopied(false), 2000); }}
-                style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', width: '100%' }}>
-                {applyCopied ? 'コピーしました！' : 'URLをコピー'}
-              </button>
-            </div>
-          </div>
-        ) : (
+          );
+        })() : (
           <p style={{ color: C.muted, fontSize: 15 }}>読み込み中...</p>
         )}
       </section>

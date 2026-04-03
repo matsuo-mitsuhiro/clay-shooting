@@ -22,8 +22,8 @@ const s = {
   searchInput: { background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: '6px', color: C.text, padding: '8px 12px', fontSize: '14px', width: '220px' },
   select: { background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: '6px', color: C.text, padding: '8px 10px', fontSize: '13px' },
   countBadge: { background: C.surface2, border: `1px solid ${C.border}`, borderRadius: '20px', padding: '4px 12px', fontSize: '12px', color: C.muted, marginLeft: 'auto' },
-  tableWrap: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', overflow: 'hidden' },
-  table: { width: '100%', borderCollapse: 'collapse' as const },
+  tableWrap: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', overflow: 'hidden', overflowX: 'auto' as const },
+  table: { width: '100%', borderCollapse: 'collapse' as const, minWidth: '700px' },
   th: { background: C.surface2, textAlign: 'left' as const, padding: '10px 12px', fontSize: '12px', color: C.muted, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' as const },
   thRed: { background: C.surface2, textAlign: 'left' as const, padding: '10px 12px', fontSize: '12px', color: C.red, borderBottom: `1px solid ${C.border}` },
   td: { padding: '10px 12px', borderBottom: `1px solid #1e2228`, verticalAlign: 'middle' as const },
@@ -194,7 +194,7 @@ export default function PlayersPage() {
             <thead>
               <tr>
                 <th style={s.th}>会員番号</th>
-                <th style={s.th}>氏名</th>
+                <th style={{ ...s.th, position: 'sticky' as const, left: 0, zIndex: 2, background: C.surface2 }}>氏名</th>
                 <th style={s.th}>所属協会</th>
                 <th style={s.th}>クラス</th>
                 <th style={s.th}>審判フラグ</th>
@@ -209,7 +209,7 @@ export default function PlayersPage() {
               {filtered.map(p => (
                 <tr key={p.member_code} style={{ cursor: 'default' }} onMouseEnter={e => (e.currentTarget.style.background = '#1e2228')} onMouseLeave={e => (e.currentTarget.style.background = '')}>
                   <td style={s.td}>{p.member_code}</td>
-                  <td style={s.td}>{p.name}</td>
+                  <td style={{ ...s.td, position: 'sticky' as const, left: 0, zIndex: 1, background: C.surface }}>{p.name}</td>
                   <td style={s.td}>{p.affiliation ?? '—'}</td>
                   <td style={s.td}>{p.class ?? '—'}</td>
                   <td style={s.td}>{p.is_judge ? <span style={{ color: C.red }}>⚑</span> : '—'}</td>
