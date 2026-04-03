@@ -235,7 +235,7 @@ export default function ViewerPage({ tournamentId }: Props) {
         </div>
       </header>
 
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px', maxHeight: 'calc(100vh - 70px)', overflow: 'auto', WebkitOverflowScrolling: 'touch' as never }}>
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px', maxHeight: 'calc(100vh - 70px)', overflow: 'auto', WebkitOverflowScrolling: 'touch' as never }}>
         {/* Error */}
         {error && (
           <div style={{
@@ -249,7 +249,7 @@ export default function ViewerPage({ tournamentId }: Props) {
             {/* Filter Bar */}
             <div style={{
               background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-              padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
+              padding: '12px 16px', marginTop: 20, marginBottom: 16, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
             }}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 14, color: C.muted }}>クラス:</span>
