@@ -654,9 +654,9 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
                 <thead>
                   <tr style={{ background: C.surface2 }}>
                     {[
-                      { label: '番号', width: 50 },
+                      { label: '番号', width: 50, sticky: true, left: 0 },
                       { label: '会員番号', width: 90 },
-                      { label: '氏名', width: undefined },
+                      { label: '氏名', width: undefined, sticky: true, left: 50 },
                       { label: '所属協会', width: 140 },
                       { label: 'クラス', width: 80 },
                       { label: '審判', width: 60 },
@@ -672,6 +672,7 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
                         borderBottom: `1px solid ${C.border}`,
                         whiteSpace: 'nowrap',
                         width: h.width,
+                        ...(h.sticky ? { position: 'sticky' as const, left: h.left, zIndex: 2, background: C.surface2 } : {}),
                       }}>{h.label}</th>
                     ))}
                   </tr>
@@ -687,11 +688,11 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
                           borderLeft: !member ? `3px solid ${C.gold}` : '3px solid transparent',
                           background: !member ? `${C.gold}0a` : 'transparent',
                         }}>
-                          <td style={{ padding: '6px 10px', color: C.muted, fontSize: 15 }}>{p}</td>
+                          <td style={{ padding: '6px 10px', color: C.muted, fontSize: 15, position: 'sticky', left: 0, zIndex: 1, background: !member ? `${C.gold}0a` : C.surface }}>{p}</td>
                           {member ? (
                             <>
                               <td style={{ padding: '6px 10px', fontSize: 15, color: C.text }}>{member.member_code ?? '-'}</td>
-                              <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, fontWeight: 500 }}>
+                              <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, fontWeight: 500, position: 'sticky', left: 50, zIndex: 1, background: C.surface }}>
                                 {member.name}
                               </td>
                               {/* 所属協会 */}
@@ -788,7 +789,7 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
                               </td>
                             </>
                           ) : (
-                            <td colSpan={7} style={{ padding: '6px 10px', fontSize: 15, color: C.gold }}>
+                            <td colSpan={7} style={{ padding: '6px 10px', fontSize: 15, color: C.gold, position: 'sticky', left: 50, zIndex: 1, background: `${C.gold}0a` }}>
                               －（空き）
                             </td>
                           )}

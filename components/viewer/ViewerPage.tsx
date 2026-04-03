@@ -333,8 +333,8 @@ export default function ViewerPage({ tournamentId }: Props) {
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560 }}>
                     <thead>
                       <tr style={{ background: C.surface2 }}>
-                        <th style={thS}>順位</th>
-                        <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: C.surface2 }}>氏名　審判フラグ</th>
+                        <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 2, background: C.surface2 }}>順位</th>
+                        <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 2, background: C.surface2 }}>氏名　審判フラグ</th>
                         <th style={thS}>組</th>
                         <th style={{ ...thS, textAlign: 'left' }}>所属協会</th>
                         <th style={thS}>クラス</th>
@@ -369,10 +369,10 @@ export default function ViewerPage({ tournamentId }: Props) {
                               transition: 'background 0.15s',
                             }}
                           >
-                            <td style={{ ...tdS, color: r.rank && r.rank <= 3 ? C.gold : C.muted, fontWeight: r.rank && r.rank <= 3 ? 700 : 400 }}>
+                            <td style={{ ...tdS, color: r.rank && r.rank <= 3 ? C.gold : C.muted, fontWeight: r.rank && r.rank <= 3 ? 700 : 400, position: 'sticky', left: 0, zIndex: 1, background: isHighlighted ? `${C.gold}22` : C.surface }}>
                               {r.rank ?? ''}
                             </td>
-                            <td style={{ ...tdS, textAlign: 'left', color: C.text, fontWeight: 500, whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: isHighlighted ? `${C.gold}22` : C.surface }}>
+                            <td style={{ ...tdS, textAlign: 'left', color: C.text, fontWeight: 500, whiteSpace: 'nowrap', position: 'sticky', left: 44, zIndex: 1, background: isHighlighted ? `${C.gold}22` : C.surface }}>
                               {r.name}{r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
                             </td>
                             <td style={{ ...tdS, color: C.muted, fontSize: 14 }}>
