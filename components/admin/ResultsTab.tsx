@@ -164,7 +164,7 @@ export default function ResultsTab({ tournamentId }: Props) {
   };
 
   return (
-    <div style={{ padding: '0 16px', maxWidth: 1200, margin: '0 auto', maxHeight: 'calc(100vh - 110px)', overflow: 'auto' }}>
+    <div style={{ padding: '0 16px', maxWidth: 1200, margin: '0 auto' }}>
 
       {/* 手動順位モーダル */}
       {manualModalOpen && (

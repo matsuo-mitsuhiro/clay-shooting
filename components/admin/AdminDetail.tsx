@@ -75,7 +75,7 @@ export default function AdminDetail({ tournamentId }: Props) {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
+    <div style={{ height: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
       <header style={{
         background: C.surface,
@@ -445,7 +445,7 @@ export default function AdminDetail({ tournamentId }: Props) {
       )}
 
       {/* Tab Content */}
-      <div style={{ padding: '0' }}>
+      <div style={{ flex: 1, overflow: 'auto' }}>
         {!loading && !error && tournament && (
           <>
             {activeTab === 'registrations' && (
