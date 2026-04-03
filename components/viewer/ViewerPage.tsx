@@ -235,7 +235,7 @@ export default function ViewerPage({ tournamentId }: Props) {
         </div>
       </header>
 
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px', maxHeight: 'calc(100vh - 70px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' as never }}>
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px', maxHeight: 'calc(100vh - 70px)', overflow: 'auto', WebkitOverflowScrolling: 'touch' as never }}>
         {/* Error */}
         {error && (
           <div style={{
@@ -328,7 +328,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflowX: 'auto' }}>
+              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8 }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560 }}>
                     <thead style={{ position: 'sticky', top: 0, zIndex: 3 }}>
                       <tr style={{ background: C.surface2 }}>
