@@ -238,6 +238,22 @@ export default function AdminPage() {
               </span>
             </>
           )}
+          <a
+            href="/manual/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: C.muted,
+              fontSize: 18,
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+            }}
+            title="マニュアル"
+          >
+            ℹ️
+          </a>
           <button
             onClick={() => signOut({ callbackUrl: '/admin/login' })}
             style={{

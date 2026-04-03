@@ -1,0 +1,18 @@
+/* サイドバーのカテゴリヘッダー（グループタイトル）を装飾 */
+.VPSidebar .VPSidebarItem.level-0 > .item > .text {
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--vp-c-text-1);
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 12px;
+  margin-top: 8px;
+}
+
+/* 最初のカテゴリは上線なし */
+.VPSidebar .VPSidebarItem.level-0:first-child > .item > .text {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
