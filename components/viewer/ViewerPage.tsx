@@ -331,27 +331,27 @@ export default function ViewerPage({ tournamentId }: Props) {
               <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560 }}>
-                    <thead>
+                    <thead style={{ position: 'sticky', top: 0, zIndex: 3 }}>
                       <tr style={{ background: C.surface2 }}>
-                        <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 2, background: C.surface2 }}>順位</th>
-                        <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 2, background: C.surface2 }}>氏名　審判フラグ</th>
-                        <th style={thS}>組</th>
-                        <th style={{ ...thS, textAlign: 'left' }}>所属協会</th>
-                        <th style={thS}>クラス</th>
-                        <th style={thS}>R1</th>
-                        <th style={thS}>R2</th>
-                        <th style={thS}>R3</th>
-                        <th style={thS}>R4</th>
-                        <th style={thS}>1日計</th>
+                        <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 4, background: C.surface2 }}>順位</th>
+                        <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 4, background: C.surface2 }}>氏名　審判フラグ</th>
+                        <th style={{ ...thS, background: C.surface2 }}>組</th>
+                        <th style={{ ...thS, textAlign: 'left', background: C.surface2 }}>所属協会</th>
+                        <th style={{ ...thS, background: C.surface2 }}>クラス</th>
+                        <th style={{ ...thS, background: C.surface2 }}>R1</th>
+                        <th style={{ ...thS, background: C.surface2 }}>R2</th>
+                        <th style={{ ...thS, background: C.surface2 }}>R3</th>
+                        <th style={{ ...thS, background: C.surface2 }}>R4</th>
+                        <th style={{ ...thS, background: C.surface2 }}>1日計</th>
                         {has2ndDay && <>
-                          <th style={{ ...thS, color: C.blue2 }}>R5</th>
-                          <th style={{ ...thS, color: C.blue2 }}>R6</th>
-                          <th style={{ ...thS, color: C.blue2 }}>R7</th>
-                          <th style={{ ...thS, color: C.blue2 }}>R8</th>
-                          <th style={{ ...thS, color: C.blue2 }}>2日計</th>
+                          <th style={{ ...thS, color: C.blue2, background: C.surface2 }}>R5</th>
+                          <th style={{ ...thS, color: C.blue2, background: C.surface2 }}>R6</th>
+                          <th style={{ ...thS, color: C.blue2, background: C.surface2 }}>R7</th>
+                          <th style={{ ...thS, color: C.blue2, background: C.surface2 }}>R8</th>
+                          <th style={{ ...thS, color: C.blue2, background: C.surface2 }}>2日計</th>
                         </>}
-                        <th style={{ ...thS, color: C.gold }}>合計</th>
-                        <th style={thS}>平均</th>
+                        <th style={{ ...thS, color: C.gold, background: C.surface2 }}>合計</th>
+                        <th style={{ ...thS, background: C.surface2 }}>平均</th>
                       </tr>
                     </thead>
                     <tbody>
