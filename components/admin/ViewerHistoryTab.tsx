@@ -103,10 +103,10 @@ export default function ViewerHistoryTab({ tournamentId }: Props) {
             </div>
           </div>
 
-          {/* 所属フィルタ */}
+          {/* 所属協会フィルタ */}
           {data.belongs.length > 0 && (
             <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 14, color: C.muted }}>所属で絞り込み：</span>
+              <span style={{ fontSize: 14, color: C.muted }}>所属協会で絞り込み：</span>
               <button
                 onClick={() => { setBelongFilter(''); setPage(1); }}
                 style={{
@@ -143,7 +143,7 @@ export default function ViewerHistoryTab({ tournamentId }: Props) {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
                 <thead>
                   <tr style={{ background: C.surface2 }}>
-                    {['日時', '所属', '入力氏名', '照合氏名', '端末'].map(h => (
+                    {['日時', '所属協会', '入力氏名', '照合氏名', '端末'].map(h => (
                       <th key={h} style={{
                         padding: '8px 12px', fontSize: 13, color: C.muted,
                         fontWeight: 600, textAlign: 'left',

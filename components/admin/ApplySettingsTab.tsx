@@ -217,7 +217,7 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
     if (!applyForm.reception_start_time) missing.push('受付開始時間');
     if (!applyForm.practice_clay_time) missing.push('テストクレー放出時間');
     if (!applyForm.competition_start_time) missing.push('競技開始時間');
-    if (!applyForm.cancellation_notice.trim()) missing.push('中止お知らせ方法');
+    if (!applyForm.cancellation_notice.trim()) missing.push('中止のお知らせ方法');
     if (missing.length > 0) {
       setApplyError(`以下の項目は必須です：${missing.join('、')}`);
       return;
@@ -228,7 +228,7 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
     if (applyForm.apply_start_at && tournament.day1_date) {
       const day1 = new Date(tournament.day1_date);
       if (applyForm.apply_start_at >= day1) {
-        errors.push('募集開始日時は1日目日付より前に設定してください');
+        errors.push('募集開始日時は1日目より前に設定してください');
       }
     }
     if (applyForm.apply_start_at && applyForm.apply_end_at) {
@@ -477,9 +477,9 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
               />
             </div>
 
-            {/* 中止お知らせ方法 */}
+            {/* 中止のお知らせ方法 */}
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>中止お知らせ方法（400文字以内）{requiredMark}</label>
+              <label style={labelStyle}>中止のお知らせ方法（400文字以内）{requiredMark}</label>
               <textarea
                 value={applyForm.cancellation_notice}
                 onChange={e => setApplyForm(f => ({ ...f, cancellation_notice: e.target.value }))}

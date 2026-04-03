@@ -56,7 +56,7 @@ export default function ApplyFormPage() {
       return;
     }
     if (!belong) {
-      setSubmitError('所属を選択してください');
+      setSubmitError('所属協会を選択してください');
       return;
     }
     if (!classVal) {
@@ -197,7 +197,7 @@ export default function ApplyFormPage() {
               </div>
 
               <div>
-                <label style={labelStyle}>所属 <span style={{ color: C.red }}>*</span></label>
+                <label style={labelStyle}>所属協会 <span style={{ color: C.red }}>*</span></label>
                 <select
                   value={belong}
                   onChange={e => setBelong(e.target.value)}

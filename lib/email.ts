@@ -79,7 +79,7 @@ export async function sendQuestionNotification(
       <hr>
       <p>会員番号: ${memberCode}</p>
       <p>氏名: ${name}</p>
-      <p>所属: ${affiliation ?? '—'}</p>
+      <p>所属協会: ${affiliation ?? '—'}</p>
       <p>メール: ${email}</p>
       <hr>
       <p style="white-space: pre-wrap;">${body}</p>

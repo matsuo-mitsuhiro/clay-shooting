@@ -306,7 +306,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               </select>
             </div>
             <div>
-              <label style={labelStyle}>1日目日付</label>
+              <label style={labelStyle}>1日目</label>
               <DatePicker
                 selected={form.day1_date ? new Date(form.day1_date) : null}
                 onChange={(date: Date | null) => setForm(f => ({ ...f, day1_date: date ? date.toISOString().slice(0, 10) : '' }))}
@@ -317,7 +317,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               />
             </div>
             <div>
-              <label style={labelStyle}>2日目日付</label>
+              <label style={labelStyle}>2日目</label>
               <DatePicker
                 selected={form.day2_date ? new Date(form.day2_date) : null}
                 onChange={(date: Date | null) => setForm(f => ({ ...f, day2_date: date ? date.toISOString().slice(0, 10) : '' }))}

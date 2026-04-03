@@ -623,7 +623,7 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
                       { label: '番号', width: 50 },
                       { label: '会員番号', width: 90 },
                       { label: '氏名', width: undefined },
-                      { label: '所属', width: 140 },
+                      { label: '所属協会', width: 140 },
                       { label: 'クラス', width: 80 },
                       { label: '審判', width: 60 },
                       { label: '操作', width: 60 },
@@ -659,7 +659,7 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
                               <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, fontWeight: 500 }}>
                                 {member.name}
                               </td>
-                              {/* 所属 */}
+                              {/* 所属協会 */}
                               <td style={{ padding: '4px 6px' }}>
                                 {editing ? (
                                   <select
@@ -784,7 +784,7 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
                       <thead>
                         <tr style={{ background: C.surface2 }}>
-                          {['組', '番', '氏名', '所属', 'クラス'].map(h => (
+                          {['組', '番', '氏名', '所属協会', 'クラス'].map(h => (
                             <th key={h} style={{ padding: '7px 10px', fontSize: 13, color: C.muted, fontWeight: 600, textAlign: 'left', borderBottom: `1px solid ${C.border}` }}>{h}</th>
                           ))}
                         </tr>

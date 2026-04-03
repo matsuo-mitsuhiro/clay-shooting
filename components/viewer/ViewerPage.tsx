@@ -271,7 +271,7 @@ export default function ViewerPage({ tournamentId }: Props) {
               </div>
               {belongs.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <span style={{ fontSize: 14, color: C.muted }}>所属:</span>
+                  <span style={{ fontSize: 14, color: C.muted }}>所属協会:</span>
                   <select
                     value={belongFilter}
                     onChange={e => setBelongFilter(e.target.value)}
@@ -336,7 +336,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                         <th style={thS}>順位</th>
                         <th style={{ ...thS, textAlign: 'left' }}>氏名　審判フラグ</th>
                         <th style={thS}>組</th>
-                        <th style={{ ...thS, textAlign: 'left' }}>所属</th>
+                        <th style={{ ...thS, textAlign: 'left' }}>所属協会</th>
                         <th style={thS}>クラス</th>
                         <th style={thS}>R1</th>
                         <th style={thS}>R2</th>

@@ -103,7 +103,7 @@ export default function CancelConfirmPage() {
               <dd style={{ margin: 0, color: C.text }}>{registration.member_code}</dd>
               {registration.belong && (
                 <>
-                  <dt style={{ color: C.muted }}>所属</dt>
+                  <dt style={{ color: C.muted }}>所属協会</dt>
                   <dd style={{ margin: 0, color: C.text }}>{registration.belong}</dd>
                 </>
               )}

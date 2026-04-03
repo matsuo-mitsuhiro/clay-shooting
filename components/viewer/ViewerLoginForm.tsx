@@ -56,7 +56,7 @@ export default function ViewerLoginForm({
 
   async function handleLogin() {
     if (!belong) {
-      setError('所属を選択してください');
+      setError('所属協会を選択してください');
       return;
     }
     if (!name.trim()) {
@@ -149,13 +149,13 @@ export default function ViewerLoginForm({
         {!dateLabel && <div style={{ marginBottom: 24 }} />}
 
         <p style={{ margin: '0 0 20px', fontSize: 15, color: C.text }}>
-          所属と氏名を登録して成績を確認してください。
+          所属協会と氏名を登録して成績を確認してください。
         </p>
 
-        {/* 所属（必須） */}
+        {/* 所属協会（必須） */}
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', fontSize: 13, color: C.muted, marginBottom: 6 }}>
-            所属 <span style={{ color: C.red }}>*</span>
+            所属協会 <span style={{ color: C.red }}>*</span>
           </label>
           {loadingAff ? (
             <div style={{ color: C.muted, fontSize: 14 }}>読み込み中...</div>
@@ -197,7 +197,7 @@ export default function ViewerLoginForm({
               onChange={e => setSaveInfo(e.target.checked)}
               style={{ width: 16, height: 16, cursor: 'pointer', accentColor: C.gold }}
             />
-            所属と氏名を保存する
+            所属協会と氏名を保存する
           </label>
         </div>
 

@@ -181,7 +181,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
             newRows.push({ ...row, searchStatus: 'not_found' });
           }
         } else {
-          // 氏名のみ → スペース正規化検索（所属がある場合は絞り込み）
+          // 氏名のみ → スペース正規化検索（所属協会がある場合は絞り込み）
           const normName = normalizeSpaces(name);
           const params = new URLSearchParams({ q_name: normName });
           if (row.belong) params.set('q_belong', row.belong);
@@ -459,7 +459,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
                 { label: '会員番号', w: 100 },
                 { label: '氏名',   w: undefined },
                 { label: '参加',   w: 80  },
-                { label: '所属',   w: 110 },
+                { label: '所属協会',   w: 110 },
                 { label: 'クラス', w: 68  },
                 { label: '審判',   w: 52  },
                 { label: '削除',   w: 52, red: true },
@@ -537,7 +537,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
                     </select>
                   </td>
 
-                  {/* 所属 */}
+                  {/* 所属協会 */}
                   <td style={{ padding: '3px 6px' }}>
                     <select
                       value={row.belong}
@@ -608,7 +608,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
 
       <div style={{ marginTop: 8, fontSize: 12, color: C.muted, lineHeight: 1.8 }}>
         <span style={{ color: C.gold }}>●</span>{' '}
-        会員番号（数字）を入力→DBから自動補完　氏名のみ入力→氏名＋所属で検索　両方入力→両方一致で補完<br />
+        会員番号（数字）を入力→DBから自動補完　氏名のみ入力→氏名＋所属協会で検索　両方入力→両方一致で補完<br />
         <span style={{ color: C.gold }}>●</span>{' '}
         氏名が空欄の行は保存しません　保存時は空きスロットへ順番に自動割り当て（必要な組は自動追加）
       </div>

@@ -91,7 +91,7 @@ export default function AdminsPage() {
     if (status === 'authenticated') {
       fetchAdmins();
       fetchAffiliations();
-      // 大会管理者は自所属を固定
+      // 大会管理者は自所属協会を固定
       if (!isSystem && myAffiliation) setFilterAffiliation(myAffiliation);
     }
   }, [status, fetchAdmins, fetchAffiliations, isSystem, myAffiliation]);
@@ -196,7 +196,7 @@ export default function AdminsPage() {
     setTimeout(() => setCopyDone(false), 2000);
   }
 
-  // 所属フィルタ適用
+  // 所属協会フィルタ適用
   const filteredAdmins = filterAffiliation
     ? admins.filter(a => (a.current_affiliation ?? '') === filterAffiliation)
     : admins;
@@ -307,9 +307,9 @@ export default function AdminsPage() {
           </div>
         )}
 
-        {/* 所属フィルタ */}
+        {/* 所属協会フィルタ */}
         <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <label style={{ fontSize: 13, color: C.muted, whiteSpace: 'nowrap' }}>所属で絞り込み：</label>
+          <label style={{ fontSize: 13, color: C.muted, whiteSpace: 'nowrap' }}>所属協会で絞り込み：</label>
           {isSystem ? (
             <select
               value={filterAffiliation}
@@ -335,7 +335,7 @@ export default function AdminsPage() {
                   <th style={th}>会員番号</th>
                   <th style={th}>氏名</th>
                   <th style={th}>メール</th>
-                  <th style={th}>現在の所属</th>
+                  <th style={th}>現在の所属協会</th>
                   <th style={th}>状態</th>
                   <th style={th}>操作</th>
                 </tr>

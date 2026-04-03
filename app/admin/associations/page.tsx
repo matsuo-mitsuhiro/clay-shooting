@@ -233,10 +233,10 @@ export default function AssociationsPage() {
               {rangesBox}
             </div>
 
-            {/* 中止お知らせ方法 */}
+            {/* 中止のお知らせ方法 */}
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 4 }}>
-                中止お知らせ方法（400文字以内）
+                中止のお知らせ方法（400文字以内）
               </label>
               <textarea
                 value={editData.cancellation_notice ?? ''}

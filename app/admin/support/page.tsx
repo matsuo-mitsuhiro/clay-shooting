@@ -313,7 +313,7 @@ export default function AdminSupportPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: C.surface2 }}>
-                    {['受付日時', '会員番号', '氏名', '所属', '状態', '操作'].map(h => (
+                    {['受付日時', '会員番号', '氏名', '所属協会', '状態', '操作'].map(h => (
                       <th key={h} style={{ padding: '10px 12px', fontSize: 13, color: C.muted, fontWeight: 600, textAlign: 'left', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
@@ -422,7 +422,7 @@ export default function AdminSupportPage() {
             <div style={{ background: C.surface2, borderRadius: 8, padding: 16, marginBottom: 16, fontSize: 13, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, color: C.muted }}>
               <div>会員番号：<span style={{ color: C.text }}>{selectedQ.member_code}</span></div>
               <div>氏名：<span style={{ color: C.text }}>{selectedQ.name}</span></div>
-              <div>所属：<span style={{ color: C.text }}>{selectedQ.affiliation ?? '—'}</span></div>
+              <div>所属協会：<span style={{ color: C.text }}>{selectedQ.affiliation ?? '—'}</span></div>
               <div>メール：<span style={{ color: C.text }}>{selectedQ.email}</span></div>
             </div>
 

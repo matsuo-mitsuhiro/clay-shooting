@@ -131,7 +131,7 @@ function SupportContent() {
               </div>
 
               <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>所属</label>
+                <label style={labelStyle}>所属協会</label>
                 <select
                   style={{ ...inputStyle, cursor: 'pointer' }}
                   value={affiliation}

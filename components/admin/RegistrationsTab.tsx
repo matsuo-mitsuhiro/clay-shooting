@@ -71,6 +71,10 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   // Association names for dropdown
   const [associationNames, setAssociationNames] = useState<string[]>([]);
 
+  // Filters for registration list
+  const [filterClass, setFilterClass] = useState<string>('all');
+  const [filterBelong, setFilterBelong] = useState<string>('all');
+
   useEffect(() => {
     fetchRegistrations();
     fetch('/api/associations')
@@ -110,8 +114,25 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
     }
   }
 
+  async function getMemberPositions(memberCode: string): Promise<string> {
+    if (!memberCode) return '';
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/members/by-code?member_code=${encodeURIComponent(memberCode)}`);
+      const json = await res.json();
+      if (!json.success || !json.data?.length) return '';
+      const positions = (json.data as { day: number; group_number: number; position: number }[])
+        .map(m => `${m.day}日目 ${m.group_number}組${m.position}番`)
+        .join('、');
+      return positions;
+    } catch { return ''; }
+  }
+
   async function handleCancel(reg: Registration) {
-    if (!window.confirm(`${reg.name} さんの申込をキャンセルしますか？`)) return;
+    const positions = await getMemberPositions(reg.member_code);
+    const msg = positions
+      ? `${positions}に登録されている選手です。\nキャンセルしても良いですか？`
+      : `${reg.name} さんの申込をキャンセルします。よろしいですか？`;
+    if (!window.confirm(msg)) return;
     const adminName = session?.user?.name ?? 'admin';
     try {
       const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}/cancel`, {
@@ -128,7 +149,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   }
 
   async function handleRestore(reg: Registration) {
-    if (!window.confirm(`${reg.name} さんの申込を未移行に戻しますか？`)) return;
+    if (!window.confirm(`${reg.name} さんの申込を未移行に戻します。よろしいですか？`)) return;
     try {
       const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}/restore`, {
         method: 'POST',
@@ -143,7 +164,11 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   }
 
   async function handleDeleteManual(reg: Registration) {
-    if (!window.confirm(`${reg.name} さんの手動登録を削除しますか？`)) return;
+    const positions = await getMemberPositions(reg.member_code);
+    const msg = positions
+      ? `${positions}に登録されている選手です。\n削除しても良いですか？`
+      : `${reg.name} さんの手動登録を削除します。よろしいですか？`;
+    if (!window.confirm(msg)) return;
     try {
       const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}`, {
         method: 'DELETE',
@@ -244,7 +269,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
     setManualRows(prev => prev.map(r =>
       r.id === id ? { ...r, [field]: value } : r
     ));
-    // 会員番号・氏名の変更時のみ再検索が必要（所属・クラス・審判・参加の編集は許可）
+    // 会員番号・氏名の変更時のみ再検索が必要（所属協会・クラス・審判・参加の編集は許可）
     if (field === 'member_code' || field === 'name') {
       setSearched(false);
     }
@@ -413,6 +438,15 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   const cancelledCount = registrations.filter(r => r.status === 'cancelled').length;
   const untransferredCount = activeRegs.filter(r => !r.transferred_at).length;
 
+  // Filter data
+  const existingClasses = (['AA', 'A', 'B', 'C'] as ClassType[]).filter(c => registrations.some(r => r.class === c));
+  const existingBelongs = [...new Set(registrations.map(r => r.belong).filter((b): b is string => !!b))].sort();
+  const filteredRegistrations = registrations.filter(r => {
+    if (filterClass !== 'all' && r.class !== filterClass) return false;
+    if (filterBelong !== 'all' && r.belong !== filterBelong) return false;
+    return true;
+  });
+
   // Capacity calculation
   const maxP = tournament.max_participants;
   const is2Day = !!tournament.day2_date;
@@ -511,7 +545,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                 {[
                   { label: '会員番号', w: 100 },
                   { label: '氏名', w: undefined },
-                  { label: '所属', w: 110 },
+                  { label: '所属協会', w: 110 },
                   { label: 'クラス', w: 68 },
                   { label: '審判', w: 52 },
                   { label: '参加', w: 80 },
@@ -605,7 +639,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
           </table>
         </div>
         <div style={{ marginTop: 8, fontSize: 12, color: C.muted, lineHeight: 1.8 }}>
-          会員番号を入力 → DBから自動補完 / 氏名のみ入力 → 氏名+所属で検索 / 両方入力 → 両方一致で補完
+          会員番号を入力 → DBから自動補完 / 氏名のみ入力 → 氏名+所属協会で検索 / 両方入力 → 両方一致で補完
         </div>
       </div>
 
@@ -657,6 +691,33 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
         >
           最新に更新
         </button>
+        {/* クラスフィルター */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: `1px solid ${C.border}`, borderRadius: 5, padding: '2px 4px' }}>
+          <span style={{ fontSize: 13, color: C.muted, padding: '0 4px' }}>クラス:</span>
+          {['all', ...existingClasses].map(c => (
+            <button key={c} onClick={() => setFilterClass(c)}
+              style={{
+                background: filterClass === c ? C.gold : 'transparent',
+                color: filterClass === c ? '#000' : C.muted,
+                border: 'none', borderRadius: 4, padding: '3px 8px', fontSize: 13,
+                fontWeight: filterClass === c ? 700 : 400, cursor: 'pointer',
+              }}>
+              {c === 'all' ? '全て' : c}
+            </button>
+          ))}
+        </div>
+        {/* 所属協会フィルター */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 13, color: C.muted }}>所属協会:</span>
+          <select value={filterBelong} onChange={e => setFilterBelong(e.target.value)}
+            style={{
+              background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5,
+              color: C.text, padding: '4px 8px', fontSize: 13,
+            }}>
+            <option value="all">全て</option>
+            {existingBelongs.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
         <button
           onClick={handleTransfer}
           disabled={transferring || untransferredCount === 0}
@@ -697,7 +758,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
             <thead>
               <tr style={{ background: C.surface2 }}>
-                {['登録元', '会員番号', '氏名', '所属', 'クラス', '審判', '参加', '申込日時', 'ステータス', '操作'].map(h => (
+                {['登録元', '会員番号', '氏名', '所属協会', 'クラス', '審判', '参加', '申込日時', 'ステータス', '操作'].map(h => (
                   <th key={h} style={{
                     padding: '9px 10px', fontSize: 12, color: C.muted, fontWeight: 600,
                     textAlign: 'left', borderBottom: `2px solid ${C.border}`, whiteSpace: 'nowrap',
@@ -706,11 +767,11 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
               </tr>
             </thead>
             <tbody>
-              {registrations.map(reg => {
+              {filteredRegistrations.map(reg => {
                 const isTransferred = !!reg.transferred_at;
                 const isManual = reg.source === 'manual';
                 const isCancelled = reg.status === 'cancelled';
-                const rowOpacity = isCancelled ? 0.5 : isTransferred ? 0.6 : 1;
+                const rowOpacity = isCancelled ? 0.7 : isTransferred ? 0.85 : 1;
                 const rowBg = isCancelled ? `${C.surface2}88` : isTransferred ? `${C.surface2}44` : 'transparent';
 
                 return (
@@ -753,7 +814,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                       )}
                     </td>
 
-                    {/* 所属 (editable) */}
+                    {/* 所属協会 (editable) */}
                     <td style={{ padding: '7px 10px', fontSize: 13, color: C.muted }}>
                       {editingCell?.regId === reg.id && editingCell?.field === 'belong' ? (
                         <select value={editValue}
@@ -850,7 +911,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                     </td>
 
                     {/* 操作 */}
-                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap', display: 'flex', gap: 4 }}>
                       {isCancelled ? (
                         <button onClick={() => handleRestore(reg)}
                           style={{
@@ -859,22 +920,6 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                           }}>
                           未移行に戻す
                         </button>
-                      ) : isTransferred ? (
-                        <button onClick={() => handleCancel(reg)}
-                          style={{
-                            background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
-                            borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
-                          }}>
-                          キャンセル
-                        </button>
-                      ) : isManual ? (
-                        <button onClick={() => handleDeleteManual(reg)}
-                          style={{
-                            background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
-                            borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
-                          }}>
-                          x
-                        </button>
                       ) : (
                         <button onClick={() => handleCancel(reg)}
                           style={{
@@ -882,6 +927,15 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                             borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
                           }}>
                           キャンセル
+                        </button>
+                      )}
+                      {isManual && (
+                        <button onClick={() => handleDeleteManual(reg)}
+                          style={{
+                            background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
+                            borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
+                          }}>
+                          削除
                         </button>
                       )}
                     </td>

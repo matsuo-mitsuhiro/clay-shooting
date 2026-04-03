@@ -271,7 +271,7 @@ export default function AdminPage() {
             <span style={{ fontSize: 20 }}>👤</span>
             <div>
               <div>選手マスター管理</div>
-              <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>会員番号・氏名・所属・クラス・審判フラグを管理</div>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>会員番号・氏名・所属協会・クラス・審判フラグを管理</div>
             </div>
             <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
           </button>
@@ -431,7 +431,7 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>1日目日付</label>
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>1日目</label>
                   <DatePicker
                     selected={form.day1_date ? new Date(form.day1_date) : null}
                     onChange={(date: Date | null) => setForm(f => ({ ...f, day1_date: date ? date.toISOString().slice(0, 10) : '' }))}
@@ -442,7 +442,7 @@ export default function AdminPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>2日目日付（任意）</label>
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>2日目（任意）</label>
                   <DatePicker
                     selected={form.day2_date ? new Date(form.day2_date) : null}
                     onChange={(date: Date | null) => setForm(f => ({ ...f, day2_date: date ? date.toISOString().slice(0, 10) : '' }))}

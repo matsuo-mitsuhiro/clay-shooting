@@ -161,7 +161,7 @@ export default function PlayersPage() {
           onChange={e => setQ(e.target.value)}
         />
         <select style={s.select} value={filterAffil} onChange={e => setFilterAffil(e.target.value)}>
-          <option value="">所属：すべて</option>
+          <option value="">所属協会：すべて</option>
           {associationNames.map(name => <option key={name} value={name}>{name}</option>)}
         </select>
         <select style={s.select} value={filterClass} onChange={e => setFilterClass(e.target.value)}>
@@ -195,7 +195,7 @@ export default function PlayersPage() {
               <tr>
                 <th style={s.th}>会員番号</th>
                 <th style={s.th}>氏名</th>
-                <th style={s.th}>所属</th>
+                <th style={s.th}>所属協会</th>
                 <th style={s.th}>クラス</th>
                 <th style={s.th}>審判フラグ</th>
                 <th style={s.th}>最終更新</th>
@@ -250,7 +250,7 @@ export default function PlayersPage() {
               />
             </div>
             <div style={s.formRow}>
-              <label style={s.formLabel}>所属</label>
+              <label style={s.formLabel}>所属協会</label>
               <select style={s.formSelect} value={form.affiliation} onChange={e => setForm(f => ({ ...f, affiliation: e.target.value }))}>
                 <option value="">— 選択 —</option>
                 {associationNames.map(name => <option key={name} value={name}>{name}</option>)}
