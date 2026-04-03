@@ -16,6 +16,16 @@ interface Props {
   onUpdated: () => void;
 }
 
+function validateDates(day1: string, day2: string): 'ok' | 'error' | 'warn' {
+  if (!day1 || !day2) return 'ok';
+  const d1 = new Date(day1);
+  const d2 = new Date(day2);
+  if (d2 <= d1) return 'error';
+  const diffDays = (d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24);
+  if (diffDays !== 1) return 'warn';
+  return 'ok';
+}
+
 // 保存日時フォーマット: YYYY/MM/DD HH:mm
 function formatSavedAt(s: string | null): string {
   if (!s) return '';
@@ -120,6 +130,15 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     if (!form.name.trim()) {
       setError('大会名を入力してください');
       return;
+    }
+    const dateStatus = validateDates(form.day1_date, form.day2_date);
+    if (dateStatus === 'error') {
+      setError('2日目の日付は1日目より後にしか設定できません。');
+      return;
+    }
+    if (dateStatus === 'warn') {
+      const ok = window.confirm('1日目と2日目が連続していません。間違えていませんか？');
+      if (!ok) return;
     }
     try {
       setSaving(true);
@@ -305,8 +324,14 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 dateFormat="yyyy/MM/dd"
                 locale={ja}
                 placeholderText="日付を選択"
+                isClearable
                 customInput={<input style={{ ...inputStyle, cursor: 'pointer' }} readOnly />}
               />
+              {validateDates(form.day1_date, form.day2_date) === 'error' && (
+                <div style={{ color: '#e74c3c', fontSize: 13, marginTop: 4 }}>
+                  2日目の日付は1日目より後にしか設定できません。
+                </div>
+              )}
             </div>
             <div>
               <label style={labelStyle}>1日目セット番号</label>
@@ -332,11 +357,12 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
           <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || validateDates(form.day1_date, form.day2_date) === 'error'}
               style={{
                 background: C.gold, color: '#000', border: 'none', borderRadius: 5,
                 padding: '9px 24px', fontWeight: 700, fontSize: 16,
-                cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
+                cursor: (saving || validateDates(form.day1_date, form.day2_date) === 'error') ? 'not-allowed' : 'pointer',
+                opacity: (saving || validateDates(form.day1_date, form.day2_date) === 'error') ? 0.7 : 1,
               }}
             >
               {saving ? '保存中...' : '保存'}

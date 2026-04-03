@@ -115,6 +115,15 @@ export default function AdminPage() {
       setError('大会名を入力してください');
       return;
     }
+    const dateStatus = validateDates(form.day1_date, form.day2_date);
+    if (dateStatus === 'error') {
+      setError('2日目の日付は1日目より後にしか設定できません。');
+      return;
+    }
+    if (dateStatus === 'warn') {
+      const ok = window.confirm('1日目と2日目が連続していません。間違えていませんか？');
+      if (!ok) return;
+    }
     try {
       setCreating(true);
       setError(null);
@@ -154,6 +163,16 @@ export default function AdminPage() {
         else setAssocRangeIds([]);
       } catch { setAssocRangeIds([]); }
     }
+  }
+
+  function validateDates(day1: string, day2: string): 'ok' | 'error' | 'warn' {
+    if (!day1 || !day2) return 'ok';
+    const d1 = new Date(day1);
+    const d2 = new Date(day2);
+    if (d2 <= d1) return 'error';
+    const diffDays = (d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays !== 1) return 'warn';
+    return 'ok';
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -398,6 +417,20 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>種目</label>
+                  <select
+                    value={form.event_type}
+                    onChange={e => setForm(f => ({ ...f, event_type: e.target.value as EventType }))}
+                    style={{
+                      width: '100%', background: C.inputBg, border: `1px solid ${C.border}`,
+                      borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="trap">トラップ</option>
+                    <option value="skeet">スキート</option>
+                  </select>
+                </div>
+                <div>
                   <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>1日目日付</label>
                   <DatePicker
                     selected={form.day1_date ? new Date(form.day1_date) : null}
@@ -419,30 +452,22 @@ export default function AdminPage() {
                     isClearable
                     customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const }} />}
                   />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>種目</label>
-                  <select
-                    value={form.event_type}
-                    onChange={e => setForm(f => ({ ...f, event_type: e.target.value as EventType }))}
-                    style={{
-                      width: '100%', background: C.inputBg, border: `1px solid ${C.border}`,
-                      borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box',
-                    }}
-                  >
-                    <option value="trap">トラップ</option>
-                    <option value="skeet">スキート</option>
-                  </select>
+                  {validateDates(form.day1_date, form.day2_date) === 'error' && (
+                    <div style={{ color: '#e74c3c', fontSize: 13, marginTop: 4 }}>
+                      2日目の日付は1日目より後にしか設定できません。
+                    </div>
+                  )}
                 </div>
               </div>
               <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
                 <button
                   type="submit"
-                  disabled={creating}
+                  disabled={creating || validateDates(form.day1_date, form.day2_date) === 'error'}
                   style={{
                     background: C.gold, color: '#000', border: 'none', borderRadius: 5,
                     padding: '9px 22px', fontWeight: 700, fontSize: 16,
-                    cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.7 : 1,
+                    cursor: (creating || validateDates(form.day1_date, form.day2_date) === 'error') ? 'not-allowed' : 'pointer',
+                    opacity: (creating || validateDates(form.day1_date, form.day2_date) === 'error') ? 0.7 : 1,
                   }}
                 >
                   {creating ? '作成中...' : '作成する'}
