@@ -591,7 +591,7 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
             <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 600, color: C.text, fontSize: 16 }}>
-                {selectedDay}日目 {selectedGroup}組（{groupMembers.length}名）
+                {hasTwoDays ? `${selectedDay}日目 ` : ''}{selectedGroup}組（{groupMembers.length}名）
               </span>
               {/* Edit / Save / Cancel buttons */}
               <div style={{ display: 'flex', gap: 8 }}>

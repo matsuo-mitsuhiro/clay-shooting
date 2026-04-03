@@ -436,7 +436,7 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                   background: C.surface2,
                 }}>
                   <span style={{ fontWeight: 600, color: C.text, fontSize: 16 }}>
-                    {selectedDay}日目 {groupNum}組
+                    {hasTwoDays ? `${selectedDay}日目 ` : ''}{groupNum}組
                   </span>
                   <button
                     onClick={() => handleSaveGroup(groupNum)}
