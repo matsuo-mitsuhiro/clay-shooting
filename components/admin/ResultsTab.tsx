@@ -453,8 +453,8 @@ export default function ResultsTab({ tournamentId }: Props) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 820 : 600, background: C.surface }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr style={{ background: C.surface2 }}>
-                      <th style={{ ...thS, background: C.surface2 }}>順位</th>
-                      <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 0, zIndex: 11, background: C.surface2 }}>氏名</th>
+                      <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 11, background: C.surface2 }}>順位</th>
+                      <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 11, background: C.surface2 }}>氏名</th>
                       <th style={{ ...thS, background: C.surface2 }}>組</th>
                       <th style={{ ...thS, textAlign: 'left', background: C.surface2 }}>所属協会</th>
                       <th style={{ ...thS, background: C.surface2 }}>クラス</th>
@@ -499,12 +499,14 @@ export default function ResultsTab({ tournamentId }: Props) {
                             ...tdS,
                             color: r.rank && r.rank <= 3 ? C.gold : C.muted,
                             fontWeight: r.rank && r.rank <= 3 ? 700 : 400,
+                            position: 'sticky', left: 0, zIndex: 1,
+                            background: isDQ ? '#1a1d24' : isHighlighted ? '#1a2a1a' : C.surface,
                           }}>
                             {r.rank ?? ''}
                           </td>
 
                           {/* 氏名 */}
-                          <td style={{ ...tdS, textAlign: 'left', whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: isDQ ? '#1a1d24' : isHighlighted ? '#27ae6036' : C.surface }}>
+                          <td style={{ ...tdS, textAlign: 'left', whiteSpace: 'nowrap', position: 'sticky', left: 44, zIndex: 1, background: isDQ ? '#1a1d24' : isHighlighted ? '#1a2a1a' : C.surface }}>
                             <span style={{ color: isDQ ? '#e74c3c' : C.text, fontWeight: 500 }}>{r.name}</span>
                             {r.status === 'disqualified' && (
                               <span style={{ color: '#e74c3c', fontSize: 12, marginLeft: 6, fontWeight: 700 }}>失格</span>
