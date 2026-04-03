@@ -328,8 +328,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
-              <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560, background: C.surface }}>
                     <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
                         <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 11, background: C.surface2 }}>順位</th>
@@ -406,7 +405,6 @@ export default function ViewerPage({ tournamentId }: Props) {
                       })}
                     </tbody>
                   </table>
-              </div>
             )}
           </>
         )}
