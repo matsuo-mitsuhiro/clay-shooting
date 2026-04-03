@@ -31,6 +31,7 @@ export default function AdminPage() {
     name: '',
     venue: '',
     day1_date: '',
+    day2_date: '',
     event_type: 'trap' as EventType,
     organizer_cd: 0,
   });
@@ -124,6 +125,7 @@ export default function AdminPage() {
           name: form.name.trim(),
           venue: form.venue.trim() || undefined,
           day1_date: form.day1_date || undefined,
+          day2_date: form.day2_date || undefined,
           event_type: form.event_type,
           organizer_cd: form.organizer_cd || undefined,
         }),
@@ -131,7 +133,7 @@ export default function AdminPage() {
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
       const defaultCd = isSystem ? (associations[0]?.cd ?? 0) : (associations.find(a => a.name === userAffiliation)?.cd ?? 0);
-      setForm({ name: '', venue: '', day1_date: '', event_type: 'trap', organizer_cd: defaultCd });
+      setForm({ name: '', venue: '', day1_date: '', day2_date: '', event_type: 'trap', organizer_cd: defaultCd });
       setShowForm(false);
       await fetchTournaments();
     } catch (e) {
@@ -403,6 +405,18 @@ export default function AdminPage() {
                     dateFormat="yyyy/MM/dd"
                     locale={ja}
                     placeholderText="日付を選択"
+                    customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const }} />}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>2日目日付（任意）</label>
+                  <DatePicker
+                    selected={form.day2_date ? new Date(form.day2_date) : null}
+                    onChange={(date: Date | null) => setForm(f => ({ ...f, day2_date: date ? date.toISOString().slice(0, 10) : '' }))}
+                    dateFormat="yyyy/MM/dd"
+                    locale={ja}
+                    placeholderText="1日開催の場合は空欄"
+                    isClearable
                     customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 16, boxSizing: 'border-box' as const }} />}
                   />
                 </div>
