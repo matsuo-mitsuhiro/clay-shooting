@@ -465,14 +465,14 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   };
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ padding: '0 16px', maxWidth: 1400, margin: '0 auto', maxHeight: 'calc(100vh - 110px)', overflow: 'auto' }}>
       <LoadingOverlay show={searching || saving} message={searching ? '検索中...' : '保存中...'} />
 
       {/* ============ Manual Add Area ============ */}
       <div style={{
         background: C.surface,
         border: `1px solid ${C.border}`,
-        borderRadius: 8,
+        borderRadius: 8, marginTop: 20,
         padding: '16px',
         marginBottom: 24,
       }}>
@@ -754,14 +754,13 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
           <p style={{ color: C.muted, fontSize: 15 }}>申込はまだありません</p>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', border: `1px solid ${C.border}`, borderRadius: 6 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900, background: C.surface }}>
             <thead>
               <tr style={{ background: C.surface2 }}>
                 {['登録元', '会員番号', '氏名', '所属協会', 'クラス', '審判', '参加', '申込日時', 'ステータス', '操作'].map((h, i) => {
                   const isName = h === '氏名';
                   const isBelong = h === '所属協会';
-                  const stickyLeft = isName ? { position: 'sticky' as const, left: 0, zIndex: 4 }
+                  const stickyLeft = isName ? { position: 'sticky' as const, left: 0, zIndex: 4, minWidth: 110 }
                     : isBelong ? { position: 'sticky' as const, left: 110, zIndex: 4 }
                     : {};
                   return (
@@ -807,7 +806,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                     </td>
 
                     {/* 氏名 (editable, sticky) */}
-                    <td style={{ padding: '7px 10px', fontSize: 14, color: C.text, fontWeight: 600, position: 'sticky', left: 0, zIndex: 2, background: isCancelled ? '#1e2228' : isTransferred ? '#1c1f26' : C.surface }}>
+                    <td style={{ padding: '7px 10px', fontSize: 14, color: C.text, fontWeight: 600, position: 'sticky', left: 0, zIndex: 2, minWidth: 110, background: isCancelled ? '#1e2228' : isTransferred ? '#1c1f26' : C.surface }}>
                       {editingCell?.regId === reg.id && editingCell?.field === 'name' ? (
                         <input type="text" value={editValue}
                           onChange={e => setEditValue(e.target.value)}
@@ -953,7 +952,6 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
               })}
             </tbody>
           </table>
-        </div>
       )}
     </div>
   );
