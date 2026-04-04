@@ -23,6 +23,7 @@ export default function AdminPage() {
   const [isMobile, setIsMobile] = useState(false);
   const orgInitRef = useRef(false);
 
+  const [listTab, setListTab] = useState<'current' | 'past'>('current');
   const [associations, setAssociations] = useState<Association[]>([]);
   const [allRanges, setAllRanges] = useState<ShootingRange[]>([]);
   const [assocRangeIds, setAssocRangeIds] = useState<number[]>([]);
@@ -202,6 +203,24 @@ export default function AdminPage() {
     ? tournaments
     : tournaments.filter(t => t.organizer_cd === userOrganizerCd);
 
+  // 今日の日付（時刻なし）
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  // 大会の最終日（day2_date があれば day2、なければ day1）
+  const lastDate = (t: Tournament) => t.day2_date ?? t.day1_date ?? '';
+
+  // 現在・今後（最終日 >= 今日）: 日付昇順
+  const currentTournaments = filteredTournaments
+    .filter(t => !lastDate(t) || lastDate(t) >= todayStr)
+    .sort((a, b) => (lastDate(a) < lastDate(b) ? -1 : lastDate(a) > lastDate(b) ? 1 : 0));
+
+  // 過去（最終日 < 今日）: 日付降順
+  const pastTournaments = filteredTournaments
+    .filter(t => lastDate(t) && lastDate(t) < todayStr)
+    .sort((a, b) => (lastDate(a) > lastDate(b) ? -1 : lastDate(a) < lastDate(b) ? 1 : 0));
+
+  const displayTournaments = listTab === 'current' ? currentTournaments : pastTournaments;
+
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
       {/* Header */}
@@ -377,9 +396,28 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Title + Create Button */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <h2 style={{ margin: 0, fontSize: 24, color: C.text }}>大会一覧</h2>
+        {/* Title + Tabs + Create Button */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['current', 'past'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setListTab(tab)}
+                style={{
+                  background: listTab === tab ? C.gold : 'transparent',
+                  color: listTab === tab ? '#000' : C.muted,
+                  border: `1px solid ${listTab === tab ? C.gold : C.border}`,
+                  borderRadius: 6,
+                  padding: '6px 16px',
+                  fontSize: 16,
+                  fontWeight: listTab === tab ? 700 : 400,
+                  cursor: 'pointer',
+                }}
+              >
+                {tab === 'current' ? '大会一覧' : '過去の大会'}
+              </button>
+            ))}
+          </div>
           <button
             onClick={() => { setShowForm(!showForm); setError(null); }}
             style={{
@@ -526,16 +564,16 @@ export default function AdminPage() {
           <div style={{ textAlign: 'center', padding: '60px 0', color: C.muted }}>
             読み込み中...
           </div>
-        ) : filteredTournaments.length === 0 ? (
+        ) : displayTournaments.length === 0 ? (
           <div style={{
             background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
             padding: '48px 24px', textAlign: 'center', color: C.muted,
           }}>
-            大会が登録されていません。「＋ 新規大会作成」から作成してください。
+            {listTab === 'current' ? '大会が登録されていません。「＋ 新規大会作成」から作成してください。' : '過去の大会はありません。'}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {filteredTournaments.map(t => (
+            {displayTournaments.map(t => (
               <div
                 key={t.id}
                 style={{

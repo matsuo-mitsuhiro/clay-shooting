@@ -10,6 +10,7 @@ export default function ViewerListPage() {
   const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listTab, setListTab] = useState<'current' | 'past'>('current');
 
   useEffect(() => {
     fetch('/api/tournaments')
@@ -26,6 +27,19 @@ export default function ViewerListPage() {
   const fmtDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const lastDate = (t: Tournament) => t.day2_date ?? t.day1_date ?? '';
+
+  const currentTournaments = tournaments
+    .filter(t => !lastDate(t) || lastDate(t) >= todayStr)
+    .sort((a, b) => (lastDate(a) < lastDate(b) ? -1 : lastDate(a) > lastDate(b) ? 1 : 0));
+
+  const pastTournaments = tournaments
+    .filter(t => lastDate(t) && lastDate(t) < todayStr)
+    .sort((a, b) => (lastDate(a) > lastDate(b) ? -1 : lastDate(a) < lastDate(b) ? 1 : 0));
+
+  const displayTournaments = listTab === 'current' ? currentTournaments : pastTournaments;
+
   return (
     <div className="min-h-screen" style={{ background: C.bg, color: C.text }}>
       {/* ヘッダー */}
@@ -38,23 +52,42 @@ export default function ViewerListPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-10">
-        <h1 className="text-xl font-bold mb-6" style={{ color: C.gold }}>大会一覧</h1>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+          {(['current', 'past'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setListTab(tab)}
+              style={{
+                background: listTab === tab ? C.gold : 'transparent',
+                color: listTab === tab ? '#000' : C.muted,
+                border: `1px solid ${listTab === tab ? C.gold : C.border}`,
+                borderRadius: 6,
+                padding: '6px 16px',
+                fontSize: 15,
+                fontWeight: listTab === tab ? 700 : 400,
+                cursor: 'pointer',
+              }}
+            >
+              {tab === 'current' ? '大会一覧' : '過去の大会'}
+            </button>
+          ))}
+        </div>
 
         {loading && (
           <p style={{ color: C.muted }} className="text-center py-10">読み込み中...</p>
         )}
 
-        {!loading && tournaments.length === 0 && (
+        {!loading && displayTournaments.length === 0 && (
           <div
             className="rounded-xl p-8 text-center"
             style={{ background: C.surface, border: `1px solid ${C.border}` }}
           >
-            <p style={{ color: C.muted }}>大会が登録されていません</p>
+            <p style={{ color: C.muted }}>{listTab === 'current' ? '大会が登録されていません' : '過去の大会はありません'}</p>
           </div>
         )}
 
         <div className="flex flex-col gap-3">
-          {tournaments.map((t) => {
+          {displayTournaments.map((t) => {
             const now = Date.now();
             const hasApply = !!(t.apply_start_at && t.apply_end_at);
             const applyOpen = hasApply &&

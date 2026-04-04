@@ -86,24 +86,7 @@ export default function AdminDetail({ tournamentId }: Props) {
         gap: 16,
         flexWrap: 'wrap',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-          <button
-            onClick={() => router.push('/admin')}
-            style={{
-              background: 'transparent',
-              color: C.muted,
-              border: `1px solid ${C.border}`,
-              borderRadius: 5,
-              padding: '4px 10px',
-              fontSize: 13,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            ←Top
-          </button>
-          <div style={{ flex: 1 }}>
+        <div style={{ flex: 1 }}>
           {loading ? (
             <span style={{ color: C.muted, fontSize: 18 }}>読み込み中...</span>
           ) : error ? (
@@ -129,7 +112,6 @@ export default function AdminDetail({ tournamentId }: Props) {
               </span>
             </div>
           ) : null}
-          </div>
         </div>
         {/* PC用: ヘッダー右側ボタン群 */}
         {!isMobile && (
@@ -422,6 +404,22 @@ export default function AdminDetail({ tournamentId }: Props) {
           overflowX: 'auto',
           alignItems: 'center',
         }}>
+          <button
+            onClick={() => router.push('/admin')}
+            style={{
+              background: 'transparent',
+              color: C.muted,
+              border: 'none',
+              borderBottom: '2px solid transparent',
+              padding: '12px 20px',
+              fontSize: 16,
+              fontWeight: 400,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ←Top
+          </button>
           {tabs.map(tab => (
             <button
               key={tab.key}
