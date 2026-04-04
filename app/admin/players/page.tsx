@@ -52,6 +52,7 @@ export default function PlayersPage() {
   const [filterJudge, setFilterJudge] = useState('');
   const [modal, setModal] = useState<'new' | 'edit' | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [editingCode, setEditingCode] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [associationNames, setAssociationNames] = useState<string[]>([]);
@@ -91,6 +92,7 @@ export default function PlayersPage() {
   }
 
   function openEdit(p: PlayerMaster) {
+    setEditingCode(p.member_code);
     setForm({
       member_code: p.member_code,
       name: p.name,
@@ -111,10 +113,10 @@ export default function PlayersPage() {
           body: JSON.stringify({ ...form, class: form.class || null }),
         });
       } else {
-        await fetch(`/api/players/${form.member_code}`, {
+        await fetch(`/api/players/${editingCode}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: form.name, affiliation: form.affiliation, is_judge: form.is_judge, class: form.class || null }),
+          body: JSON.stringify({ new_member_code: form.member_code, name: form.name, affiliation: form.affiliation, is_judge: form.is_judge, class: form.class || null }),
         });
       }
       setModal(null);
@@ -234,9 +236,8 @@ export default function PlayersPage() {
             <div style={s.formRow}>
               <label style={s.formLabel}>会員番号 <span style={{ color: C.red }}>*</span></label>
               <input
-                style={{ ...s.formInput, ...(modal === 'edit' ? { color: C.muted } : {}) }}
+                style={s.formInput}
                 value={form.member_code}
-                readOnly={modal === 'edit'}
                 onChange={e => setForm(f => ({ ...f, member_code: e.target.value }))}
                 placeholder="例: 35313"
               />

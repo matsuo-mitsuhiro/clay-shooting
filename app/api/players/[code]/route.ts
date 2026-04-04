@@ -7,12 +7,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ code
   try {
     const { code } = await params;
     const body = await req.json();
-    const { name, affiliation, is_judge, class: cls } = body;
+    const { name, affiliation, is_judge, class: cls, new_member_code } = body;
     if (!name?.trim()) {
       return NextResponse.json({ success: false, error: '氏名は必須です' }, { status: 400 });
     }
+    const newCode = new_member_code?.trim() || code;
     const rows = await sql`
       UPDATE player_master SET
+        member_code = ${newCode},
         name        = ${name.trim()},
         affiliation = ${affiliation ?? null},
         is_judge    = ${is_judge ?? false},
