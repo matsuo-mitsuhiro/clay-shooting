@@ -30,6 +30,7 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [showQrModal, setShowQrModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // プルリフレッシュ後もログイン状態を維持（sessionStorageで保存）
   useEffect(() => {
@@ -57,6 +58,7 @@ export default function ViewerPage({ tournamentId }: Props) {
       setResults(json.data.results);
       setTournament(json.data.tournament);
       setHas2ndDay(json.data.has2ndDay);
+      setLastUpdated(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : '成績の取得に失敗しました');
     } finally {
@@ -216,21 +218,28 @@ export default function ViewerPage({ tournamentId }: Props) {
                   閲覧用QRコード表示
                 </button>
               )}
-              <button
-                onClick={fetchResults}
-                style={{
-                  background: C.surface2,
-                  color: C.gold,
-                  border: `1px solid ${C.gold}`,
-                  borderRadius: 6,
-                  padding: '7px 14px',
-                  fontSize: 15,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-              >
-                ↺ 更新
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <button
+                  onClick={fetchResults}
+                  style={{
+                    background: C.surface2,
+                    color: C.gold,
+                    border: `1px solid ${C.gold}`,
+                    borderRadius: 6,
+                    padding: '7px 14px',
+                    fontSize: 15,
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  ↺ 更新
+                </button>
+                {lastUpdated && (
+                  <span style={{ fontSize: 12, color: C.muted }}>
+                    最終更新: {lastUpdated.getHours().toString().padStart(2, '0')}:{lastUpdated.getMinutes().toString().padStart(2, '0')}
+                  </span>
+                )}
+              </div>
               <a
                 href="/manual/viewer/scores.html"
                 target="_blank"
