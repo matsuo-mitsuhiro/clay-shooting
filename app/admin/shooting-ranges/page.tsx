@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { C } from '@/lib/colors';
 import type { ShootingRange } from '@/lib/types';
+import Footer from '@/components/Footer';
 
 interface GroupedRanges {
   [prefecture: string]: ShootingRange[];
@@ -282,6 +283,7 @@ export default function ShootingRangesPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { C } from '@/lib/colors';
 import type { Association, ShootingRange } from '@/lib/types';
+import Footer from '@/components/Footer';
 
 interface AssociationWithRanges extends Association {
   shooting_range_ids: number[];
@@ -427,6 +428,7 @@ export default function AssociationsPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

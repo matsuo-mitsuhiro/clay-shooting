@@ -6,6 +6,7 @@ import { C } from '@/lib/colors';
 import { DEFAULT_AFFILIATION } from '@/lib/prefectures';
 import type { PlayerMaster } from '@/app/api/players/route';
 import ContactButton from '@/components/ContactButton';
+import Footer from '@/components/Footer';
 
 const CLASSES = ['AA', 'A', 'B', 'C'];
 
@@ -303,6 +304,7 @@ export default function PlayersPage() {
           </div>
         </div>
       )}
+      <Footer />
     </div>
   );
 }

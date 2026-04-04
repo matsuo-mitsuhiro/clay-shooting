@@ -7,6 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import ContactButton from '@/components/ContactButton';
+import Footer from '@/components/Footer';
 
 interface TournamentAdmin {
   id: number;
@@ -410,6 +411,7 @@ export default function AdminsPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

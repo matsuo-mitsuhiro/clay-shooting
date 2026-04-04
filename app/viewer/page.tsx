@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import type { Tournament } from '@/lib/types';
+import Footer from '@/components/Footer';
 
 export default function ViewerListPage() {
   const router = useRouter();
@@ -141,6 +142,7 @@ export default function ViewerListPage() {
           })}
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import ContactButton from '@/components/ContactButton';
+import Footer from '@/components/Footer';
 
 interface Question {
   id: number;
@@ -561,6 +562,7 @@ export default function AdminSupportPage() {
           </div>
         </div>
       )}
+      <Footer />
     </div>
   );
 }

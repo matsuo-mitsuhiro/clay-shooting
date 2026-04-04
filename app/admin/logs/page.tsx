@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { C } from '@/lib/colors';
 import type { OperationLog, OperationAction } from '@/lib/types';
+import Footer from '@/components/Footer';
 
 const ACTION_LABELS: Record<OperationAction, string> = {
   tournament_create: '大会新規作成',
@@ -214,6 +215,7 @@ export default function OperationLogsPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

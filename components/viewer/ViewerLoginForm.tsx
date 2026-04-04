@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import Footer from '@/components/Footer';
 
 interface Props {
   tournamentId: number;
@@ -121,9 +122,10 @@ export default function ViewerLoginForm({
   return (
     <div style={{
       minHeight: '100vh', background: C.bg, color: C.text,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'Arial, sans-serif', padding: '24px',
+      display: 'flex', flexDirection: 'column',
+      fontFamily: 'Arial, sans-serif',
     }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <LoadingOverlay show={loading} message="確認中..." />
 
       <div style={{
@@ -226,6 +228,8 @@ export default function ViewerLoginForm({
           成績を確認する →
         </button>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { C } from '@/lib/colors';
 import type { Result, Tournament, ClassType } from '@/lib/types';
 import ViewerLoginForm from './ViewerLoginForm';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import Footer from '@/components/Footer';
 
 interface Props {
   tournamentId: number;
@@ -513,6 +514,7 @@ export default function ViewerPage({ tournamentId }: Props) {
           </div>
         </div>
       )}
+      <Footer />
     </div>
   );
 }

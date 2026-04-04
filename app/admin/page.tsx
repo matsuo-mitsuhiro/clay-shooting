@@ -9,6 +9,7 @@ import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
 import type { Tournament, EventType, Association, ShootingRange } from '@/lib/types';
 import ContactButton from '@/components/ContactButton';
+import Footer from '@/components/Footer';
 
 export default function AdminPage() {
   const { data: session } = useSession();
@@ -616,6 +617,7 @@ export default function AdminPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }
