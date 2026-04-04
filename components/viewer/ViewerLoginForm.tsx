@@ -150,8 +150,11 @@ export default function ViewerLoginForm({
         )}
         {!dateLabel && <div style={{ marginBottom: 24 }} />}
 
-        <p style={{ margin: '0 0 20px', fontSize: 15, color: C.text }}>
-          所属協会と氏名を登録して成績を確認してください。
+        <p style={{ margin: '0 0 8px', fontSize: 15, color: C.text }}>
+          大会に参加している選手（自分）の所属協会と氏名を登録して成績を確認してください。
+        </p>
+        <p style={{ margin: '0 0 20px', fontSize: 13, color: C.muted }}>
+          大会に参加していない選手の氏名では成績を確認できません。
         </p>
 
         {/* 所属協会（必須） */}
