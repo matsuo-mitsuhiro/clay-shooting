@@ -86,7 +86,24 @@ export default function AdminDetail({ tournamentId }: Props) {
         gap: 16,
         flexWrap: 'wrap',
       }}>
-        <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+          <button
+            onClick={() => router.push('/admin')}
+            style={{
+              background: 'transparent',
+              color: C.muted,
+              border: `1px solid ${C.border}`,
+              borderRadius: 5,
+              padding: '4px 10px',
+              fontSize: 13,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            ←Top
+          </button>
+          <div style={{ flex: 1 }}>
           {loading ? (
             <span style={{ color: C.muted, fontSize: 18 }}>読み込み中...</span>
           ) : error ? (
@@ -112,6 +129,7 @@ export default function AdminDetail({ tournamentId }: Props) {
               </span>
             </div>
           ) : null}
+          </div>
         </div>
         {/* PC用: ヘッダー右側ボタン群 */}
         {!isMobile && (
@@ -270,6 +288,27 @@ export default function AdminDetail({ tournamentId }: Props) {
                   </div>
                 )}
 
+                {/* トップページ */}
+                <button
+                  onClick={() => { router.push('/admin'); setMenuOpen(false); }}
+                  style={{
+                    background: 'transparent',
+                    color: C.muted,
+                    border: 'none',
+                    borderLeft: '3px solid transparent',
+                    padding: '12px 20px',
+                    fontSize: 15,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    width: '100%',
+                  }}
+                >
+                  ←Top トップページ
+                </button>
+
+                {/* 区切り線 */}
+                <div style={{ height: 1, background: C.border, margin: '4px 16px' }} />
+
                 {/* タブ一覧 */}
                 {tabs.map(tab => (
                   <button
@@ -280,7 +319,7 @@ export default function AdminDetail({ tournamentId }: Props) {
                       color: activeTab === tab.key ? C.gold : C.muted,
                       border: 'none',
                       borderLeft: activeTab === tab.key ? `3px solid ${C.gold}` : '3px solid transparent',
-                      padding: '14px 20px',
+                      padding: '12px 20px',
                       fontSize: 15,
                       fontWeight: activeTab === tab.key ? 700 : 400,
                       cursor: 'pointer',
@@ -305,7 +344,7 @@ export default function AdminDetail({ tournamentId }: Props) {
                     display: 'block',
                     color: C.muted,
                     textDecoration: 'none',
-                    padding: '12px 20px',
+                    padding: '10px 20px',
                     fontSize: 15,
                     borderLeft: '3px solid transparent',
                   }}
@@ -321,7 +360,7 @@ export default function AdminDetail({ tournamentId }: Props) {
                     color: C.muted,
                     border: 'none',
                     borderLeft: '3px solid transparent',
-                    padding: '12px 20px',
+                    padding: '10px 20px',
                     fontSize: 15,
                     cursor: 'pointer',
                     textAlign: 'left',
@@ -341,31 +380,13 @@ export default function AdminDetail({ tournamentId }: Props) {
                     display: 'block',
                     color: C.muted,
                     textDecoration: 'none',
-                    padding: '12px 20px',
+                    padding: '10px 20px',
                     fontSize: 15,
                     borderLeft: '3px solid transparent',
                   }}
                 >
                   ℹ️ マニュアル ↗
                 </a>
-
-                {/* 大会一覧 */}
-                <button
-                  onClick={() => { router.push('/admin'); setMenuOpen(false); }}
-                  style={{
-                    background: 'transparent',
-                    color: C.muted,
-                    border: 'none',
-                    borderLeft: '3px solid transparent',
-                    padding: '12px 20px',
-                    fontSize: 15,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    width: '100%',
-                  }}
-                >
-                  ← 大会一覧
-                </button>
 
                 {/* 区切り線 */}
                 <div style={{ height: 1, background: C.border, margin: '8px 16px' }} />
@@ -378,7 +399,7 @@ export default function AdminDetail({ tournamentId }: Props) {
                     color: C.muted,
                     border: 'none',
                     borderLeft: '3px solid transparent',
-                    padding: '12px 20px',
+                    padding: '10px 20px',
                     fontSize: 15,
                     cursor: 'pointer',
                     textAlign: 'left',
