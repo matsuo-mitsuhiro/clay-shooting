@@ -131,6 +131,9 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
   const [numpadMember, setNumpadMember] = useState<{ code: string; name: string } | null>(null);
   const [numpadValue, setNumpadValue] = useState('');
 
+  // 保存確認ダイアログ state
+  const [saveConfirm, setSaveConfirm] = useState<{ groupNum: number; field: NumpadField; fieldLabel: string } | null>(null);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -233,17 +236,31 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
     if (!numpadMember) return;
     updateField(numpadMember.code, numpadField, numpadValue);
 
-    // 次のメンバーへナビゲーション（同フィールド）
-    const all = getAllGroupMembers();
-    const currentIdx = all.findIndex(m => m.member_code === numpadMember.code);
-    const next = all[currentIdx + 1];
+    // 現在のメンバーの組を特定
+    const currentMember = dayMembers.find(m => m.member_code === numpadMember.code);
+    const currentGroupNum = currentMember?.group_number;
+
+    // 同じ組の中で member_code があるメンバーのみ（空きスロットを除く）
+    const groupMembersWithCode = dayMembers.filter(
+      m => m.group_number === currentGroupNum && m.member_code
+    );
+
+    const currentIdx = groupMembersWithCode.findIndex(m => m.member_code === numpadMember.code);
+    const next = groupMembersWithCode[currentIdx + 1];
 
     if (next && next.member_code) {
+      // 同じ組の次のメンバーへナビゲーション
       setNumpadMember({ code: next.member_code, name: next.name });
       setNumpadValue((scoreMap[next.member_code] as ScoreEntry)?.[numpadField] ?? '');
     } else {
+      // 最後の選手 → 保存確認ダイアログを表示
+      const fieldLabel =
+        numpadField === 'cb' ? 'CB' :
+        numpadField === 'fr' ? 'FR' :
+        numpadField.toUpperCase(); // r1 → R1
       setNumpadOpen(false);
       setNumpadMember(null);
+      setSaveConfirm({ groupNum: currentGroupNum!, field: numpadField, fieldLabel });
     }
   }
 
@@ -332,6 +349,56 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
           onClose={() => { setNumpadOpen(false); setNumpadMember(null); }}
           variant={numpadVariant}
         />
+      )}
+
+      {/* 保存確認ダイアログ */}
+      {saveConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        }}>
+          <div style={{
+            background: C.surface, border: `1px solid ${C.border}`,
+            borderRadius: 12, padding: '32px 28px', minWidth: 280,
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 18, color: C.text, fontWeight: 600, marginBottom: 28 }}>
+              {saveConfirm.groupNum}組{saveConfirm.fieldLabel}を保存しますか？
+            </div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button
+                onClick={async () => {
+                  const gn = saveConfirm.groupNum;
+                  setSaveConfirm(null);
+                  await handleSaveGroup(gn);
+                }}
+                style={{
+                  background: C.gold, color: '#000', border: 'none',
+                  borderRadius: 6, padding: '10px 28px', fontSize: 16, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                はい
+              </button>
+              <button
+                onClick={() => {
+                  // 該当組の該当フィールドをクリア
+                  const groupMems = dayMembers.filter(
+                    m => m.group_number === saveConfirm.groupNum && m.member_code
+                  );
+                  groupMems.forEach(m => updateField(m.member_code!, saveConfirm.field, ''));
+                  setSaveConfirm(null);
+                }}
+                style={{
+                  background: 'transparent', color: C.muted,
+                  border: `1px solid ${C.border}`, borderRadius: 6,
+                  padding: '10px 28px', fontSize: 16, cursor: 'pointer',
+                }}
+              >
+                クリア
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Day Tabs — 2日開催時のみ表示 */}
@@ -450,7 +517,7 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                       opacity: saving === groupNum ? 0.7 : 1,
                     }}
                   >
-                    {saving === groupNum ? '保存中...' : 'この組を保存'}
+                    {saving === groupNum ? '保存中...' : 'この組の点数を保存'}
                   </button>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
