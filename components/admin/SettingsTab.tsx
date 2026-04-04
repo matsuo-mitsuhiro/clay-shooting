@@ -383,7 +383,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>QRコード確認</h3>
         {origin ? (() => {
           const qrTabs = [
-            { key: 'viewer' as const, label: '閲覧者用', url: `${origin}/viewer` },
+            { key: 'viewer' as const, label: '閲覧用Top', url: `${origin}/viewer` },
             { key: 'admin' as const, label: '管理者用', url: `${origin}/admin` },
             { key: 'apply' as const, label: '申込用', url: `${origin}/tournaments/${tournamentId}/apply` },
           ];

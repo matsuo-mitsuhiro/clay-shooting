@@ -457,7 +457,7 @@ export default function AdminDetail({ tournamentId }: Props) {
                 whiteSpace: 'nowrap',
               }}
             >
-              閲覧用確認 ↗
+              本大会閲覧用確認 ↗
             </button>
           )}
         </div>
