@@ -120,27 +120,13 @@ export default function ViewerPage({ tournamentId }: Props) {
     return true;
   });
 
-  // 組ごとソート: 点数あり組→合計降順、点数なし組→番号昇順。組番号順で連結
+  // 点数登録済み→合計降順（上部）、未登録→組・番号順（下部）
   const sortedFiltered = (() => {
-    const groups = new Map<number, Result[]>();
-    for (const r of filtered) {
-      const g = r.group1;
-      if (!groups.has(g)) groups.set(g, []);
-      groups.get(g)!.push(r);
-    }
-    const sortedGroups = [...groups.keys()].sort((a, b) => a - b);
-    const result: Result[] = [];
-    for (const g of sortedGroups) {
-      const members = groups.get(g)!;
-      const hasScore = members.some(r => r.total > 0);
-      if (hasScore) {
-        members.sort((a, b) => b.total - a.total);
-      } else {
-        members.sort((a, b) => a.position - b.position);
-      }
-      result.push(...members);
-    }
-    return result;
+    const withScore = filtered.filter(r => r.total > 0);
+    const noScore = filtered.filter(r => !r.total);
+    withScore.sort((a, b) => b.total - a.total);
+    noScore.sort((a, b) => a.group1 !== b.group1 ? a.group1 - b.group1 : a.position - b.position);
+    return [...withScore, ...noScore];
   })();
 
   const totalScores = filtered.map(r => r.total).filter(v => v > 0);
