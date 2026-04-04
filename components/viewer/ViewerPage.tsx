@@ -425,6 +425,7 @@ export default function ViewerPage({ tournamentId }: Props) {
             )}
           </>
         )}
+        <Footer />
       </main>
 
       {/* Hidden admin button (bottom-left, 32x32px transparent) */}
@@ -514,7 +515,6 @@ export default function ViewerPage({ tournamentId }: Props) {
           </div>
         </div>
       )}
-      <Footer />
     </div>
   );
 }
