@@ -58,7 +58,7 @@ export default function ViewerPage({ tournamentId }: Props) {
       setResults(json.data.results);
       setTournament(json.data.tournament);
       setHas2ndDay(json.data.has2ndDay);
-      setLastUpdated(new Date());
+      setLastUpdated(json.data.lastScoreUpdated ? new Date(json.data.lastScoreUpdated) : null);
     } catch (e) {
       setError(e instanceof Error ? e.message : '成績の取得に失敗しました');
     } finally {
