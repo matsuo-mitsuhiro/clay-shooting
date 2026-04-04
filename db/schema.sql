@@ -121,7 +121,7 @@ CREATE VIEW v_results AS
 WITH
 -- 1日目メンバー
 day1_members AS (
-  SELECT tournament_id, member_code, name, belong, class, is_judge, group_number AS group1
+  SELECT tournament_id, member_code, name, belong, class, is_judge, group_number AS group1, position
   FROM members WHERE day = 1
 ),
 -- 2日目メンバー（存在する場合）
@@ -132,7 +132,7 @@ day2_members AS (
 -- メンバー結合
 merged AS (
   SELECT d1.tournament_id, d1.member_code, d1.name, d1.belong,
-         d1.class, d1.is_judge, d1.group1, d2.group2
+         d1.class, d1.is_judge, d1.group1, d1.position, d2.group2
   FROM day1_members d1
   LEFT JOIN day2_members d2
     ON d1.tournament_id = d2.tournament_id AND d1.member_code = d2.member_code
@@ -141,7 +141,7 @@ merged AS (
 combined AS (
   SELECT
     m.tournament_id, m.member_code, m.name, m.belong,
-    m.class, m.is_judge, m.group1, m.group2,
+    m.class, m.is_judge, m.group1, m.position, m.group2,
     s.r1, s.r2, s.r3, s.r4, s.r5, s.r6, s.r7, s.r8,
     s.cb, s.fr,
     COALESCE(s.status, 'valid') AS status,

@@ -145,6 +145,7 @@ export interface Result {
   class: ClassType | null;
   is_judge: boolean;
   group1: number;
+  position: number;
   group2: number | null;
   r1: number | null;
   r2: number | null;

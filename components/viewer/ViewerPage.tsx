@@ -120,6 +120,29 @@ export default function ViewerPage({ tournamentId }: Props) {
     return true;
   });
 
+  // 組ごとソート: 点数あり組→合計降順、点数なし組→番号昇順。組番号順で連結
+  const sortedFiltered = (() => {
+    const groups = new Map<number, Result[]>();
+    for (const r of filtered) {
+      const g = r.group1;
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g)!.push(r);
+    }
+    const sortedGroups = [...groups.keys()].sort((a, b) => a - b);
+    const result: Result[] = [];
+    for (const g of sortedGroups) {
+      const members = groups.get(g)!;
+      const hasScore = members.some(r => r.total > 0);
+      if (hasScore) {
+        members.sort((a, b) => b.total - a.total);
+      } else {
+        members.sort((a, b) => a.position - b.position);
+      }
+      result.push(...members);
+    }
+    return result;
+  })();
+
   const totalScores = filtered.map(r => r.total).filter(v => v > 0);
   const overallAvg = totalScores.length > 0
     ? (totalScores.reduce((a, b) => a + b, 0) / totalScores.length).toFixed(2)
@@ -379,7 +402,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map(r => {
+                      {sortedFiltered.map(r => {
                         const isHighlighted = highlightedCode === r.member_code;
                         return (
                           <tr
