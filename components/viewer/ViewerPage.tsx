@@ -20,6 +20,10 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [loginBelong, setLoginBelong] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const highlightedRowRef = useRef<HTMLTableRowElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const filterToggleRef = useRef<HTMLButtonElement>(null);
+  const [headerH, setHeaderH] = useState(70);
+  const [toggleH, setToggleH] = useState(42);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [has2ndDay, setHas2ndDay] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -87,10 +91,23 @@ export default function ViewerPage({ tournamentId }: Props) {
     if (match) setHighlightedCode(match.member_code);
   }, [loggedIn, results, loginName, loginBelong]);
 
+  // ヘッダー・トグルボタンの高さを測定
+  useEffect(() => {
+    function measure() {
+      if (headerRef.current) setHeaderH(headerRef.current.offsetHeight);
+      if (filterToggleRef.current) setToggleH(filterToggleRef.current.offsetHeight);
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [loading, tournament]);
+
   // ハイライト行へ自動スクロール
   useEffect(() => {
     if (highlightedCode && highlightedRowRef.current) {
-      highlightedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => {
+        highlightedRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
     }
   }, [highlightedCode]);
 
@@ -176,10 +193,13 @@ export default function ViewerPage({ tournamentId }: Props) {
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif', position: 'relative' }}>
       <LoadingOverlay show={loading} message="読み込み中..." />
       {/* Header / Banner */}
-      <header style={{
+      <header ref={headerRef} style={{
         background: `linear-gradient(135deg, ${C.surface} 0%, ${C.surface2} 100%)`,
         borderBottom: `1px solid ${C.border}`,
         padding: '20px 20px 16px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
       }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
@@ -271,7 +291,7 @@ export default function ViewerPage({ tournamentId }: Props) {
         </div>
       </header>
 
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px', maxHeight: 'calc(100vh - 70px)', overflow: 'auto', WebkitOverflowScrolling: 'touch' as never }}>
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px' }}>
         {/* Error */}
         {error && (
           <div style={{
@@ -284,6 +304,7 @@ export default function ViewerPage({ tournamentId }: Props) {
           <>
             {/* Filter & Stats Toggle */}
             <button
+              ref={filterToggleRef}
               onClick={() => setFilterOpen(v => !v)}
               style={{
                 background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
@@ -292,6 +313,9 @@ export default function ViewerPage({ tournamentId }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 borderBottomLeftRadius: filterOpen ? 0 : 8,
                 borderBottomRightRadius: filterOpen ? 0 : 8,
+                position: 'sticky',
+                top: headerH,
+                zIndex: 15,
               }}
             >
               <span style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>
@@ -392,7 +416,7 @@ export default function ViewerPage({ tournamentId }: Props) {
               </div>
             ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560, background: C.surface }}>
-                    <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+                    <thead style={{ position: 'sticky', top: headerH + toggleH, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
                         <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 11, background: C.surface2 }}>順位</th>
                         <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 11, background: C.surface2 }}>氏名　審判フラグ</th>
