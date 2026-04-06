@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
-import type { Tournament } from '@/lib/types';
+import type { Tournament, ClassType } from '@/lib/types';
 
 interface Props {
   tournamentId: number;
@@ -22,6 +25,8 @@ const CLASS_DIVISION_OPTIONS: { value: string; label: string }[] = [
   { value: 'divided', label: 'クラス分けあり' },
 ];
 
+const ALL_CLASSES: ClassType[] = ['AA', 'A', 'B', 'C'];
+
 export default function InspectionTab({ tournamentId, tournament, onUpdated }: Props) {
   const [form, setForm] = useState({
     rule_type: 'ISSF（地方公式版）',
@@ -39,6 +44,13 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Excel ダイアログ
+  const [showExcelDialog, setShowExcelDialog] = useState(false);
+  const [excelDate, setExcelDate] = useState<Date>(new Date());
+  const [availableClasses, setAvailableClasses] = useState<ClassType[]>([]);
+  const [selectedClasses, setSelectedClasses] = useState<ClassType[]>([]);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     setForm({
@@ -81,6 +93,88 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
       setError('通信エラーが発生しました');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Excel ダイアログを開く
+  const openExcelDialog = async () => {
+    setExcelDate(new Date());
+    setGenerating(false);
+
+    // クラス分けありの場合、選手に登録されているクラスを取得
+    if (form.class_division === 'divided') {
+      try {
+        const res = await fetch(`/api/tournaments/${tournamentId}/results`);
+        const json = await res.json();
+        if (json.success && json.data?.results) {
+          const classes = new Set<ClassType>();
+          for (const r of json.data.results) {
+            if (r.class && ALL_CLASSES.includes(r.class)) {
+              classes.add(r.class as ClassType);
+            }
+          }
+          // ALL_CLASSES の順序で並べる
+          const sorted = ALL_CLASSES.filter(c => classes.has(c));
+          setAvailableClasses(sorted);
+          setSelectedClasses([...sorted]); // デフォルト全チェック
+        }
+      } catch {
+        setAvailableClasses([]);
+        setSelectedClasses([]);
+      }
+    } else {
+      setAvailableClasses([]);
+      setSelectedClasses([]);
+    }
+
+    setShowExcelDialog(true);
+  };
+
+  const toggleClass = (cls: ClassType) => {
+    setSelectedClasses(prev =>
+      prev.includes(cls) ? prev.filter(c => c !== cls) : [...prev, cls]
+    );
+  };
+
+  const handleGenerateExcel = async () => {
+    setGenerating(true);
+    try {
+      const dateStr = excelDate.toISOString().slice(0, 10);
+      const params = new URLSearchParams({ date: dateStr });
+      if (form.class_division === 'divided' && selectedClasses.length > 0) {
+        // ALL_CLASSES の順序でソート
+        const sorted = ALL_CLASSES.filter(c => selectedClasses.includes(c));
+        params.set('classes', sorted.join(','));
+      }
+
+      const res = await fetch(`/api/tournaments/${tournamentId}/inspection-report?${params}`);
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        alert(json?.error ?? 'レポート生成に失敗しました');
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Content-Disposition からファイル名を取得
+      const disposition = res.headers.get('Content-Disposition');
+      let fileName = '記録審査表.xlsx';
+      if (disposition) {
+        const match = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (match) fileName = decodeURIComponent(match[1]);
+      }
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setShowExcelDialog(false);
+    } catch {
+      alert('ダウンロードに失敗しました');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -141,6 +235,17 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
     background: C.surface2,
     cursor: 'default',
     color: C.muted,
+  };
+
+  const exportBtnStyle: React.CSSProperties = {
+    padding: '10px 24px',
+    fontSize: 14,
+    fontWeight: 700,
+    color: C.text,
+    background: C.surface2,
+    border: `1px solid ${C.gold}`,
+    borderRadius: 8,
+    cursor: 'pointer',
   };
 
   return (
@@ -278,24 +383,144 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
         <div style={{ color: '#2ecc71', fontSize: 14, marginBottom: 12 }}>保存しました</div>
       )}
 
-      {/* 保存ボタン */}
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        style={{
-          padding: '10px 32px',
-          fontSize: 15,
-          fontWeight: 700,
-          color: '#fff',
-          background: saving ? C.muted : C.gold,
-          border: 'none',
-          borderRadius: 8,
-          cursor: saving ? 'default' : 'pointer',
-          opacity: saving ? 0.7 : 1,
-        }}
-      >
-        {saving ? '保存中...' : '保存'}
-      </button>
+      {/* ボタン行 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        {/* 保存ボタン */}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            padding: '10px 32px',
+            fontSize: 15,
+            fontWeight: 700,
+            color: '#fff',
+            background: saving ? C.muted : C.gold,
+            border: 'none',
+            borderRadius: 8,
+            cursor: saving ? 'default' : 'pointer',
+            opacity: saving ? 0.7 : 1,
+          }}
+        >
+          {saving ? '保存中...' : '保存'}
+        </button>
+
+        {/* Excel ダウンロードボタン */}
+        <button onClick={openExcelDialog} style={exportBtnStyle}>
+          大会記録審査表 Excel
+        </button>
+      </div>
+
+      {/* ===== Excel作成ダイアログ ===== */}
+      {showExcelDialog && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={e => { if (e.target === e.currentTarget) setShowExcelDialog(false); }}
+        >
+          <div style={{
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 12,
+            padding: '28px 24px',
+            width: 380,
+            maxWidth: '95vw',
+          }}>
+            <h3 style={{ margin: '0 0 20px', fontSize: 17, fontWeight: 700, color: C.gold }}>
+              大会記録審査表 Excel
+            </h3>
+
+            {/* 作成日 */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ ...labelStyle, marginBottom: 6 }}>作成日</label>
+              <DatePicker
+                selected={excelDate}
+                onChange={(date: Date | null) => { if (date) setExcelDate(date); }}
+                dateFormat="yyyy/MM/dd"
+                locale={ja}
+                wrapperClassName=""
+                customInput={
+                  <input style={{ ...inputStyle, width: 180, cursor: 'pointer' }} readOnly />
+                }
+              />
+            </div>
+
+            {/* クラス選択 (クラス分けありの場合のみ) */}
+            {form.class_division === 'divided' && availableClasses.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ ...labelStyle, marginBottom: 8 }}>
+                  作成するクラスを選択してください。
+                </label>
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                  {availableClasses.map(cls => (
+                    <label
+                      key={cls}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        cursor: 'pointer',
+                        fontSize: 15,
+                        color: C.text,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedClasses.includes(cls)}
+                        onChange={() => toggleClass(cls)}
+                        style={{ width: 16, height: 16, accentColor: C.gold }}
+                      />
+                      {cls}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ボタン */}
+            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+              <button
+                onClick={handleGenerateExcel}
+                disabled={generating || (form.class_division === 'divided' && selectedClasses.length === 0)}
+                style={{
+                  padding: '10px 28px',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: '#000',
+                  background: generating ? C.muted : C.gold,
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: generating ? 'default' : 'pointer',
+                  opacity: (generating || (form.class_division === 'divided' && selectedClasses.length === 0)) ? 0.5 : 1,
+                }}
+              >
+                {generating ? '作成中...' : '作　成'}
+              </button>
+              <button
+                onClick={() => setShowExcelDialog(false)}
+                style={{
+                  padding: '10px 28px',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: C.muted,
+                  background: 'transparent',
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                }}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
