@@ -5,6 +5,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Result, Tournament } from '@/lib/types';
 
+// Node.js ランタイムを明示（xlsx + fs使用のため）
+export const runtime = 'nodejs';
+
 type Params = { params: Promise<{ id: string }> };
 
 // GET /api/tournaments/[id]/inspection-report?date=2026-04-07&classes=AA,A
