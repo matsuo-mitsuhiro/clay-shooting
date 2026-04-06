@@ -14,6 +14,7 @@ import ApplySettingsTab from './ApplySettingsTab';
 import ViewerHistoryTab from './ViewerHistoryTab';
 import InspectionTab from './InspectionTab';
 import RegistrationsTab from './RegistrationsTab';
+import Footer from '@/components/Footer';
 
 type TabType = 'members' | 'scores' | 'results' | 'inspection' | 'settings' | 'apply-settings' | 'history' | 'registrations';
 
@@ -508,6 +509,8 @@ export default function AdminDetail({ tournamentId }: Props) {
           </>
         )}
       </div>
+
+      <Footer />
 
       {/* ドロワーからのお問合せモーダル */}
       {contactOpen && (

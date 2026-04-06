@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import type { Tournament, ParticipationDay } from '@/lib/types';
+import Footer from '@/components/Footer';
 
 interface ApplyInfoData {
   tournament: Tournament;
@@ -341,6 +342,7 @@ export default function ApplyPage() {
           </button>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { C } from '@/lib/colors';
 import type { Registration } from '@/lib/types';
+import Footer from '@/components/Footer';
 
 export default function CancelConfirmPage() {
   const params = useParams();
@@ -136,6 +137,7 @@ export default function CancelConfirmPage() {
           </section>
         ) : null}
       </main>
+      <Footer />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import Footer from '@/components/Footer';
 
 function AdminLoginContent() {
   const { data: session, status } = useSession();
@@ -194,6 +195,7 @@ function AdminLoginContent() {
           )}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

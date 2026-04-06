@@ -1,4 +1,5 @@
 import { C } from '@/lib/colors';
+import { APP_VERSION } from '@/lib/version';
 
 export default function Footer() {
   return (
@@ -10,7 +11,7 @@ export default function Footer() {
       borderTop: `1px solid ${C.border}`,
       marginTop: 'auto',
     }}>
-      © 2026–present Mitsuhiro Matsuo. All rights reserved.
+      © 2026–present Mitsuhiro Matsuo. All rights reserved.　Ver.{APP_VERSION}
     </footer>
   );
 }

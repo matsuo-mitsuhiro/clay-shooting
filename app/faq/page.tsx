@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { C } from '@/lib/colors';
 import ContactButton from '@/components/ContactButton';
+import Footer from '@/components/Footer';
 
 interface FaqItem {
   id: number;
@@ -181,6 +182,7 @@ export default function FaqPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

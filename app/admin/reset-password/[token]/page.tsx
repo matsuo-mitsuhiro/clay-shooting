@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import Footer from '@/components/Footer';
 
 export default function ResetPasswordPage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter();
@@ -106,6 +107,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ token:
         )}
       </div>
       <LoadingOverlay show={saving} message="変更中..." />
+      <Footer />
     </div>
   );
 }

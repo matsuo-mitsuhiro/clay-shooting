@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import Footer from '@/components/Footer';
 
 const inputStyle: React.CSSProperties = {
   background: '#1a1a2e',
@@ -160,6 +161,7 @@ function RegisterContent() {
         )}
       </div>
       <LoadingOverlay show={saving} message="登録中..." />
+      <Footer />
     </div>
   );
 }

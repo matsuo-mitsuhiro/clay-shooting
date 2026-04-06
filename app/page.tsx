@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { C } from '@/lib/colors';
 import type { Tournament } from '@/lib/types';
+import Footer from '@/components/Footer';
 
 export default function Home() {
   const router = useRouter();
@@ -76,9 +77,7 @@ export default function Home() {
         }}
         aria-label=""
       >　</button>
-      <footer style={{ borderTop: `1px solid #1e1e1e`, padding: '16px', textAlign: 'center', fontSize: 13, color: '#444' }}>
-        © 2025 クレー射撃大会 成績管理システム
-      </footer>
+      <Footer />
     </div>
   );
 }

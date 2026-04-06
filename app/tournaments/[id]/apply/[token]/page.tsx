@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { C } from '@/lib/colors';
 import type { Tournament, ClassType, ParticipationDay } from '@/lib/types';
+import Footer from '@/components/Footer';
 
 export default function ApplyFormPage() {
   const params = useParams();
@@ -145,6 +146,7 @@ export default function ApplyFormPage() {
             </p>
           </div>
         </main>
+        <Footer />
       </div>
     );
   }
@@ -283,6 +285,7 @@ export default function ApplyFormPage() {
           </form>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import Footer from '@/components/Footer';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -75,6 +76,7 @@ export default function ForgotPasswordPage() {
         )}
       </div>
       <LoadingOverlay show={sending} message="送信中..." />
+      <Footer />
     </div>
   );
 }

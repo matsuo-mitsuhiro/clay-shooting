@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import Footer from '@/components/Footer';
 
 const FAQ_CATEGORIES = ['閲覧者の機能', '運営管理者の機能'];
 
@@ -191,6 +192,7 @@ function SupportContent() {
           <a href="/faq" style={{ color: C.gold, fontSize: 14, textDecoration: 'underline' }}>Q&A一覧を見る →</a>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

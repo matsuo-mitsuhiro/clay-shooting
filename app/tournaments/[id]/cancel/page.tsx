@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { C } from '@/lib/colors';
 import type { Tournament } from '@/lib/types';
+import Footer from '@/components/Footer';
 
 export default function CancelPage() {
   const params = useParams();
@@ -135,6 +136,7 @@ export default function CancelPage() {
           </section>
         )}
       </main>
+      <Footer />
     </div>
   );
 }
