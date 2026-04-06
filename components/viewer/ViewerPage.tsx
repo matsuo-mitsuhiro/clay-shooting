@@ -31,6 +31,7 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [filterOpen, setFilterOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
 
   // プルリフレッシュ後もログイン状態を維持（sessionStorageで保存）
   useEffect(() => {
@@ -281,78 +282,105 @@ export default function ViewerPage({ tournamentId }: Props) {
 
         {!loading && (
           <>
-            {/* Filter Bar */}
-            <div style={{
-              background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-              padding: '12px 16px', marginTop: 20, marginBottom: 16, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
-            }}>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 14, color: C.muted }}>クラス:</span>
-                {(['all', ...existingClasses] as const).map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setClassFilter(c as 'all' | ClassType)}
-                    style={{
-                      background: classFilter === c ? classBadgeBg(c as 'all' | ClassType) : 'transparent',
-                      color: classFilter === c ? classBadgeColor(c as 'all' | ClassType) : C.muted,
-                      border: `1px solid ${classFilter === c ? classBadgeColor(c as 'all' | ClassType) : C.border}`,
-                      borderRadius: 4, padding: '3px 10px', fontSize: 14,
-                      fontWeight: classFilter === c ? 700 : 400, cursor: 'pointer',
-                    }}
-                  >
-                    {c === 'all' ? '全て' : c}
-                  </button>
-                ))}
-              </div>
-              {belongs.length > 0 && (
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <span style={{ fontSize: 14, color: C.muted }}>所属協会:</span>
-                  <select
-                    value={belongFilter}
-                    onChange={e => setBelongFilter(e.target.value)}
-                    style={{
-                      background: C.inputBg,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 4,
-                      color: C.text,
-                      padding: '5px 10px',
-                      fontSize: 14,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="all">全て</option>
-                    {belongs.map(b => (
-                      <option key={b} value={b}>{b}</option>
-                    ))}
-                  </select>
-                </div>
+            {/* Filter & Stats Toggle */}
+            <button
+              onClick={() => setFilterOpen(v => !v)}
+              style={{
+                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+                padding: '10px 16px', marginTop: 20, marginBottom: filterOpen ? 0 : 16,
+                width: '100%', textAlign: 'left', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                borderBottomLeftRadius: filterOpen ? 0 : 8,
+                borderBottomRightRadius: filterOpen ? 0 : 8,
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>
+                {filterOpen ? '▲' : '▼'} フィルター・集計
+              </span>
+              {!filterOpen && (classFilter !== 'all' || belongFilter !== 'all') && (
+                <span style={{ fontSize: 12, color: C.gold, fontWeight: 600 }}>
+                  フィルター適用中
+                </span>
               )}
-            </div>
+            </button>
 
-            {/* Stats */}
-            <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-              <div style={{
-                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-                padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
-              }}>
-                <span style={{ fontSize: 13, color: C.muted }}>全体平均</span>
-                <span style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{overallAvg}</span>
-              </div>
-              <div style={{
-                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-                padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
-              }}>
-                <span style={{ fontSize: 13, color: C.muted }}>上位6名平均</span>
-                <span style={{ fontSize: 22, fontWeight: 700, color: C.gold }}>{top6Avg}</span>
-              </div>
-              <div style={{
-                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-                padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
-              }}>
-                <span style={{ fontSize: 13, color: C.muted }}>表示件数</span>
-                <span style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{filtered.length}名</span>
-              </div>
-            </div>
+            {filterOpen && (
+              <>
+                {/* Filter Bar */}
+                <div style={{
+                  background: C.surface, border: `1px solid ${C.border}`, borderTop: 'none',
+                  borderRadius: '0 0 8px 8px',
+                  padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
+                }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 14, color: C.muted }}>クラス:</span>
+                    {(['all', ...existingClasses] as const).map(c => (
+                      <button
+                        key={c}
+                        onClick={() => setClassFilter(c as 'all' | ClassType)}
+                        style={{
+                          background: classFilter === c ? classBadgeBg(c as 'all' | ClassType) : 'transparent',
+                          color: classFilter === c ? classBadgeColor(c as 'all' | ClassType) : C.muted,
+                          border: `1px solid ${classFilter === c ? classBadgeColor(c as 'all' | ClassType) : C.border}`,
+                          borderRadius: 4, padding: '3px 10px', fontSize: 14,
+                          fontWeight: classFilter === c ? 700 : 400, cursor: 'pointer',
+                        }}
+                      >
+                        {c === 'all' ? '全て' : c}
+                      </button>
+                    ))}
+                  </div>
+                  {belongs.length > 0 && (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <span style={{ fontSize: 14, color: C.muted }}>所属協会:</span>
+                      <select
+                        value={belongFilter}
+                        onChange={e => setBelongFilter(e.target.value)}
+                        style={{
+                          background: C.inputBg,
+                          border: `1px solid ${C.border}`,
+                          borderRadius: 4,
+                          color: C.text,
+                          padding: '5px 10px',
+                          fontSize: 14,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="all">全て</option>
+                        {belongs.map(b => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stats */}
+                <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                  <div style={{
+                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+                    padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
+                  }}>
+                    <span style={{ fontSize: 13, color: C.muted }}>全体平均</span>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{overallAvg}</span>
+                  </div>
+                  <div style={{
+                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+                    padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
+                  }}>
+                    <span style={{ fontSize: 13, color: C.muted }}>上位6名平均</span>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: C.gold }}>{top6Avg}</span>
+                  </div>
+                  <div style={{
+                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+                    padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
+                  }}>
+                    <span style={{ fontSize: 13, color: C.muted }}>表示件数</span>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{filtered.length}名</span>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Results Table */}
             {filtered.length === 0 ? (
