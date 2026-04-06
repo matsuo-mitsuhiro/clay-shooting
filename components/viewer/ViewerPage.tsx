@@ -415,6 +415,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as never }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560, background: C.surface }}>
                     <thead style={{ position: 'sticky', top: headerH + toggleH, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
@@ -492,6 +493,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                       })}
                     </tbody>
                   </table>
+              </div>
             )}
           </>
         )}
