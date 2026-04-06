@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { C } from '@/lib/colors';
 import { DEFAULT_AFFILIATION } from '@/lib/prefectures';
 import type { PlayerMaster } from '@/app/api/players/route';
@@ -44,8 +45,11 @@ const emptyForm = { member_code: '', name: '', affiliation: DEFAULT_AFFILIATION,
 
 export default function PlayersPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isSystem = session?.user?.role === 'system';
+  const initializedRef = useRef(false);
   const [players, setPlayers] = useState<PlayerMaster[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [q, setQ] = useState('');
   const [filterAffil, setFilterAffil] = useState('');
   const [filterClass, setFilterClass] = useState('');
@@ -79,8 +83,16 @@ export default function PlayersPage() {
     setLoading(false);
   }, []);
 
-  // 初回ロード
-  useEffect(() => { fetchPlayers(); }, [fetchPlayers]);
+  // セッション取得後に所属初期値をセットし、運営管理者は自動検索
+  useEffect(() => {
+    if (!session || initializedRef.current) return;
+    initializedRef.current = true;
+    if (!isSystem && session.user.affiliation) {
+      setFilterAffil(session.user.affiliation);
+      fetchPlayers('', session.user.affiliation, '', '');
+    }
+    // システム管理者は全件表示しない（検索ボタンで取得）
+  }, [session, isSystem, fetchPlayers]);
 
   function handleSearch() {
     fetchPlayers(q, filterAffil, filterClass, filterJudge);
@@ -120,7 +132,7 @@ export default function PlayersPage() {
         });
       }
       setModal(null);
-      fetchPlayers();
+      fetchPlayers(q, filterAffil, filterClass, filterJudge);
     } finally {
       setSaving(false);
     }
@@ -130,7 +142,7 @@ export default function PlayersPage() {
     if (!deleteTarget) return;
     await fetch(`/api/players/${deleteTarget}`, { method: 'DELETE' });
     setDeleteTarget(null);
-    fetchPlayers();
+    fetchPlayers(q, filterAffil, filterClass, filterJudge);
   }
 
   function formatDate(iso: string | null) {
@@ -192,6 +204,8 @@ export default function PlayersPage() {
       <div style={s.tableWrap}>
         {loading ? (
           <div style={{ padding: '32px', textAlign: 'center', color: C.muted }}>読み込み中…</div>
+        ) : !initializedRef.current && players.length === 0 ? (
+          <div style={{ padding: '32px', textAlign: 'center', color: C.muted }}>検索条件を指定して検索してください</div>
         ) : (
           <table style={s.table}>
             <thead>

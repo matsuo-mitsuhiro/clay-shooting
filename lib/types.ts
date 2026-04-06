@@ -40,6 +40,17 @@ export interface Tournament {
   apply_saved_by: string | null;
   reset_at: string | null;
   reset_by: string | null;
+  // 記録審査
+  rule_type: string | null;
+  weather: string | null;
+  temperature: string | null;
+  wind_speed: string | null;
+  chief_judge: string | null;
+  operation_manager: string | null;
+  record_manager: string | null;
+  set_checker: string | null;
+  clay_name: string | null;
+  class_division: string | null;
   // 進捗判定用（一覧取得時のみ付与）
   member_count?: number;
   score_count?: number;

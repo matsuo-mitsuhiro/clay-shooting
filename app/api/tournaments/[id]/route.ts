@@ -33,13 +33,25 @@ export async function GET(_req: NextRequest, { params }: Params) {
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
-    const body: Partial<TournamentInput> & { _save_type?: string } = await req.json();
+    const body: Partial<TournamentInput> & {
+    _save_type?: string;
+    rule_type?: string;
+    weather?: string;
+    temperature?: string;
+    wind_speed?: string;
+    chief_judge?: string;
+    operation_manager?: string;
+    record_manager?: string;
+    set_checker?: string;
+    clay_name?: string;
+    class_division?: string;
+  } = await req.json();
 
     // セッションからユーザー名を取得
     const session = await getServerSession(authOptions);
     const userName = session?.user?.name ?? session?.user?.email ?? null;
 
-    // _save_type: 'info' = 大会情報保存, 'apply' = 申込設定保存
+    // _save_type: 'info' = 大会情報保存, 'apply' = 申込設定保存, 'inspection' = 記録審査保存
     const saveType = body._save_type;
 
     // 時間フィールドの秒を除去（HH:MM形式に統一）
@@ -75,6 +87,16 @@ export async function PUT(req: NextRequest, { params }: Params) {
         info_saved_by        = ${saveType === 'info' ? (userName ?? sql`info_saved_by`) : sql`info_saved_by`},
         apply_saved_at       = ${saveType === 'apply' ? sql`NOW()` : sql`apply_saved_at`},
         apply_saved_by       = ${saveType === 'apply' ? (userName ?? sql`apply_saved_by`) : sql`apply_saved_by`},
+        rule_type            = ${body.rule_type !== undefined ? (body.rule_type || null) : sql`rule_type`},
+        weather              = ${body.weather !== undefined ? (body.weather || null) : sql`weather`},
+        temperature          = ${body.temperature !== undefined ? (body.temperature || null) : sql`temperature`},
+        wind_speed           = ${body.wind_speed !== undefined ? (body.wind_speed || null) : sql`wind_speed`},
+        chief_judge          = ${body.chief_judge !== undefined ? (body.chief_judge || null) : sql`chief_judge`},
+        operation_manager    = ${body.operation_manager !== undefined ? (body.operation_manager || null) : sql`operation_manager`},
+        record_manager       = ${body.record_manager !== undefined ? (body.record_manager || null) : sql`record_manager`},
+        set_checker          = ${body.set_checker !== undefined ? (body.set_checker || null) : sql`set_checker`},
+        clay_name            = ${body.clay_name !== undefined ? (body.clay_name || null) : sql`clay_name`},
+        class_division       = ${body.class_division !== undefined ? (body.class_division || null) : sql`class_division`},
         updated_at           = NOW()
       WHERE id = ${Number(id)}
       RETURNING *

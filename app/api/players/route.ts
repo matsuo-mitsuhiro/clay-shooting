@@ -118,7 +118,8 @@ export async function GET(req: NextRequest) {
     } else if (q) {
       rows = await sql`SELECT * FROM player_master WHERE (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
     } else {
-      rows = await sql`SELECT * FROM player_master ORDER BY member_code`;
+      // フィルタ条件なしの場合は空配列を返す（初回ロード時の全件取得を防止）
+      return NextResponse.json({ success: true, data: [] as PlayerMaster[] });
     }
     return NextResponse.json({ success: true, data: rows as PlayerMaster[] });
   } catch (e) {

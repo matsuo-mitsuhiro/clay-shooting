@@ -47,6 +47,7 @@ export const PREFECTURES = [
   { cd: 46, name: '鹿児島' },
   { cd: 47, name: '沖縄' },
   { cd: 48, name: '芸文' },
+  { cd: 98, name: '学連' },
 ] as const;
 
 export const PREFECTURE_NAMES = PREFECTURES.map(p => p.name);
