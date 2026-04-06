@@ -31,7 +31,7 @@ interface FaqItem {
   published_at: string;
 }
 
-const FAQ_CATEGORIES = ['閲覧者の機能', '大会管理者の機能'];
+const FAQ_CATEGORIES = ['閲覧者の機能', '運営管理者の機能'];
 
 const inputStyle: React.CSSProperties = {
   background: '#0d0f14',

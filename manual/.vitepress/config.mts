@@ -23,7 +23,7 @@ export default defineConfig({
         ],
       },
       {
-        text: '大会管理者向け',
+        text: '運営管理者向け',
         items: [
           { text: '大会を作成する', link: '/admin/create' },
           { text: '申込を管理する', link: '/admin/registrations' },

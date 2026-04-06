@@ -254,7 +254,7 @@ export default function AdminPage() {
                 fontWeight: 600,
                 whiteSpace: 'nowrap',
               }}>
-                {isSystem ? 'システム管理者' : '大会管理者'}
+                {isSystem ? 'システム管理者' : '運営管理者'}
               </span>
             </>
           )}
@@ -322,8 +322,8 @@ export default function AdminPage() {
           >
             <span style={{ fontSize: 20 }}>🔑</span>
             <div>
-              <div>大会管理者マスター</div>
-              <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>大会管理者のアカウント・パスワードを管理</div>
+              <div>運営管理者マスター</div>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>運営管理者のアカウント・パスワードを管理</div>
             </div>
             <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
           </button>

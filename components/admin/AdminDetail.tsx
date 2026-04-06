@@ -129,7 +129,7 @@ export default function AdminDetail({ tournamentId }: Props) {
                   fontSize: 11,
                   fontWeight: 600,
                 }}>
-                  {isSystem ? 'システム管理者' : '大会管理者'}
+                  {isSystem ? 'システム管理者' : '運営管理者'}
                 </span>
               </>
             )}
@@ -265,7 +265,7 @@ export default function AdminDetail({ tournamentId }: Props) {
                       fontSize: 11,
                       fontWeight: 600,
                     }}>
-                      {isSystem ? 'システム管理者' : '大会管理者'}
+                      {isSystem ? 'システム管理者' : '運営管理者'}
                     </span>
                   </div>
                 )}

@@ -16,7 +16,7 @@ export const authOptions: NextAuthOptions = {
     }),
     CredentialsProvider({
       id: 'tournament-admin',
-      name: '大会管理者',
+      name: '運営管理者',
       credentials: {
         member_code: { label: '会員番号', type: 'text' },
         password: { label: 'パスワード', type: 'password' },

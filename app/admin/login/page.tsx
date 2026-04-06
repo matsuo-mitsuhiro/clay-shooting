@@ -92,10 +92,10 @@ function AdminLoginContent() {
           クレー射撃大会 成績管理システム
         </p>
 
-        {/* 大会管理者：会員番号＋パスワード */}
+        {/* 運営管理者：会員番号＋パスワード */}
         <div>
           <p style={{ margin: '0 0 14px', fontSize: 13, color: C.muted, fontWeight: 600 }}>
-            大会管理者
+            運営管理者
           </p>
           <form onSubmit={handleCredentialsLogin}>
             <div style={{ marginBottom: 16 }}>

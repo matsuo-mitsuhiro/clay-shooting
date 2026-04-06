@@ -16,10 +16,10 @@ export async function sendRegistrationComplete(to: string, name: string) {
   await getTransporter().sendMail({
     from: `"クレー射撃 成績管理システム" <${process.env.GMAIL_USER}>`,
     to,
-    subject: '【クレー射撃 成績管理システム】大会管理者登録完了',
+    subject: '【クレー射撃 成績管理システム】運営管理者登録完了',
     html: `
       <p>${name} 様</p>
-      <p>大会管理者として登録が完了しました。</p>
+      <p>運営管理者として登録が完了しました。</p>
       <p>以下のURLからログインしてください。</p>
       <p><a href="${BASE_URL}/admin/login">${BASE_URL}/admin/login</a></p>
       <br>

@@ -13,7 +13,7 @@ interface FaqItem {
   published_at: string;
 }
 
-const CATEGORIES = ['閲覧者の機能', '大会管理者の機能'];
+const CATEGORIES = ['閲覧者の機能', '運営管理者の機能'];
 
 export default function FaqPage() {
   const [items, setItems] = useState<FaqItem[]>([]);

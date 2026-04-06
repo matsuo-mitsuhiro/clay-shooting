@@ -81,7 +81,7 @@ function RegisterContent() {
         <h1 style={{ color: C.gold, fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
           クレー射撃 成績管理システム
         </h1>
-        <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 32 }}>大会管理者 新規登録</p>
+        <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 32 }}>運営管理者 新規登録</p>
 
         {tokenError ? (
           <div style={{ background: '#2a1a1a', border: `1px solid ${C.red}`, borderRadius: 8, padding: 24, textAlign: 'center' }}>
@@ -145,7 +145,7 @@ function RegisterContent() {
                       または、登録済みのアカウントを別の管理者に依頼して削除してください。
                     </p>
                     <a href="/admin/login" style={{ color: '#4a9eff', textDecoration: 'underline', fontSize: 13 }}>
-                      大会管理者ログイン画面はこちら →<br />
+                      運営管理者ログイン画面はこちら →<br />
                       https://clay-shooting.vercel.app/admin/login
                     </a>
                   </div>

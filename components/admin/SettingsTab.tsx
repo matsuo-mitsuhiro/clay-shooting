@@ -67,6 +67,11 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
   const [qrCopied, setQrCopied] = useState(false);
   const [qrTab, setQrTab] = useState<'viewer' | 'admin' | 'apply'>('viewer');
 
+  // 招待QRコード
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
   useEffect(() => {
     setOrigin(window.location.origin);
     setForm({
@@ -211,6 +216,28 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       setError(e instanceof Error ? e.message : '削除に失敗しました');
       setDeleting(false);
     }
+  }
+
+  async function handleIssueInvite() {
+    setInviteLoading(true);
+    setInviteToken(null);
+    try {
+      const res = await fetch('/api/admin/invitations', { method: 'POST' });
+      const json = await res.json();
+      if (json.success) setInviteToken(json.token);
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  function getInviteUrl(token: string) {
+    return `${origin}/admin/register?token=${token}`;
+  }
+
+  async function handleCopyInviteUrl(token: string) {
+    await navigator.clipboard.writeText(getInviteUrl(token));
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
   }
 
   const inputStyle: React.CSSProperties = {
@@ -433,6 +460,70 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
           );
         })() : (
           <p style={{ color: C.muted, fontSize: 15 }}>読み込み中...</p>
+        )}
+      </section>
+
+      {/* 運営管理者 招待QRコード */}
+      <section style={{
+        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+        padding: '20px', marginBottom: 20,
+      }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>運営管理者 招待QRコード</h3>
+        <button
+          onClick={handleIssueInvite}
+          disabled={inviteLoading}
+          style={{
+            background: `${C.blue2}22`, color: C.blue2, border: `1px solid ${C.blue2}`,
+            borderRadius: 6, padding: '9px 20px', fontWeight: 700, fontSize: 15,
+            cursor: inviteLoading ? 'not-allowed' : 'pointer', opacity: inviteLoading ? 0.7 : 1,
+          }}
+        >
+          {inviteLoading ? '発行中...' : '📱 招待QRコードを発行'}
+        </button>
+
+        {inviteToken && origin && (
+          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
+              <QRCodeSVG value={getInviteUrl(inviteToken)} size={180} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', maxWidth: 480 }}>
+              <input
+                readOnly
+                value={getInviteUrl(inviteToken)}
+                style={{ ...inputStyle, fontSize: 11, flex: 1 }}
+              />
+              <button
+                onClick={() => handleCopyInviteUrl(inviteToken)}
+                style={{
+                  background: inviteCopied ? '#2ecc7133' : C.surface2,
+                  color: inviteCopied ? '#2ecc71' : C.text,
+                  border: `1px solid ${C.border}`, borderRadius: 5,
+                  padding: '8px 14px', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                {inviteCopied ? '✓ コピー済み' : 'URLをコピー'}
+              </button>
+            </div>
+            <div style={{
+              background: `${C.gold}11`, border: `1px solid ${C.gold}44`, borderRadius: 6,
+              padding: '10px 16px', maxWidth: 480, width: '100%',
+            }}>
+              <p style={{ margin: 0, fontSize: 13, color: C.muted, lineHeight: 1.8 }}>
+                ⚠️ 使用期限24時間、利用者は1名に限定します。<br />
+                複数名を登録する場合は人数分、QRコードを発行してください。<br />
+                他府県所属の選手にも招待QRによって運営管理者になることはできますが、利用できるのは選手が所属する協会の大会のみです。
+              </p>
+            </div>
+            <button
+              onClick={() => { setInviteToken(null); setInviteCopied(false); }}
+              style={{
+                background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
+                borderRadius: 5, padding: '6px 16px', fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              閉じる
+            </button>
+          </div>
         )}
       </section>
 

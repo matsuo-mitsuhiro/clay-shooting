@@ -213,7 +213,7 @@ export default function AdminsPage() {
           ← 大会一覧
         </button>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.gold, flex: 1 }}>
-          大会管理者マスター
+          運営管理者マスター
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <ContactButton />
@@ -221,7 +221,7 @@ export default function AdminsPage() {
             <>
               <span style={{ fontSize: 13, color: C.muted }}>{session.user.name ?? session.user.email}</span>
               <span style={{ background: isSystem ? `${C.gold}33` : `${C.blue2}33`, color: isSystem ? C.gold : C.blue2, border: `1px solid ${isSystem ? C.gold : C.blue2}`, borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
-                {isSystem ? 'システム管理者' : '大会管理者'}
+                {isSystem ? 'システム管理者' : '運営管理者'}
               </span>
             </>
           )}
@@ -238,7 +238,7 @@ export default function AdminsPage() {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {isSystem && (
             <button onClick={() => setShowCreate(!showCreate)} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '9px 20px', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
-              ＋ 大会管理者を追加
+              ＋ 運営管理者を追加
             </button>
           )}
           <button onClick={handleIssueQR} disabled={qrLoading} style={{ background: `${C.blue2}22`, color: C.blue2, border: `1px solid ${C.blue2}`, borderRadius: 6, padding: '9px 20px', fontWeight: 700, fontSize: 15, cursor: qrLoading ? 'not-allowed' : 'pointer', opacity: qrLoading ? 0.7 : 1 }}>
@@ -249,7 +249,7 @@ export default function AdminsPage() {
         {/* QRコード表示 */}
         {qrToken && (
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: 24, marginBottom: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: C.gold }}>大会管理者 招待QRコード</p>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: C.gold }}>運営管理者 招待QRコード</p>
             <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
               <QRCodeSVG value={getRegisterUrl(qrToken)} size={180} />
             </div>
@@ -274,7 +274,7 @@ export default function AdminsPage() {
         {/* 新規作成フォーム */}
         {showCreate && (
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: 24, marginBottom: 24 }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>新規大会管理者</h3>
+            <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>新規運営管理者</h3>
             <form onSubmit={handleCreate}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
