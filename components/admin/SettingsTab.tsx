@@ -411,9 +411,9 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         {origin ? (() => {
           const qrTabs: { key: 'viewer' | 'admin' | 'apply' | 'invite'; label: string; url?: string }[] = [
             { key: 'viewer', label: '閲覧用Top', url: `${origin}/viewer` },
-            { key: 'admin', label: '管理者用', url: `${origin}/admin` },
             { key: 'apply', label: '申込用', url: `${origin}/tournaments/${tournamentId}/apply` },
-            { key: 'invite', label: '招待' },
+            { key: 'admin', label: '運営管理者', url: `${origin}/admin` },
+            { key: 'invite', label: '管理者招待' },
           ];
           const activeTab = qrTabs.find(t => t.key === qrTab)!;
           return (
