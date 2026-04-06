@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import * as XLSX from 'xlsx';
-import * as fs from 'fs';
-import * as path from 'path';
+import { TEMPLATE_BASE64 } from '@/templates/inspection-report-template';
 import type { Result, Tournament } from '@/lib/types';
-
-// Node.js ランタイムを明示（xlsx + fs使用のため）
-export const runtime = 'nodejs';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -43,9 +39,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     const assocMap = new Map(assocRows.map(r => [Number(r.cd), r.name as string]));
     const organizerName = tournament.organizer_cd ? (assocMap.get(tournament.organizer_cd) ?? '') : '';
 
-    // テンプレート読み込み
-    const templatePath = path.join(process.cwd(), 'templates', 'inspection-report-template.xlsx');
-    const templateBuf = fs.readFileSync(templatePath);
+    // テンプレート読み込み（Base64埋め込み）
+    const templateBuf = Buffer.from(TEMPLATE_BASE64, 'base64');
     const wb = XLSX.read(templateBuf, { type: 'buffer' });
     const ws = wb.Sheets['TRAPAB'];
     if (!ws) {

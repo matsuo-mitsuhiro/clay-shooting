@@ -5,9 +5,6 @@ const nextConfig: NextConfig = {
     mcpServer: false,
   },
   serverExternalPackages: ['xlsx'],
-  outputFileTracingIncludes: {
-    '/api/tournaments/\\[id\\]/inspection-report': ['./templates/**/*'],
-  },
 };
 
 export default nextConfig;
