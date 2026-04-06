@@ -65,7 +65,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [qrCopied, setQrCopied] = useState(false);
-  const [qrTab, setQrTab] = useState<'viewer' | 'admin' | 'apply'>('viewer');
+  const [qrTab, setQrTab] = useState<'viewer' | 'admin' | 'apply' | 'invite'>('viewer');
 
   // 招待QRコード
   const [inviteToken, setInviteToken] = useState<string | null>(null);
@@ -409,10 +409,11 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       }}>
         <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>QRコード確認</h3>
         {origin ? (() => {
-          const qrTabs = [
-            { key: 'viewer' as const, label: '閲覧用Top', url: `${origin}/viewer` },
-            { key: 'admin' as const, label: '管理者用', url: `${origin}/admin` },
-            { key: 'apply' as const, label: '申込用', url: `${origin}/tournaments/${tournamentId}/apply` },
+          const qrTabs: { key: 'viewer' | 'admin' | 'apply' | 'invite'; label: string; url?: string }[] = [
+            { key: 'viewer', label: '閲覧用Top', url: `${origin}/viewer` },
+            { key: 'admin', label: '管理者用', url: `${origin}/admin` },
+            { key: 'apply', label: '申込用', url: `${origin}/tournaments/${tournamentId}/apply` },
+            { key: 'invite', label: '招待' },
           ];
           const activeTab = qrTabs.find(t => t.key === qrTab)!;
           return (
@@ -436,94 +437,91 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                   </button>
                 ))}
               </div>
-              {/* QRコード表示 */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
-                  <QRCodeSVG value={activeTab.url} size={160} />
+              {/* コンテンツ */}
+              {qrTab === 'invite' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                  {!inviteToken ? (
+                    <button
+                      onClick={handleIssueInvite}
+                      disabled={inviteLoading}
+                      style={{
+                        background: `${C.blue2}22`, color: C.blue2, border: `1px solid ${C.blue2}`,
+                        borderRadius: 6, padding: '9px 20px', fontWeight: 700, fontSize: 15,
+                        cursor: inviteLoading ? 'not-allowed' : 'pointer', opacity: inviteLoading ? 0.7 : 1,
+                      }}
+                    >
+                      {inviteLoading ? '発行中...' : '📱 招待QRコードを発行'}
+                    </button>
+                  ) : (
+                    <>
+                      <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
+                        <QRCodeSVG value={getInviteUrl(inviteToken)} size={160} />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', maxWidth: 480 }}>
+                        <input
+                          readOnly
+                          value={getInviteUrl(inviteToken)}
+                          style={{ ...inputStyle, fontSize: 11, flex: 1 }}
+                        />
+                        <button
+                          onClick={() => handleCopyInviteUrl(inviteToken)}
+                          style={{
+                            background: inviteCopied ? '#2ecc7133' : C.surface2,
+                            color: inviteCopied ? '#2ecc71' : C.text,
+                            border: `1px solid ${C.border}`, borderRadius: 5,
+                            padding: '8px 14px', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {inviteCopied ? '✓ コピー済み' : 'URLをコピー'}
+                        </button>
+                      </div>
+                      <div style={{
+                        background: `${C.gold}11`, border: `1px solid ${C.gold}44`, borderRadius: 6,
+                        padding: '10px 16px', maxWidth: 480, width: '100%',
+                      }}>
+                        <p style={{ margin: 0, fontSize: 13, color: C.muted, lineHeight: 1.8 }}>
+                          ⚠️ 使用期限24時間、利用者は1名に限定します。<br />
+                          複数名を登録する場合は人数分、QRコードを発行してください。<br />
+                          他府県所属の選手にも招待QRによって運営管理者になることはできますが、利用できるのは選手が所属する協会の大会のみです。
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => { setInviteToken(null); setInviteCopied(false); }}
+                        style={{
+                          background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
+                          borderRadius: 5, padding: '6px 16px', fontSize: 13, cursor: 'pointer',
+                        }}
+                      >
+                        再発行する場合はこちら
+                      </button>
+                    </>
+                  )}
                 </div>
-                <a
-                  href={activeTab.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ margin: 0, fontSize: 12, color: '#3498db', textAlign: 'center', wordBreak: 'break-all', textDecoration: 'underline' }}
-                >
-                  {activeTab.url}
-                </a>
-                <button
-                  onClick={() => { navigator.clipboard.writeText(activeTab.url); setQrCopied(true); setTimeout(() => setQrCopied(false), 2000); }}
-                  style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '8px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
-                >
-                  {qrCopied ? 'コピーしました！' : 'URLをコピー'}
-                </button>
-              </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                  <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
+                    <QRCodeSVG value={activeTab.url!} size={160} />
+                  </div>
+                  <a
+                    href={activeTab.url!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ margin: 0, fontSize: 12, color: '#3498db', textAlign: 'center', wordBreak: 'break-all', textDecoration: 'underline' }}
+                  >
+                    {activeTab.url}
+                  </a>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(activeTab.url!); setQrCopied(true); setTimeout(() => setQrCopied(false), 2000); }}
+                    style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '8px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    {qrCopied ? 'コピーしました！' : 'URLをコピー'}
+                  </button>
+                </div>
+              )}
             </div>
           );
         })() : (
           <p style={{ color: C.muted, fontSize: 15 }}>読み込み中...</p>
-        )}
-      </section>
-
-      {/* 運営管理者 招待QRコード */}
-      <section style={{
-        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-        padding: '20px', marginBottom: 20,
-      }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>運営管理者 招待QRコード</h3>
-        <button
-          onClick={handleIssueInvite}
-          disabled={inviteLoading}
-          style={{
-            background: `${C.blue2}22`, color: C.blue2, border: `1px solid ${C.blue2}`,
-            borderRadius: 6, padding: '9px 20px', fontWeight: 700, fontSize: 15,
-            cursor: inviteLoading ? 'not-allowed' : 'pointer', opacity: inviteLoading ? 0.7 : 1,
-          }}
-        >
-          {inviteLoading ? '発行中...' : '📱 招待QRコードを発行'}
-        </button>
-
-        {inviteToken && origin && (
-          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
-              <QRCodeSVG value={getInviteUrl(inviteToken)} size={180} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', maxWidth: 480 }}>
-              <input
-                readOnly
-                value={getInviteUrl(inviteToken)}
-                style={{ ...inputStyle, fontSize: 11, flex: 1 }}
-              />
-              <button
-                onClick={() => handleCopyInviteUrl(inviteToken)}
-                style={{
-                  background: inviteCopied ? '#2ecc7133' : C.surface2,
-                  color: inviteCopied ? '#2ecc71' : C.text,
-                  border: `1px solid ${C.border}`, borderRadius: 5,
-                  padding: '8px 14px', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap',
-                }}
-              >
-                {inviteCopied ? '✓ コピー済み' : 'URLをコピー'}
-              </button>
-            </div>
-            <div style={{
-              background: `${C.gold}11`, border: `1px solid ${C.gold}44`, borderRadius: 6,
-              padding: '10px 16px', maxWidth: 480, width: '100%',
-            }}>
-              <p style={{ margin: 0, fontSize: 13, color: C.muted, lineHeight: 1.8 }}>
-                ⚠️ 使用期限24時間、利用者は1名に限定します。<br />
-                複数名を登録する場合は人数分、QRコードを発行してください。<br />
-                他府県所属の選手にも招待QRによって運営管理者になることはできますが、利用できるのは選手が所属する協会の大会のみです。
-              </p>
-            </div>
-            <button
-              onClick={() => { setInviteToken(null); setInviteCopied(false); }}
-              style={{
-                background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
-                borderRadius: 5, padding: '6px 16px', fontSize: 13, cursor: 'pointer',
-              }}
-            >
-              閉じる
-            </button>
-          </div>
         )}
       </section>
 
