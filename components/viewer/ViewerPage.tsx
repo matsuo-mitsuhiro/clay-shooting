@@ -415,9 +415,9 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
-              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as never }}>
+              <div style={{ overflow: 'auto', maxHeight: `calc(100vh - ${headerH + toggleH}px)`, WebkitOverflowScrolling: 'touch' as never }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560, background: C.surface }}>
-                    <thead style={{ position: 'sticky', top: headerH + toggleH, zIndex: 10 }}>
+                    <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
                         <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 11, background: C.surface2 }}>順位</th>
                         <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 11, background: C.surface2 }}>氏名　審判フラグ</th>
