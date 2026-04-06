@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import * as XLSX from 'xlsx';
-import { TEMPLATE_BASE64 } from '@/templates/inspection-report-template';
 import type { Result, Tournament } from '@/lib/types';
+
+// Node.jsランタイム明示
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -38,6 +40,10 @@ export async function GET(req: NextRequest, { params }: Params) {
     // 主催協会名の取得
     const assocMap = new Map(assocRows.map(r => [Number(r.cd), r.name as string]));
     const organizerName = tournament.organizer_cd ? (assocMap.get(tournament.organizer_cd) ?? '') : '';
+
+    // 動的import（ビルド時のバンドルエラー回避）
+    const XLSX = await import('xlsx');
+    const { TEMPLATE_BASE64 } = await import('@/templates/inspection-report-template');
 
     // テンプレート読み込み（Base64埋め込み）
     const templateBuf = Buffer.from(TEMPLATE_BASE64, 'base64');
@@ -132,7 +138,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         setCellValue(ws, `A${newFooterRow}`, footerCell.v);
         // マージセルを更新
         if (ws['!merges']) {
-          const newMerges: XLSX.Range[] = [];
+          const newMerges: Array<{ s: { r: number; c: number }; e: { r: number; c: number } }> = [];
           for (const merge of ws['!merges']) {
             if (merge.s.r === FOOTER_ROW_OFFSET - 1) {
               // フッター行のマージを新位置に移動
@@ -268,7 +274,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 }
 
 // セル値を安全にセット
-function setCellValue(ws: XLSX.WorkSheet, ref: string, value: string | number) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function setCellValue(ws: any, ref: string, value: string | number) {
   const existing = ws[ref];
   if (existing) {
     existing.v = value;
