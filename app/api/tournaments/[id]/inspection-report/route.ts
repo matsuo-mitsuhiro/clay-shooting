@@ -244,7 +244,16 @@ export async function GET(req: NextRequest, { params }: Params) {
       sheetXml = setCellInXml(sheetXml, `P${row}`, remarks);
     }
 
-    // calcChain.xmlを削除（数式の再計算をExcelに強制）
+    // 未使用行のI・N・O列も値で上書き（共有数式の孤児参照を防ぐ）
+    const MAX_ROWS = 72;
+    for (let i = results.length; i < MAX_ROWS; i++) {
+      const row = DATA_START_ROW + i;
+      sheetXml = setCellInXml(sheetXml, `I${row}`, '');
+      sheetXml = setCellInXml(sheetXml, `N${row}`, '');
+      sheetXml = setCellInXml(sheetXml, `O${row}`, '');
+    }
+
+    // calcChain.xmlを削除（不要になった数式チェーン情報を除去）
     zip.remove('xl/calcChain.xml');
 
     // 変更したシートXMLをZIPに書き戻し
