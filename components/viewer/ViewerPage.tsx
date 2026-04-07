@@ -415,7 +415,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', background: C.surface }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', background: C.surface, position: 'relative', zIndex: 1 }}>
                     <thead style={{ position: 'sticky', top: headerH + toggleH, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
                         <th style={{ ...thS, background: C.surface2 }}>順位</th>

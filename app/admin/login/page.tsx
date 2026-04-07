@@ -195,7 +195,6 @@ function AdminLoginContent() {
           )}
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
@@ -204,6 +203,7 @@ export default function AdminLoginPage() {
   return (
     <Suspense fallback={<LoadingOverlay show message="読み込み中..." />}>
       <AdminLoginContent />
+      <Footer />
     </Suspense>
   );
 }
