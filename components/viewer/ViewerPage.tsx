@@ -22,8 +22,10 @@ export default function ViewerPage({ tournamentId }: Props) {
   const highlightedRowRef = useRef<HTMLTableRowElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const filterToggleRef = useRef<HTMLButtonElement>(null);
+  const tableWrapRef = useRef<HTMLDivElement>(null);
   const [headerH, setHeaderH] = useState(70);
   const [toggleH, setToggleH] = useState(42);
+  const [tableMaxH, setTableMaxH] = useState('70vh');
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [has2ndDay, setHas2ndDay] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -101,6 +103,20 @@ export default function ViewerPage({ tournamentId }: Props) {
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, [loading, tournament]);
+
+  // テーブルコンテナのmaxHeightを実測位置から動的計算
+  useEffect(() => {
+    function calcMaxH() {
+      if (tableWrapRef.current) {
+        const top = tableWrapRef.current.getBoundingClientRect().top;
+        setTableMaxH(`${Math.max(300, window.innerHeight - top)}px`);
+      }
+    }
+    // DOMレイアウト完了後に測定
+    requestAnimationFrame(calcMaxH);
+    window.addEventListener('resize', calcMaxH);
+    return () => window.removeEventListener('resize', calcMaxH);
+  }, [filterOpen, loading, headerH, toggleH]);
 
   // ハイライト行へ自動スクロール
   useEffect(() => {
@@ -200,7 +216,6 @@ export default function ViewerPage({ tournamentId }: Props) {
         position: 'sticky',
         top: 0,
         zIndex: 20,
-        transform: 'translateZ(0)',
       }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
@@ -292,7 +307,7 @@ export default function ViewerPage({ tournamentId }: Props) {
         </div>
       </header>
 
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px', position: 'relative', zIndex: 1 }}>
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px' }}>
         {/* Error */}
         {error && (
           <div style={{
@@ -317,7 +332,6 @@ export default function ViewerPage({ tournamentId }: Props) {
                 position: 'sticky',
                 top: headerH,
                 zIndex: 15,
-                transform: 'translateZ(0)',
               }}
             >
               <span style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>
@@ -417,11 +431,12 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', background: C.surface, position: 'relative', zIndex: 1 }}>
-                    <thead style={{ position: 'sticky', top: headerH + toggleH, zIndex: 10 }}>
+              <div ref={tableWrapRef} style={{ overflow: 'auto', maxHeight: tableMaxH, WebkitOverflowScrolling: 'touch' as never }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560, background: C.surface }}>
+                    <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
-                        <th style={{ ...thS, background: C.surface2 }}>順位</th>
-                        <th style={{ ...thS, textAlign: 'left', background: C.surface2 }}>氏名　審判フラグ</th>
+                        <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 11, background: C.surface2 }}>順位</th>
+                        <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 11, background: C.surface2 }}>氏名　審判フラグ</th>
                         <th style={{ ...thS, background: C.surface2 }}>組</th>
                         <th style={{ ...thS, textAlign: 'left', background: C.surface2 }}>所属協会</th>
                         <th style={{ ...thS, background: C.surface2 }}>クラス</th>
@@ -456,10 +471,10 @@ export default function ViewerPage({ tournamentId }: Props) {
                               transition: 'background 0.15s',
                             }}
                           >
-                            <td style={{ ...tdS, color: r.rank && r.rank <= 3 ? C.gold : C.muted, fontWeight: r.rank && r.rank <= 3 ? 700 : 400 }}>
+                            <td style={{ ...tdS, color: r.rank && r.rank <= 3 ? C.gold : C.muted, fontWeight: r.rank && r.rank <= 3 ? 700 : 400, position: 'sticky', left: 0, zIndex: 1, background: isHighlighted ? '#2a2518' : C.surface }}>
                               {r.rank ?? ''}
                             </td>
-                            <td style={{ ...tdS, textAlign: 'left', color: C.text, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                            <td style={{ ...tdS, textAlign: 'left', color: C.text, fontWeight: 500, whiteSpace: 'nowrap', position: 'sticky', left: 44, zIndex: 1, background: isHighlighted ? '#2a2518' : C.surface }}>
                               {r.name}{r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
                             </td>
                             <td style={{ ...tdS, color: C.muted, fontSize: 14 }}>
@@ -494,6 +509,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                       })}
                     </tbody>
                   </table>
+              </div>
             )}
           </>
         )}
