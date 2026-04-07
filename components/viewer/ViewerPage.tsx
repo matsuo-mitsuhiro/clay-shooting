@@ -200,6 +200,7 @@ export default function ViewerPage({ tournamentId }: Props) {
         position: 'sticky',
         top: 0,
         zIndex: 20,
+        transform: 'translateZ(0)',
       }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
@@ -316,6 +317,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 position: 'sticky',
                 top: headerH,
                 zIndex: 15,
+                transform: 'translateZ(0)',
               }}
             >
               <span style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>
