@@ -177,7 +177,7 @@ export default function ViewerPage({ tournamentId }: Props) {
   }
 
   return (
-    <div style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif', position: 'relative' }}>
+    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
       <LoadingOverlay show={loading} message="読み込み中..." />
       {/* Header / Banner */}
       <header style={{
