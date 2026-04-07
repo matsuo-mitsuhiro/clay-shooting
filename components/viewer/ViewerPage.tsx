@@ -90,6 +90,11 @@ export default function ViewerPage({ tournamentId }: Props) {
   }, [loggedIn, results, loginName, loginBelong]);
 
 
+  // フィルター変更時にスクロール位置をリセット
+  useEffect(() => {
+    if (tableWrapRef.current) tableWrapRef.current.scrollTop = 0;
+  }, [classFilter, belongFilter]);
+
   // ハイライト行へ自動スクロール（画面外にある場合のみ）
   useEffect(() => {
     if (highlightedCode && highlightedRowRef.current && tableWrapRef.current) {
