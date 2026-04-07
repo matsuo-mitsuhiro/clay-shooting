@@ -97,22 +97,7 @@ export default function ViewerPage({ tournamentId }: Props) {
     });
   }, [classFilter, belongFilter, filterOpen]);
 
-  // ハイライト行へ自動スクロール（画面外にある場合のみ）
-  useEffect(() => {
-    if (highlightedCode && highlightedRowRef.current && tableWrapRef.current) {
-      setTimeout(() => {
-        const row = highlightedRowRef.current;
-        const container = tableWrapRef.current;
-        if (!row || !container) return;
-        const rowRect = row.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        // 行がスクロールコンテナの表示範囲外にある場合のみスクロール
-        if (rowRect.bottom > containerRect.bottom || rowRect.top < containerRect.top + 40) {
-          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 300);
-    }
-  }, [highlightedCode]);
+  // ハイライト表示のみ（自動スクロールは廃止 — フィルター後のスクロール位置ずれ防止）
 
   function handleHiddenClick() {
     const pw = window.prompt('パスワードを入力してください');
