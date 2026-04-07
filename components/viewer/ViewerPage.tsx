@@ -415,9 +415,9 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
-              <div style={{ overflow: 'auto', maxHeight: `calc(100vh - ${headerH + toggleH}px)`, WebkitOverflowScrolling: 'touch' as never }}>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as never }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560, background: C.surface }}>
-                    <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+                    <thead style={{ position: 'sticky', top: headerH + toggleH, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
                         <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 11, background: C.surface2 }}>順位</th>
                         <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 11, background: C.surface2 }}>氏名　審判フラグ</th>
@@ -455,10 +455,10 @@ export default function ViewerPage({ tournamentId }: Props) {
                               transition: 'background 0.15s',
                             }}
                           >
-                            <td style={{ ...tdS, color: r.rank && r.rank <= 3 ? C.gold : C.muted, fontWeight: r.rank && r.rank <= 3 ? 700 : 400, position: 'sticky', left: 0, zIndex: 1, background: isHighlighted ? '#2a2518' : C.surface }}>
+                            <td style={{ ...tdS, color: r.rank && r.rank <= 3 ? C.gold : C.muted, fontWeight: r.rank && r.rank <= 3 ? 700 : 400, position: 'sticky', left: 0, zIndex: 2, background: isHighlighted ? '#2a2518' : C.surface }}>
                               {r.rank ?? ''}
                             </td>
-                            <td style={{ ...tdS, textAlign: 'left', color: C.text, fontWeight: 500, whiteSpace: 'nowrap', position: 'sticky', left: 44, zIndex: 1, background: isHighlighted ? '#2a2518' : C.surface }}>
+                            <td style={{ ...tdS, textAlign: 'left', color: C.text, fontWeight: 500, whiteSpace: 'nowrap', position: 'sticky', left: 44, zIndex: 2, background: isHighlighted ? '#2a2518' : C.surface }}>
                               {r.name}{r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
                             </td>
                             <td style={{ ...tdS, color: C.muted, fontSize: 14 }}>
