@@ -21,11 +21,7 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [results, setResults] = useState<Result[]>([]);
   const highlightedRowRef = useRef<HTMLTableRowElement>(null);
   const headerRef = useRef<HTMLElement>(null);
-  const filterToggleRef = useRef<HTMLButtonElement>(null);
-  const tableWrapRef = useRef<HTMLDivElement>(null);
   const [headerH, setHeaderH] = useState(70);
-  const [toggleH, setToggleH] = useState(42);
-  const [tableMaxH, setTableMaxH] = useState('70vh');
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [has2ndDay, setHas2ndDay] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -37,7 +33,7 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [filterOpen, setFilterOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // プルリフレッシュ後もログイン状態を維持（sessionStorageで保存）
   useEffect(() => {
@@ -93,31 +89,15 @@ export default function ViewerPage({ tournamentId }: Props) {
     if (match) setHighlightedCode(match.member_code);
   }, [loggedIn, results, loginName, loginBelong]);
 
-  // ヘッダー・トグルボタンの高さを測定
+  // ヘッダーの高さを測定
   useEffect(() => {
     function measure() {
       if (headerRef.current) setHeaderH(headerRef.current.offsetHeight);
-      if (filterToggleRef.current) setToggleH(filterToggleRef.current.offsetHeight);
     }
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, [loading, tournament]);
-
-  // テーブルコンテナのmaxHeightを実測位置から動的計算
-  useEffect(() => {
-    function calcMaxH() {
-      if (tableWrapRef.current) {
-        const top = tableWrapRef.current.getBoundingClientRect().top;
-        setTableMaxH(`${Math.max(300, window.innerHeight - top)}px`);
-      }
-    }
-    // DOMレイアウト完了後に測定
-    // 二重RAFでレイアウト確定後に測定（フィルター開閉時のreflow完了を待つ）
-    requestAnimationFrame(() => requestAnimationFrame(calcMaxH));
-    window.addEventListener('resize', calcMaxH);
-    return () => window.removeEventListener('resize', calcMaxH);
-  }, [filterOpen, loading, headerH, toggleH]);
 
   // ハイライト行へ自動スクロール
   useEffect(() => {
@@ -248,45 +228,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 <span style={{ color: C.red }}>大会情報の取得に失敗しました</span>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {tournament && (
-                <button
-                  onClick={() => setShowQrModal(true)}
-                  style={{
-                    background: C.surface2,
-                    color: C.text,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 6,
-                    padding: '7px 14px',
-                    fontSize: 15,
-                    cursor: 'pointer',
-                  }}
-                >
-                  閲覧用QRコード表示
-                </button>
-              )}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                <button
-                  onClick={fetchResults}
-                  style={{
-                    background: C.surface2,
-                    color: C.gold,
-                    border: `1px solid ${C.gold}`,
-                    borderRadius: 6,
-                    padding: '7px 14px',
-                    fontSize: 15,
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                  }}
-                >
-                  ↺ 更新
-                </button>
-                {lastUpdated && (
-                  <span style={{ fontSize: 12, color: C.muted }}>
-                    最終更新: {lastUpdated.getHours().toString().padStart(2, '0')}:{lastUpdated.getMinutes().toString().padStart(2, '0')}
-                  </span>
-                )}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
               <a
                 href="/manual/viewer/scores.html"
                 target="_blank"
@@ -298,11 +240,67 @@ export default function ViewerPage({ tournamentId }: Props) {
                   display: 'flex',
                   alignItems: 'center',
                   cursor: 'pointer',
+                  marginTop: 4,
                 }}
                 title="マニュアル"
               >
                 ℹ️
               </a>
+            </div>
+          </div>
+          {/* ボタン行 */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            {tournament && (
+              <button
+                onClick={() => setShowQrModal(true)}
+                style={{
+                  background: C.surface2,
+                  color: C.text,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 6,
+                  padding: '7px 14px',
+                  fontSize: 15,
+                  cursor: 'pointer',
+                }}
+              >
+                閲覧QRコード
+              </button>
+            )}
+            <button
+              onClick={() => setFilterOpen(true)}
+              style={{
+                background: (classFilter !== 'all' || belongFilter !== 'all') ? `${C.gold}22` : C.surface2,
+                color: (classFilter !== 'all' || belongFilter !== 'all') ? C.gold : C.text,
+                border: `1px solid ${(classFilter !== 'all' || belongFilter !== 'all') ? C.gold : C.border}`,
+                borderRadius: 6,
+                padding: '7px 14px',
+                fontSize: 15,
+                cursor: 'pointer',
+              }}
+            >
+              フィルター
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <button
+                onClick={fetchResults}
+                style={{
+                  background: C.surface2,
+                  color: C.gold,
+                  border: `1px solid ${C.gold}`,
+                  borderRadius: 6,
+                  padding: '7px 14px',
+                  fontSize: 15,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                ↺ 更新
+              </button>
+              {lastUpdated && (
+                <span style={{ fontSize: 12, color: C.muted }}>
+                  最終更新: {lastUpdated.getHours().toString().padStart(2, '0')}:{lastUpdated.getMinutes().toString().padStart(2, '0')}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -319,110 +317,6 @@ export default function ViewerPage({ tournamentId }: Props) {
 
         {!loading && (
           <>
-            {/* Filter & Stats Toggle */}
-            <button
-              ref={filterToggleRef}
-              onClick={() => setFilterOpen(v => !v)}
-              style={{
-                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-                padding: '10px 16px', marginTop: 20, marginBottom: filterOpen ? 0 : 16,
-                width: '100%', textAlign: 'left', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                borderBottomLeftRadius: filterOpen ? 0 : 8,
-                borderBottomRightRadius: filterOpen ? 0 : 8,
-                position: 'sticky',
-                top: headerH,
-                zIndex: 15,
-              }}
-            >
-              <span style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>
-                {filterOpen ? '▲' : '▼'} フィルター・集計
-              </span>
-              {!filterOpen && (classFilter !== 'all' || belongFilter !== 'all') && (
-                <span style={{ fontSize: 12, color: C.gold, fontWeight: 600 }}>
-                  フィルター適用中
-                </span>
-              )}
-            </button>
-
-            {filterOpen && (
-              <>
-                {/* Filter Bar */}
-                <div style={{
-                  background: C.surface, border: `1px solid ${C.border}`, borderTop: 'none',
-                  borderRadius: '0 0 8px 8px',
-                  padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
-                }}>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 14, color: C.muted }}>クラス:</span>
-                    {(['all', ...existingClasses] as const).map(c => (
-                      <button
-                        key={c}
-                        onClick={() => setClassFilter(c as 'all' | ClassType)}
-                        style={{
-                          background: classFilter === c ? classBadgeBg(c as 'all' | ClassType) : 'transparent',
-                          color: classFilter === c ? classBadgeColor(c as 'all' | ClassType) : C.muted,
-                          border: `1px solid ${classFilter === c ? classBadgeColor(c as 'all' | ClassType) : C.border}`,
-                          borderRadius: 4, padding: '3px 10px', fontSize: 14,
-                          fontWeight: classFilter === c ? 700 : 400, cursor: 'pointer',
-                        }}
-                      >
-                        {c === 'all' ? '全て' : c}
-                      </button>
-                    ))}
-                  </div>
-                  {belongs.length > 0 && (
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <span style={{ fontSize: 14, color: C.muted }}>所属協会:</span>
-                      <select
-                        value={belongFilter}
-                        onChange={e => setBelongFilter(e.target.value)}
-                        style={{
-                          background: C.inputBg,
-                          border: `1px solid ${C.border}`,
-                          borderRadius: 4,
-                          color: C.text,
-                          padding: '5px 10px',
-                          fontSize: 14,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <option value="all">全て</option>
-                        {belongs.map(b => (
-                          <option key={b} value={b}>{b}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                {/* Stats */}
-                <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-                  <div style={{
-                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-                    padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
-                  }}>
-                    <span style={{ fontSize: 13, color: C.muted }}>全体平均</span>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{overallAvg}</span>
-                  </div>
-                  <div style={{
-                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-                    padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
-                  }}>
-                    <span style={{ fontSize: 13, color: C.muted }}>上位6名平均</span>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: C.gold }}>{top6Avg}</span>
-                  </div>
-                  <div style={{
-                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-                    padding: '10px 18px', display: 'flex', flexDirection: 'column', gap: 2,
-                  }}>
-                    <span style={{ fontSize: 13, color: C.muted }}>表示件数</span>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{filtered.length}名</span>
-                  </div>
-                </div>
-              </>
-            )}
-
             {/* Results Table */}
             {filtered.length === 0 ? (
               <div style={{
@@ -432,7 +326,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
-              <div ref={tableWrapRef} style={{ overflow: 'auto', maxHeight: tableMaxH, WebkitOverflowScrolling: 'touch' as never }}>
+              <div style={{ overflow: 'auto', maxHeight: `calc(100vh - ${headerH}px)`, WebkitOverflowScrolling: 'touch' as never }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560, background: C.surface }}>
                     <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
@@ -535,6 +429,139 @@ export default function ViewerPage({ tournamentId }: Props) {
         aria-hidden="true"
         tabIndex={-1}
       />
+
+      {/* Filter Modal */}
+      {filterOpen && (
+        <div
+          onClick={() => setFilterOpen(false)}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            zIndex: 1000,
+            paddingTop: 80,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 12,
+              padding: '20px 20px 16px',
+              maxWidth: 420,
+              width: '90%',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18, color: C.gold }}>フィルター・集計</h3>
+              <button
+                onClick={() => setFilterOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: C.muted, fontSize: 22, cursor: 'pointer', padding: '0 4px' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Class Filter */}
+            <div style={{ marginBottom: 16 }}>
+              <span style={{ fontSize: 14, color: C.muted, display: 'block', marginBottom: 8 }}>クラス:</span>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(['all', ...existingClasses] as const).map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setClassFilter(c as 'all' | ClassType)}
+                    style={{
+                      background: classFilter === c ? classBadgeBg(c as 'all' | ClassType) : 'transparent',
+                      color: classFilter === c ? classBadgeColor(c as 'all' | ClassType) : C.muted,
+                      border: `1px solid ${classFilter === c ? classBadgeColor(c as 'all' | ClassType) : C.border}`,
+                      borderRadius: 4, padding: '5px 14px', fontSize: 15,
+                      fontWeight: classFilter === c ? 700 : 400, cursor: 'pointer',
+                    }}
+                  >
+                    {c === 'all' ? '全て' : c}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Belong Filter */}
+            {belongs.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <span style={{ fontSize: 14, color: C.muted, display: 'block', marginBottom: 8 }}>所属協会:</span>
+                <select
+                  value={belongFilter}
+                  onChange={e => setBelongFilter(e.target.value)}
+                  style={{
+                    background: C.inputBg,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 6,
+                    color: C.text,
+                    padding: '8px 12px',
+                    fontSize: 15,
+                    cursor: 'pointer',
+                    width: '100%',
+                  }}
+                >
+                  <option value="all">全て</option>
+                  {belongs.map(b => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Stats */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+              <div style={{
+                background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8,
+                padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 90,
+              }}>
+                <span style={{ fontSize: 12, color: C.muted }}>全体平均</span>
+                <span style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{overallAvg}</span>
+              </div>
+              <div style={{
+                background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8,
+                padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 90,
+              }}>
+                <span style={{ fontSize: 12, color: C.muted }}>上位6名平均</span>
+                <span style={{ fontSize: 20, fontWeight: 700, color: C.gold }}>{top6Avg}</span>
+              </div>
+              <div style={{
+                background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8,
+                padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 90,
+              }}>
+                <span style={{ fontSize: 12, color: C.muted }}>表示件数</span>
+                <span style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{filtered.length}名</span>
+              </div>
+            </div>
+
+            {/* Reset & Close */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => { setClassFilter('all'); setBelongFilter('all'); }}
+                style={{
+                  flex: 1, background: 'transparent', color: C.muted,
+                  border: `1px solid ${C.border}`, borderRadius: 6,
+                  padding: '10px', fontSize: 15, cursor: 'pointer',
+                }}
+              >
+                リセット
+              </button>
+              <button
+                onClick={() => setFilterOpen(false)}
+                style={{
+                  flex: 1, background: C.gold, color: '#000',
+                  border: 'none', borderRadius: 6,
+                  padding: '10px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Modal */}
       {showQrModal && origin && (
