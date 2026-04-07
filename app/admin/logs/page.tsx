@@ -19,6 +19,9 @@ const ACTION_LABELS: Record<OperationAction, string> = {
   registration_delete: '申込削除',
   registration_restore: '未移行に戻す',
   member_delete: '選手を削除',
+  login: 'ログイン',
+  inspection_save: '記録審査を保存',
+  inspection_download: '記録審査表ダウンロード',
 };
 
 const PAGE_SIZE = 50;
@@ -27,6 +30,7 @@ export default function OperationLogsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const isSystem = session?.user?.role === 'system';
+  const userAffiliation = session?.user?.affiliation ?? null;
 
   const [logs, setLogs] = useState<OperationLog[]>([]);
   const [total, setTotal] = useState(0);
@@ -34,6 +38,17 @@ export default function OperationLogsPage() {
   const [loading, setLoading] = useState(true);
   const [filterAction, setFilterAction] = useState('');
   const [filterTournament, setFilterTournament] = useState('');
+  const [filterAffiliation, setFilterAffiliation] = useState('');
+  const [affiliations, setAffiliations] = useState<string[]>([]);
+
+  // 所属協会一覧を取得
+  const fetchAffiliations = useCallback(async () => {
+    try {
+      const res = await fetch('/api/players?affiliations=1');
+      const json = await res.json();
+      if (json.affiliations) setAffiliations(json.affiliations);
+    } catch { /* ignore */ }
+  }, []);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -43,6 +58,7 @@ export default function OperationLogsPage() {
       params.set('offset', String(page * PAGE_SIZE));
       if (filterAction) params.set('action', filterAction);
       if (filterTournament) params.set('tournament_id', filterTournament);
+      if (filterAffiliation) params.set('affiliation', filterAffiliation);
 
       const res = await fetch(`/api/operation-logs?${params}`);
       const json = await res.json();
@@ -55,25 +71,26 @@ export default function OperationLogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, filterAction, filterTournament]);
+  }, [page, filterAction, filterTournament, filterAffiliation]);
 
   useEffect(() => {
-    if (status === 'authenticated' && isSystem) fetchLogs();
-  }, [status, isSystem, fetchLogs]);
+    if (status === 'authenticated') {
+      fetchAffiliations();
+    }
+  }, [status, fetchAffiliations]);
+
+  useEffect(() => {
+    if (status === 'authenticated') fetchLogs();
+  }, [status, fetchLogs]);
 
   if (status === 'loading') return null;
-  if (!isSystem) {
+  if (!session) {
     return (
       <div style={{ background: C.bg, minHeight: '100vh', color: C.text, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <p>システム管理者のみ閲覧可能です</p>
+        <p>ログインが必要です</p>
       </div>
     );
   }
-
-  // 大会一覧（ログ内のユニーク大会）
-  const uniqueTournaments = [...new Map(
-    logs.filter(l => l.tournament_id).map(l => [l.tournament_id, l.tournament_name])
-  ).entries()];
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -88,11 +105,11 @@ export default function OperationLogsPage() {
   }
 
   const th: React.CSSProperties = {
-    padding: '10px 12px', fontSize: 13, color: C.muted, fontWeight: 600,
+    padding: '10px 12px', fontSize: 15, color: C.muted, fontWeight: 600,
     textAlign: 'left', borderBottom: `2px solid ${C.border}`, whiteSpace: 'nowrap',
   };
   const td: React.CSSProperties = {
-    padding: '8px 12px', fontSize: 13, borderBottom: `1px solid ${C.border}`,
+    padding: '8px 12px', fontSize: 15, borderBottom: `1px solid ${C.border}`,
   };
 
   return (
@@ -104,13 +121,13 @@ export default function OperationLogsPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
             onClick={() => router.push('/admin')}
-            style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 14 }}
+            style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 15 }}
           >
             ← 戻る
           </button>
-          <h1 style={{ margin: 0, fontSize: 18, color: C.gold }}>操作ログ</h1>
+          <h1 style={{ margin: 0, fontSize: 20, color: C.gold }}>ログイン・操作ログ</h1>
         </div>
-        <div style={{ fontSize: 13, color: C.muted }}>
+        <div style={{ fontSize: 15, color: C.muted }}>
           全 {total} 件
         </div>
       </header>
@@ -119,13 +136,13 @@ export default function OperationLogsPage() {
         {/* フィルター */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, color: C.muted }}>操作種別:</span>
+            <span style={{ fontSize: 15, color: C.muted }}>操作種別:</span>
             <select
               value={filterAction}
               onChange={e => { setFilterAction(e.target.value); setPage(0); }}
               style={{
                 background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5,
-                color: C.text, padding: '5px 10px', fontSize: 13,
+                color: C.text, padding: '5px 10px', fontSize: 15,
               }}
             >
               <option value="">全て</option>
@@ -134,11 +151,29 @@ export default function OperationLogsPage() {
               ))}
             </select>
           </div>
+          {isSystem && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 15, color: C.muted }}>所属協会:</span>
+              <select
+                value={filterAffiliation}
+                onChange={e => { setFilterAffiliation(e.target.value); setPage(0); }}
+                style={{
+                  background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5,
+                  color: C.text, padding: '5px 10px', fontSize: 15,
+                }}
+              >
+                <option value="">全て</option>
+                {affiliations.map(a => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <button
-            onClick={() => { setFilterAction(''); setFilterTournament(''); setPage(0); }}
+            onClick={() => { setFilterAction(''); setFilterTournament(''); setFilterAffiliation(''); setPage(0); }}
             style={{
               background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
-              borderRadius: 5, padding: '5px 12px', fontSize: 13, cursor: 'pointer',
+              borderRadius: 5, padding: '5px 12px', fontSize: 15, cursor: 'pointer',
             }}
           >
             フィルターリセット
@@ -152,7 +187,7 @@ export default function OperationLogsPage() {
               <tr style={{ background: C.surface2 }}>
                 <th style={th}>日時</th>
                 <th style={th}>管理者</th>
-                <th style={th}>所属団体</th>
+                <th style={th}>所属協会</th>
                 <th style={th}>大会名</th>
                 <th style={th}>操作内容</th>
                 <th style={th}>詳細</th>
@@ -171,13 +206,15 @@ export default function OperationLogsPage() {
                   <td style={td}>{log.tournament_name ?? '—'}</td>
                   <td style={td}>
                     <span style={{
-                      background: C.surface2, borderRadius: 4, padding: '2px 8px', fontSize: 12,
-                      color: log.action.includes('delete') || log.action === 'tournament_reset' ? C.red : C.text,
+                      background: C.surface2, borderRadius: 4, padding: '2px 8px', fontSize: 14,
+                      color: log.action.includes('delete') || log.action === 'tournament_reset' ? C.red
+                        : log.action === 'login' ? C.blue2
+                        : C.text,
                     }}>
                       {ACTION_LABELS[log.action] ?? log.action}
                     </span>
                   </td>
-                  <td style={{ ...td, color: C.muted, fontSize: 12 }}>{log.detail ?? ''}</td>
+                  <td style={{ ...td, color: C.muted, fontSize: 14 }}>{log.detail ?? ''}</td>
                 </tr>
               ))}
             </tbody>
@@ -193,12 +230,12 @@ export default function OperationLogsPage() {
               style={{
                 background: C.surface, color: page === 0 ? C.muted : C.text,
                 border: `1px solid ${C.border}`, borderRadius: 5, padding: '5px 14px',
-                fontSize: 13, cursor: page === 0 ? 'default' : 'pointer',
+                fontSize: 15, cursor: page === 0 ? 'default' : 'pointer',
               }}
             >
               ← 前へ
             </button>
-            <span style={{ fontSize: 13, color: C.muted, padding: '5px 8px' }}>
+            <span style={{ fontSize: 15, color: C.muted, padding: '5px 8px' }}>
               {page + 1} / {totalPages}
             </span>
             <button
@@ -207,7 +244,7 @@ export default function OperationLogsPage() {
               style={{
                 background: C.surface, color: page >= totalPages - 1 ? C.muted : C.text,
                 border: `1px solid ${C.border}`, borderRadius: 5, padding: '5px 14px',
-                fontSize: 13, cursor: page >= totalPages - 1 ? 'default' : 'pointer',
+                fontSize: 15, cursor: page >= totalPages - 1 ? 'default' : 'pointer',
               }}
             >
               次へ →

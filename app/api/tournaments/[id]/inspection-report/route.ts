@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { sql } from '@/lib/db';
+import { writeOperationLog } from '@/lib/operation-log';
 import type { Result, Tournament } from '@/lib/types';
 import { TEMPLATE_BASE64 } from '@/templates/inspection-report-template';
 import JSZip from 'jszip';
@@ -266,6 +269,21 @@ export async function GET(req: NextRequest, { params }: Params) {
     const safeName = (tournament.name ?? '大会').replace(/[\\/:*?"<>|]/g, '_');
     const classLabel = classesParam ? `_${classesParam.replace(/,/g, '-')}` : '';
     const fileName = `記録審査表_${safeName}${classLabel}_${dateStr}.xlsx`;
+
+    // 操作ログ記録
+    try {
+      const session = await getServerSession(authOptions);
+      const adminName = session?.user?.name ?? session?.user?.email ?? null;
+      const adminAffiliation = session?.user?.affiliation ?? null;
+      await writeOperationLog({
+        tournamentId: tournament.id,
+        tournamentName: tournament.name,
+        adminName,
+        adminAffiliation,
+        action: 'inspection_download',
+        detail: classesParam ? `クラス: ${classesParam}` : null,
+      });
+    } catch { /* ログ記録失敗はダウンロードに影響させない */ }
 
     return new NextResponse(outBuf as unknown as BodyInit, {
       status: 200,

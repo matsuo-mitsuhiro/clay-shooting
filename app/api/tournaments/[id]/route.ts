@@ -105,7 +105,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
       return NextResponse.json<ApiResponse>({ success: false, error: '大会が見つかりません' }, { status: 404 });
     }
     const updated = rows[0] as Tournament;
-    const actionType = saveType === 'apply' ? 'apply_settings' as const : 'tournament_update' as const;
+    const actionType = saveType === 'apply' ? 'apply_settings' as const
+      : saveType === 'inspection' ? 'inspection_save' as const
+      : 'tournament_update' as const;
 
     await writeOperationLog({
       tournamentId: updated.id,

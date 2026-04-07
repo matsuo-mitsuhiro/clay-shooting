@@ -377,24 +377,22 @@ export default function AdminPage() {
               <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
             </button>
           )}
-          {isSystem && (
-            <button
-              onClick={() => router.push('/admin/logs')}
-              style={{
-                background: C.surface, color: C.text, border: `1px solid ${C.border}`,
-                borderRadius: 8, padding: '14px 20px', fontSize: 15, fontWeight: 600,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
-                width: '100%', textAlign: 'left',
-              }}
-            >
-              <span style={{ fontSize: 20 }}>📋</span>
-              <div>
-                <div>操作ログ</div>
-                <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>全大会の操作履歴を確認</div>
-              </div>
-              <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
-            </button>
-          )}
+          <button
+            onClick={() => router.push('/admin/logs')}
+            style={{
+              background: C.surface, color: C.text, border: `1px solid ${C.border}`,
+              borderRadius: 8, padding: '14px 20px', fontSize: 15, fontWeight: 600,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: 20 }}>📋</span>
+            <div>
+              <div>ログイン・操作ログ</div>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 400, marginTop: 2 }}>{isSystem ? '全大会の操作履歴を確認' : '自協会の操作履歴を確認'}</div>
+            </div>
+            <span style={{ marginLeft: 'auto', color: C.muted }}>→</span>
+          </button>
         </div>
 
         {/* Title + Tabs + Create Button */}

@@ -261,7 +261,10 @@ export type OperationAction =
   | 'registration_cancel'
   | 'registration_delete'
   | 'registration_restore'
-  | 'member_delete';
+  | 'member_delete'
+  | 'login'
+  | 'inspection_save'
+  | 'inspection_download';
 
 export interface OperationLog {
   id: number;
