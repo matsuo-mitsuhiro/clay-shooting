@@ -114,10 +114,9 @@ export async function GET(req: NextRequest, { params }: Params) {
     const DATA_START_ROW = 10;
     const ROWS_PER_PAGE = 36;
 
-    // 36行以上の場合は行を追加（テンプレートの最終データ行をコピーして挿入）
+    // 36行以上の場合は行を追加（データ最終行の後に挿入）
     if (results.length > ROWS_PER_PAGE) {
       const extraRows = results.length - ROWS_PER_PAGE;
-      // Row 46(フッター)の前に行を挿入
       for (let i = 0; i < extraRows; i++) {
         ws.insertRow(DATA_START_ROW + ROWS_PER_PAGE + i, []);
       }
@@ -168,15 +167,13 @@ export async function GET(req: NextRequest, { params }: Params) {
       }
       setCell(`P${row}`, remarks);
 
-      // クラス (S, hidden column)
-      setCell(`S${row}`, r.class ?? '');
     }
 
     // 未使用のデータ行をクリア（36行より少ない場合）
     for (let i = results.length; i < ROWS_PER_PAGE; i++) {
       const row = DATA_START_ROW + i;
       setCell(`A${row}`, i + 1);
-      for (const col of ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'S']) {
+      for (const col of ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']) {
         setCell(`${col}${row}`, '');
       }
     }
@@ -186,11 +183,11 @@ export async function GET(req: NextRequest, { params }: Params) {
       ...ws.pageSetup,
       paperSize: 9,
       orientation: 'portrait' as const,
-      scale: 97,
-      fitToPage: false,       // fitToPageを無効にしてscaleのみ有効
-      fitToWidth: undefined,
-      fitToHeight: undefined,
-      printArea: 'A1:R46',
+      scale: 100,
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      printArea: 'A1:R45',
     };
 
     // ファイル名生成
