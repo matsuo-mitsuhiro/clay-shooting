@@ -451,6 +451,16 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
               />
             </div>
 
+            {/* 注意書き */}
+            <p style={{
+              margin: '0 0 16px',
+              fontSize: 12,
+              lineHeight: 1.6,
+              color: C.muted,
+            }}>
+              ※Excelダウンロード後に点数を修正する場合は、必ず、点数登録を修正してから、再度、ダウンロードしてください。Excel側では、点数の修正は絶対にしないでください。
+            </p>
+
             {/* クラス選択 (クラス分けありの場合のみ) */}
             {form.class_division === 'divided' && availableClasses.length > 0 && (
               <div style={{ marginBottom: 16 }}>

@@ -169,11 +169,13 @@ export async function GET(req: NextRequest, { params }: Params) {
     // セット確認者 (O7)
     sheetXml = setCellInXml(sheetXml, 'O7', tournament.set_checker ?? '');
 
-    // トラップセットNo. (P8)
-    const setNoStr = [
-      tournament.day1_set ? `1日目:${tournament.day1_set}` : '',
-      tournament.day2_set ? `2日目:${tournament.day2_set}` : '',
-    ].filter(Boolean).join(' / ');
+    // セットNo.ラベル変更 (L8: テンプレートの「ﾄﾗｯﾌﾟセットNo.」を上書き)
+    sheetXml = setCellInXml(sheetXml, 'L8', 'セットNo.');
+
+    // セットNo. (P8): 「2」 or 「2/8」
+    const setNoStr = tournament.day2_set
+      ? `${tournament.day1_set ?? ''}/${tournament.day2_set}`
+      : `${tournament.day1_set ?? ''}`;
     sheetXml = setCellInXml(sheetXml, 'P8', setNoStr);
 
     // --- データ行 (Row 10〜81, 最大72行) ---
@@ -205,7 +207,9 @@ export async function GET(req: NextRequest, { params }: Params) {
       sheetXml = setCellInXml(sheetXml, `G${row}`, r3 ?? '');
       sheetXml = setCellInXml(sheetXml, `H${row}`, r4 ?? '');
 
-      // I列 (計) — SUM数式を保持。入力セル(E-H)を設定すれば自動計算される
+      // I列 (1日目計) — 数式を上書きし集計値を直接セット
+      const day1Total = Number(r.day1_total);
+      sheetXml = setCellInXml(sheetXml, `I${row}`, day1Total > 0 ? day1Total : '');
 
       // 2日目ラウンド (J-M)
       const r5 = r.r5 != null ? Number(r.r5) : null;
@@ -217,11 +221,13 @@ export async function GET(req: NextRequest, { params }: Params) {
       sheetXml = setCellInXml(sheetXml, `L${row}`, r7 ?? '');
       sheetXml = setCellInXml(sheetXml, `M${row}`, r8 ?? '');
 
-      // N列 (2日目計) — 数式がないセルが大半なので直接値をセット
+      // N列 (2日目計) — 集計値を直接セット
       const day2Total = Number(r.day2_total);
       sheetXml = setCellInXml(sheetXml, `N${row}`, day2Total > 0 ? day2Total : '');
 
-      // O列 (総計) — IF数式を保持。I列とN列から自動計算される
+      // O列 (総計) — 数式を上書きし集計値を直接セット
+      const total = Number(r.total);
+      sheetXml = setCellInXml(sheetXml, `O${row}`, total > 0 ? total : '');
 
       // 摘要 (P) — CB/FR/失格/棄権
       let remarks = '';
