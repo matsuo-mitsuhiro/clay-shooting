@@ -34,7 +34,6 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const anyModalOpen = showQrModal || filterOpen;
-  const savedScrollTop = useRef(0);
 
   // プルリフレッシュ後もログイン状態を維持（sessionStorageで保存）
   useEffect(() => {
@@ -90,17 +89,6 @@ export default function ViewerPage({ tournamentId }: Props) {
     if (match) setHighlightedCode(match.member_code);
   }, [loggedIn, results, loginName, loginBelong]);
 
-
-  // モーダル開閉時にスクロール位置を保存・復元（ゴーストスクロール防止）
-  useEffect(() => {
-    if (anyModalOpen) {
-      savedScrollTop.current = tableWrapRef.current?.scrollTop ?? 0;
-    } else {
-      requestAnimationFrame(() => {
-        if (tableWrapRef.current) tableWrapRef.current.scrollTop = savedScrollTop.current;
-      });
-    }
-  }, [anyModalOpen]);
 
   // ハイライト行へ自動スクロール
   useEffect(() => {
@@ -437,7 +425,6 @@ export default function ViewerPage({ tournamentId }: Props) {
       {/* Filter Modal */}
       {filterOpen && (
         <div
-          onClick={() => setFilterOpen(false)}
           style={{
             position: 'fixed', inset: 0,
             background: 'rgba(0,0,0,0.75)',
@@ -570,7 +557,6 @@ export default function ViewerPage({ tournamentId }: Props) {
       {/* QR Modal */}
       {showQrModal && origin && (
         <div
-          onClick={() => setShowQrModal(false)}
           style={{
             position: 'fixed', inset: 0,
             background: 'rgba(0,0,0,0.75)',
