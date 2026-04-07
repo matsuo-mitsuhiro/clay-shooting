@@ -1,17 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { neon } from '@neondatabase/serverless';
+import { sql } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import type { ApiResponse, OperationLog } from '@/lib/types';
-
-type QueryFn = {
-  (strings: TemplateStringsArray, ...values: unknown[]): Promise<Record<string, unknown>[]>;
-  (query: string, params?: unknown[]): Promise<Record<string, unknown>[]>;
-};
-
-function getDb(): QueryFn {
-  return neon(process.env.DATABASE_URL!) as unknown as QueryFn;
-}
 
 // GET /api/operation-logs — 操作ログ一覧（システム管理者 + 運営管理者）
 export async function GET(req: NextRequest) {
@@ -29,51 +20,47 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const sql = getDb();
     const url = new URL(req.url);
     const limit = Math.min(Number(url.searchParams.get('limit') ?? 100), 500);
     const offset = Number(url.searchParams.get('offset') ?? 0);
     const tournamentId = url.searchParams.get('tournament_id');
     const action = url.searchParams.get('action');
-    const affiliation = url.searchParams.get('affiliation');
+    const affiliationParam = url.searchParams.get('affiliation');
 
     // 運営管理者は自所属で強制フィルター
-    const effectiveAffiliation = isSystem ? (affiliation || null) : userAffiliation;
+    const aff = isSystem ? (affiliationParam || null) : userAffiliation;
+    const tid = tournamentId ? Number(tournamentId) : null;
 
-    // 動的クエリ構築（パラメータ付き文字列）
-    const conditions: string[] = [];
-    const params: (string | number)[] = [];
+    // tagged template literal で条件分岐（neonの関数呼び出し構文は不安定なため）
+    let rows: Record<string, unknown>[];
+    let countRows: Record<string, unknown>[];
 
-    if (tournamentId) {
-      params.push(Number(tournamentId));
-      conditions.push(`tournament_id = $${params.length}`);
+    if (tid && action && aff) {
+      rows = await sql`SELECT * FROM operation_logs WHERE tournament_id=${tid} AND action=${action} AND admin_affiliation=${aff} ORDER BY logged_at DESC LIMIT ${limit} OFFSET ${offset}`;
+      countRows = await sql`SELECT COUNT(*)::int AS total FROM operation_logs WHERE tournament_id=${tid} AND action=${action} AND admin_affiliation=${aff}`;
+    } else if (tid && action) {
+      rows = await sql`SELECT * FROM operation_logs WHERE tournament_id=${tid} AND action=${action} ORDER BY logged_at DESC LIMIT ${limit} OFFSET ${offset}`;
+      countRows = await sql`SELECT COUNT(*)::int AS total FROM operation_logs WHERE tournament_id=${tid} AND action=${action}`;
+    } else if (tid && aff) {
+      rows = await sql`SELECT * FROM operation_logs WHERE tournament_id=${tid} AND admin_affiliation=${aff} ORDER BY logged_at DESC LIMIT ${limit} OFFSET ${offset}`;
+      countRows = await sql`SELECT COUNT(*)::int AS total FROM operation_logs WHERE tournament_id=${tid} AND admin_affiliation=${aff}`;
+    } else if (action && aff) {
+      rows = await sql`SELECT * FROM operation_logs WHERE action=${action} AND admin_affiliation=${aff} ORDER BY logged_at DESC LIMIT ${limit} OFFSET ${offset}`;
+      countRows = await sql`SELECT COUNT(*)::int AS total FROM operation_logs WHERE action=${action} AND admin_affiliation=${aff}`;
+    } else if (tid) {
+      rows = await sql`SELECT * FROM operation_logs WHERE tournament_id=${tid} ORDER BY logged_at DESC LIMIT ${limit} OFFSET ${offset}`;
+      countRows = await sql`SELECT COUNT(*)::int AS total FROM operation_logs WHERE tournament_id=${tid}`;
+    } else if (action) {
+      rows = await sql`SELECT * FROM operation_logs WHERE action=${action} ORDER BY logged_at DESC LIMIT ${limit} OFFSET ${offset}`;
+      countRows = await sql`SELECT COUNT(*)::int AS total FROM operation_logs WHERE action=${action}`;
+    } else if (aff) {
+      rows = await sql`SELECT * FROM operation_logs WHERE admin_affiliation=${aff} ORDER BY logged_at DESC LIMIT ${limit} OFFSET ${offset}`;
+      countRows = await sql`SELECT COUNT(*)::int AS total FROM operation_logs WHERE admin_affiliation=${aff}`;
+    } else {
+      rows = await sql`SELECT * FROM operation_logs ORDER BY logged_at DESC LIMIT ${limit} OFFSET ${offset}`;
+      countRows = await sql`SELECT COUNT(*)::int AS total FROM operation_logs`;
     }
-    if (action) {
-      params.push(action);
-      conditions.push(`action = $${params.length}`);
-    }
-    if (effectiveAffiliation) {
-      params.push(effectiveAffiliation);
-      conditions.push(`admin_affiliation = $${params.length}`);
-    }
 
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    // データ取得
-    const dataParams = [...params, limit, offset];
-    const limitIdx = params.length + 1;
-    const offsetIdx = params.length + 2;
-
-    const rows = await sql(
-      `SELECT * FROM operation_logs ${where} ORDER BY logged_at DESC LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-      dataParams
-    );
-
-    // 総件数
-    const countRows = await sql(
-      `SELECT COUNT(*)::int AS total FROM operation_logs ${where}`,
-      params
-    );
     const total = Number((countRows[0] as { total: number }).total);
 
     return NextResponse.json<ApiResponse<{ logs: OperationLog[]; total: number }>>({

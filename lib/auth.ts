@@ -57,7 +57,7 @@ export const authOptions: NextAuthOptions = {
             INSERT INTO operation_logs (tournament_id, tournament_name, logged_at, admin_name, admin_affiliation, action, detail)
             VALUES (null, null, NOW(), ${admin.name as string}, ${affiliation}, 'login', '運営管理者ログイン')
           `;
-        } catch { /* ignore */ }
+        } catch (e) { console.error('login log error (tournament):', e); }
 
         return {
           id: String(admin.id),
@@ -92,7 +92,7 @@ export const authOptions: NextAuthOptions = {
             INSERT INTO operation_logs (tournament_id, tournament_name, logged_at, admin_name, admin_affiliation, action, detail)
             VALUES (null, null, NOW(), ${user.name ?? ''}, null, 'login', 'システム管理者ログイン')
           `;
-        } catch { /* ignore */ }
+        } catch (e) { console.error('login log error (system):', e); }
       }
       return true;
     },
