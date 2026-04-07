@@ -181,6 +181,18 @@ export async function GET(req: NextRequest, { params }: Params) {
       }
     }
 
+    // ページ設定をテンプレートと同一に復元（ExcelJSが属性を変更するのを防止）
+    ws.pageSetup = {
+      ...ws.pageSetup,
+      paperSize: 9,
+      orientation: 'portrait' as const,
+      scale: 97,
+      fitToPage: false,       // fitToPageを無効にしてscaleのみ有効
+      fitToWidth: undefined,
+      fitToHeight: undefined,
+      printArea: 'A1:R46',
+    };
+
     // ファイル名生成
     const safeName = (tournament.name ?? '大会').replace(/[\\/:*?"<>|]/g, '_');
     const classLabel = classesParam ? `_${classesParam.replace(/,/g, '-')}` : '';
