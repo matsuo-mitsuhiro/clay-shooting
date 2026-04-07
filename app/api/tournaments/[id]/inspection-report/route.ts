@@ -244,14 +244,10 @@ export async function GET(req: NextRequest, { params }: Params) {
       sheetXml = setCellInXml(sheetXml, `P${row}`, remarks);
     }
 
-    // 未使用行のI・N・O列も値で上書き（共有数式の孤児参照を防ぐ）
-    const MAX_ROWS = 72;
-    for (let i = results.length; i < MAX_ROWS; i++) {
-      const row = DATA_START_ROW + i;
-      sheetXml = setCellInXml(sheetXml, `I${row}`, '');
-      sheetXml = setCellInXml(sheetXml, `N${row}`, '');
-      sheetXml = setCellInXml(sheetXml, `O${row}`, '');
-    }
+    // 全数式タグを一括削除（共有数式の孤児参照エラーを完全防止）
+    // データ行のI/O列は値で上書き済み。未使用行の数式は<v>0</v>のキャッシュ値が残る。
+    sheetXml = sheetXml.replace(/<f[^>]*\/>/g, '');       // <f ... /> (self-closing)
+    sheetXml = sheetXml.replace(/<f[^>]*>[^<]*<\/f>/g, ''); // <f ...>...</f>
 
     // calcChain.xmlを削除（不要になった数式チェーン情報を除去）
     zip.remove('xl/calcChain.xml');
