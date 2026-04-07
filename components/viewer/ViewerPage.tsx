@@ -90,10 +90,12 @@ export default function ViewerPage({ tournamentId }: Props) {
   }, [loggedIn, results, loginName, loginBelong]);
 
 
-  // フィルター変更時にスクロール位置をリセット
+  // フィルター変更・モーダル閉じ時にスクロール位置をリセット
   useEffect(() => {
-    if (tableWrapRef.current) tableWrapRef.current.scrollTop = 0;
-  }, [classFilter, belongFilter]);
+    requestAnimationFrame(() => {
+      if (tableWrapRef.current) tableWrapRef.current.scrollTop = 0;
+    });
+  }, [classFilter, belongFilter, filterOpen]);
 
   // ハイライト行へ自動スクロール（画面外にある場合のみ）
   useEffect(() => {
@@ -543,7 +545,7 @@ export default function ViewerPage({ tournamentId }: Props) {
             {/* Reset & Close */}
             <div style={{ display: 'flex', gap: 8 }}>
               <button
-                onClick={() => { setClassFilter('all'); setBelongFilter('all'); }}
+                onClick={() => { setClassFilter('all'); setBelongFilter('all'); requestAnimationFrame(() => { if (tableWrapRef.current) tableWrapRef.current.scrollTop = 0; }); }}
                 style={{
                   flex: 1, background: 'transparent', color: C.muted,
                   border: `1px solid ${C.border}`, borderRadius: 6,
@@ -553,7 +555,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 リセット
               </button>
               <button
-                onClick={() => setFilterOpen(false)}
+                onClick={() => { setFilterOpen(false); requestAnimationFrame(() => { if (tableWrapRef.current) tableWrapRef.current.scrollTop = 0; }); }}
                 style={{
                   flex: 1, background: C.gold, color: '#000',
                   border: 'none', borderRadius: 6,
