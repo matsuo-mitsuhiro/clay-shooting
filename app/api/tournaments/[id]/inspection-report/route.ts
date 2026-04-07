@@ -178,16 +178,22 @@ export async function GET(req: NextRequest, { params }: Params) {
       }
     }
 
-    // ページ設定をテンプレートと同一に復元（ExcelJSが属性を変更するのを防止）
+    // ページ設定を復元（ExcelJSがprinterSettingsを削除するため、fitToHeightで補償）
+    // テンプレート本来はfitToHeight=0だが、printerSettings消失により
+    // Excelがスケール計算できなくなるため、ページ数を明示して1ページに収める
+    const totalDataRows = Math.max(results.length, ROWS_PER_PAGE);
+    const pageCount = Math.ceil(totalDataRows / ROWS_PER_PAGE);
+    const lastDataRow = DATA_START_ROW + totalDataRows - 1;  // データ最終行
+    const printEndRow = lastDataRow + 1;  // データ最終行 + 余白行
+
     ws.pageSetup = {
       ...ws.pageSetup,
       paperSize: 9,
       orientation: 'portrait' as const,
-      scale: 100,
       fitToPage: true,
       fitToWidth: 1,
-      fitToHeight: 0,
-      printArea: 'A1:R45',
+      fitToHeight: pageCount,
+      printArea: `A1:R${printEndRow}`,
     };
 
     // ファイル名生成
