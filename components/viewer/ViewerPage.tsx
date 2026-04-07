@@ -113,7 +113,8 @@ export default function ViewerPage({ tournamentId }: Props) {
       }
     }
     // DOMレイアウト完了後に測定
-    requestAnimationFrame(calcMaxH);
+    // 二重RAFでレイアウト確定後に測定（フィルター開閉時のreflow完了を待つ）
+    requestAnimationFrame(() => requestAnimationFrame(calcMaxH));
     window.addEventListener('resize', calcMaxH);
     return () => window.removeEventListener('resize', calcMaxH);
   }, [filterOpen, loading, headerH, toggleH]);
