@@ -432,13 +432,13 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
             width: 380,
             maxWidth: '95vw',
           }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 17, fontWeight: 700, color: C.gold }}>
+            <h3 style={{ margin: '0 0 20px', fontSize: 19, fontWeight: 700, color: C.gold }}>
               大会記録審査表 Excel
             </h3>
 
             {/* 作成日 */}
             <div style={{ marginBottom: 16 }}>
-              <label style={{ ...labelStyle, marginBottom: 6 }}>作成日</label>
+              <label style={{ ...labelStyle, fontSize: 15, marginBottom: 6 }}>作成日</label>
               <DatePicker
                 selected={excelDate}
                 onChange={(date: Date | null) => { if (date) setExcelDate(date); }}
@@ -446,7 +446,7 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
                 locale={ja}
                 wrapperClassName=""
                 customInput={
-                  <input style={{ ...inputStyle, width: 180, cursor: 'pointer' }} readOnly />
+                  <input style={{ ...inputStyle, fontSize: 16, width: 180, cursor: 'pointer' }} readOnly />
                 }
               />
             </div>
@@ -454,7 +454,7 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
             {/* 注意書き */}
             <p style={{
               margin: '0 0 16px',
-              fontSize: 12,
+              fontSize: 14,
               lineHeight: 1.6,
               color: C.muted,
             }}>
@@ -500,7 +500,7 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
                 disabled={generating || (form.class_division === 'divided' && selectedClasses.length === 0)}
                 style={{
                   padding: '10px 28px',
-                  fontSize: 15,
+                  fontSize: 17,
                   fontWeight: 700,
                   color: '#000',
                   background: generating ? C.muted : C.gold,
@@ -510,13 +510,13 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
                   opacity: (generating || (form.class_division === 'divided' && selectedClasses.length === 0)) ? 0.5 : 1,
                 }}
               >
-                {generating ? '作成中...' : '作　成'}
+                {generating ? 'ダウンロード中...' : 'ダウンロード'}
               </button>
               <button
                 onClick={() => setShowExcelDialog(false)}
                 style={{
                   padding: '10px 28px',
-                  fontSize: 15,
+                  fontSize: 17,
                   fontWeight: 600,
                   color: C.muted,
                   background: 'transparent',
