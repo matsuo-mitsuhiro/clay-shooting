@@ -21,6 +21,7 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [results, setResults] = useState<Result[]>([]);
   const highlightedRowRef = useRef<HTMLTableRowElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const tableWrapRef = useRef<HTMLDivElement>(null);
   const [headerH, setHeaderH] = useState(70);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [has2ndDay, setHas2ndDay] = useState(false);
@@ -88,6 +89,25 @@ export default function ViewerPage({ tournamentId }: Props) {
     });
     if (match) setHighlightedCode(match.member_code);
   }, [loggedIn, results, loginName, loginBelong]);
+
+  // モーダル表示中はバックグラウンドスクロール防止 + 閉じた後にsticky再描画を強制
+  const anyModalOpen = showQrModal || filterOpen;
+  useEffect(() => {
+    if (anyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      // モーダルを閉じた後、テーブルコンテナを強制再描画してstickyを復帰させる
+      const el = tableWrapRef.current;
+      if (el) {
+        el.style.display = 'none';
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        el.offsetHeight; // reflow強制
+        el.style.display = '';
+      }
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [anyModalOpen]);
 
   // ヘッダーの高さを測定
   useEffect(() => {
@@ -326,7 +346,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
-              <div style={{ overflow: 'auto', maxHeight: `calc(100vh - ${headerH}px)`, WebkitOverflowScrolling: 'touch' as never }}>
+              <div ref={tableWrapRef} style={{ overflow: 'auto', maxHeight: `calc(100vh - ${headerH}px)`, WebkitOverflowScrolling: 'touch' as never }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560, background: C.surface }}>
                     <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
