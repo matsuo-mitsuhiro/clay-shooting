@@ -33,6 +33,7 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [origin, setOrigin] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const anyModalOpen = showQrModal || filterOpen;
 
   // プルリフレッシュ後もログイン状態を維持（sessionStorageで保存）
   useEffect(() => {
@@ -186,6 +187,7 @@ export default function ViewerPage({ tournamentId }: Props) {
         padding: '20px 20px 16px',
         flexShrink: 0,
         zIndex: 20,
+        pointerEvents: anyModalOpen ? 'none' : 'auto',
       }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
@@ -295,7 +297,7 @@ export default function ViewerPage({ tournamentId }: Props) {
         </div>
       </header>
 
-      <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', pointerEvents: anyModalOpen ? 'none' : 'auto' }}>
         <div ref={tableWrapRef} style={{ flex: 1, overflow: 'auto' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px' }}>
         {/* Error */}
