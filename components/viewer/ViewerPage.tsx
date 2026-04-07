@@ -291,7 +291,7 @@ export default function ViewerPage({ tournamentId }: Props) {
         </div>
       </header>
 
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px' }}>
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px', position: 'relative', zIndex: 1 }}>
         {/* Error */}
         {error && (
           <div style={{
