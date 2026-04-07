@@ -164,8 +164,7 @@ export default function ResultsTab({ tournamentId }: Props) {
   };
 
   return (
-    <div style={{ padding: '0 16px', maxWidth: 1200, margin: '0 auto' }}>
-
+    <div>
       {/* 手動順位モーダル */}
       {manualModalOpen && (
         <div style={{
@@ -307,6 +306,7 @@ export default function ResultsTab({ tournamentId }: Props) {
         </div>
       )}
 
+      <div style={{ padding: '0 16px', maxWidth: 1200, margin: '0 auto', pointerEvents: manualModalOpen ? 'none' as const : 'auto' as const }}>
       {/* Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <h3 style={{ margin: 0, fontSize: 18, color: C.text }}>成績一覧</h3>
@@ -573,6 +573,7 @@ export default function ResultsTab({ tournamentId }: Props) {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

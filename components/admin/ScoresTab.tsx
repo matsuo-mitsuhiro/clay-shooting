@@ -337,8 +337,10 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
     numpadField === 'fr' ? 'fr' :
     'score';
 
+  const anyModalOpen = numpadOpen || !!saveConfirm;
+
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 1060, margin: '0 auto' }}>
+    <div>
       {/* Numpad Popup */}
       {numpadOpen && numpadMember && (
         <NumPad
@@ -401,6 +403,7 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
         </div>
       )}
 
+      <div style={{ padding: '20px 16px', maxWidth: 1060, margin: '0 auto', pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const }}>
       {/* Day Tabs — 2日開催時のみ表示 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
         {hasTwoDays && ([1, 2] as const).map(day => (
@@ -664,6 +667,7 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
           })}
         </>
       )}
+      </div>
     </div>
   );
 }

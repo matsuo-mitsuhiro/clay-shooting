@@ -202,13 +202,15 @@ export default function AdminsPage() {
     ? admins.filter(a => (a.current_affiliation ?? '') === filterAffiliation)
     : admins;
 
+  const anyModalOpen = !!editAdmin;
+
   if (status === 'loading') return <LoadingOverlay show message="読み込み中..." />;
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
       <LoadingOverlay show={loading || saving || qrLoading} message={qrLoading ? 'QRコード発行中...' : saving ? '処理中...' : '読み込み中...'} />
 
-      <header style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+      <header style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const }}>
         <button onClick={() => router.push('/admin')} style={{ background: 'transparent', color: C.muted, border: `1px solid ${C.border}`, borderRadius: 5, padding: '6px 12px', fontSize: 15, cursor: 'pointer' }}>
           ← 大会一覧
         </button>
@@ -232,6 +234,7 @@ export default function AdminsPage() {
       </header>
 
       <main style={{ maxWidth: 960, margin: '0 auto', padding: '28px 16px' }}>
+        <div style={{ pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const }}>
         {error && <div style={{ background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c', borderRadius: 6, padding: '10px 14px', marginBottom: 16 }}>{error}</div>}
 
         {/* 上部ボタン行 */}
@@ -373,6 +376,7 @@ export default function AdminsPage() {
             </table>
           </div>
         )}
+        </div>
 
         {/* 編集モーダル */}
         {editAdmin && (

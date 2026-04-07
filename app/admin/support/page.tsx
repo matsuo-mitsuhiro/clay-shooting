@@ -225,13 +225,15 @@ export default function AdminSupportPage() {
   const filtered = filterStatus ? questions.filter(q => q.status === filterStatus) : questions;
   const pendingCount = questions.filter(q => q.status === 'pending').length;
 
+  const anyModalOpen = !!selectedQ || showFaqModal || !!editFaq;
+
   if (status === 'loading') return <LoadingOverlay show message="読み込み中..." />;
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
       <LoadingOverlay show={loading || saving} message={saving ? '処理中...' : '読み込み中...'} />
 
-      <header style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+      <header style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const }}>
         <button onClick={() => router.push('/admin')} style={{ background: 'transparent', color: C.muted, border: `1px solid ${C.border}`, borderRadius: 5, padding: '6px 12px', fontSize: 15, cursor: 'pointer' }}>
           ← 大会一覧
         </button>
@@ -255,7 +257,7 @@ export default function AdminSupportPage() {
         </div>
       </header>
 
-      <main style={{ maxWidth: 960, margin: '0 auto', padding: '28px 16px' }}>
+      <main style={{ maxWidth: 960, margin: '0 auto', padding: '28px 16px', pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const }}>
 
         {/* タブ */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: `1px solid ${C.border}` }}>

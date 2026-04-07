@@ -249,7 +249,8 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
   };
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div>
+      <div style={{ padding: '20px', pointerEvents: showExcelDialog ? 'none' as const : 'auto' as const }}>
       {/* ルール */}
       <div style={cardStyle}>
         <div style={sectionTitleStyle}>ルール設定</div>
@@ -408,6 +409,7 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
         <button onClick={openExcelDialog} style={exportBtnStyle}>
           大会記録審査表 Excel
         </button>
+      </div>
       </div>
 
       {/* ===== Excel作成ダイアログ ===== */}

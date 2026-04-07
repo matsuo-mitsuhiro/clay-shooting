@@ -151,9 +151,11 @@ export default function PlayersPage() {
   }
 
   const filtered = players; // サーバー側でフィルタ済み
+  const anyModalOpen = !!modal || !!deleteTarget;
 
   return (
     <div style={s.page}>
+      <div style={{ pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const }}>
       {/* ヘッダー */}
       <div style={s.header}>
         <div>
@@ -240,6 +242,7 @@ export default function PlayersPage() {
             </tbody>
           </table>
         )}
+      </div>
       </div>
 
       {/* 新規登録・編集モーダル */}

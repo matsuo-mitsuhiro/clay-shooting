@@ -77,6 +77,8 @@ export default function AdminDetail({ tournamentId }: Props) {
     { key: 'history', label: '閲覧履歴' },
   ];
 
+  const anyModalOpen = menuOpen || contactOpen;
+
   return (
     <div style={{ height: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
@@ -88,6 +90,7 @@ export default function AdminDetail({ tournamentId }: Props) {
         alignItems: 'center',
         gap: 16,
         flexWrap: 'wrap',
+        pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const,
       }}>
         <div style={{ flex: 1 }}>
           {loading ? (
@@ -175,6 +178,7 @@ export default function AdminDetail({ tournamentId }: Props) {
             padding: '0 12px',
             gap: 10,
             minHeight: 48,
+            pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const,
           }}>
             <button
               onClick={() => setMenuOpen(true)}
@@ -406,6 +410,7 @@ export default function AdminDetail({ tournamentId }: Props) {
           gap: 0,
           overflowX: 'auto',
           alignItems: 'center',
+          pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const,
         }}>
           <button
             onClick={() => router.push('/admin')}
@@ -467,7 +472,7 @@ export default function AdminDetail({ tournamentId }: Props) {
       )}
 
       {/* Tab Content */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'auto', pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const }}>
         {!loading && !error && tournament && (
           <>
             {activeTab === 'registrations' && (
