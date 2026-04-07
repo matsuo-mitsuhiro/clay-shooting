@@ -90,12 +90,20 @@ export default function ViewerPage({ tournamentId }: Props) {
   }, [loggedIn, results, loginName, loginBelong]);
 
 
-  // ハイライト行へ自動スクロール
+  // ハイライト行へ自動スクロール（画面外にある場合のみ）
   useEffect(() => {
-    if (highlightedCode && highlightedRowRef.current) {
+    if (highlightedCode && highlightedRowRef.current && tableWrapRef.current) {
       setTimeout(() => {
-        highlightedRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
+        const row = highlightedRowRef.current;
+        const container = tableWrapRef.current;
+        if (!row || !container) return;
+        const rowRect = row.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        // 行がスクロールコンテナの表示範囲外にある場合のみスクロール
+        if (rowRect.bottom > containerRect.bottom || rowRect.top < containerRect.top + 40) {
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
     }
   }, [highlightedCode]);
 
