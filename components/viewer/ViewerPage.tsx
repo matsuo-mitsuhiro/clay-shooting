@@ -296,7 +296,7 @@ export default function ViewerPage({ tournamentId }: Props) {
       </header>
 
       <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div ref={tableWrapRef} style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' as never }}>
+        <div ref={tableWrapRef} style={{ flex: 1, overflow: 'auto' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px' }}>
         {/* Error */}
         {error && (
@@ -353,7 +353,6 @@ export default function ViewerPage({ tournamentId }: Props) {
                               borderBottom: `1px solid ${C.border}33`,
                               background: isHighlighted ? '#2a2518' : 'transparent',
                               cursor: 'pointer',
-                              transition: 'background 0.15s',
                             }}
                           >
                             <td style={{ ...tdS, color: r.rank && r.rank <= 3 ? C.gold : C.muted, fontWeight: r.rank && r.rank <= 3 ? 700 : 400, position: 'sticky', left: 0, zIndex: 1, background: isHighlighted ? '#2a2518' : C.surface }}>
