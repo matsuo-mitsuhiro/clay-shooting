@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { neon } from '@neondatabase/serverless';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import type { ApiResponse, OperationLog } from '@/lib/types';
+
+type QueryFn = {
+  (strings: TemplateStringsArray, ...values: unknown[]): Promise<Record<string, unknown>[]>;
+  (query: string, params?: unknown[]): Promise<Record<string, unknown>[]>;
+};
+
+function getDb(): QueryFn {
+  return neon(process.env.DATABASE_URL!) as unknown as QueryFn;
+}
 
 // GET /api/operation-logs — 操作ログ一覧（システム管理者 + 運営管理者）
 export async function GET(req: NextRequest) {
@@ -20,6 +29,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const sql = getDb();
     const url = new URL(req.url);
     const limit = Math.min(Number(url.searchParams.get('limit') ?? 100), 500);
     const offset = Number(url.searchParams.get('offset') ?? 0);
@@ -30,7 +40,7 @@ export async function GET(req: NextRequest) {
     // 運営管理者は自所属で強制フィルター
     const effectiveAffiliation = isSystem ? (affiliation || null) : userAffiliation;
 
-    // 動的クエリ構築
+    // 動的クエリ構築（パラメータ付き文字列）
     const conditions: string[] = [];
     const params: (string | number)[] = [];
 
@@ -49,21 +59,20 @@ export async function GET(req: NextRequest) {
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    params.push(limit);
-    const limitIdx = params.length;
-    params.push(offset);
-    const offsetIdx = params.length;
+    // データ取得
+    const dataParams = [...params, limit, offset];
+    const limitIdx = params.length + 1;
+    const offsetIdx = params.length + 2;
 
-    const rows = await (sql as unknown as (query: string, params: (string | number)[]) => Promise<Record<string, unknown>[]>)(
+    const rows = await sql(
       `SELECT * FROM operation_logs ${where} ORDER BY logged_at DESC LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-      params
+      dataParams
     );
 
-    // 総件数（limit/offsetなし）
-    const countParams = params.slice(0, conditions.length);
-    const countRows = await (sql as unknown as (query: string, params: (string | number)[]) => Promise<Record<string, unknown>[]>)(
+    // 総件数
+    const countRows = await sql(
       `SELECT COUNT(*)::int AS total FROM operation_logs ${where}`,
-      countParams
+      params
     );
     const total = Number((countRows[0] as { total: number }).total);
 
