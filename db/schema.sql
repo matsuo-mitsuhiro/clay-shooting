@@ -179,12 +179,24 @@ combined AS (
   LEFT JOIN scores s
     ON m.tournament_id = s.tournament_id AND m.member_code = s.member_code
 ),
--- 有効選手のみで順位付与（合計DESC → CB ASC → FR DESC）
+-- 有効選手のみで順位付与
+-- 合計DESC → カウントバック（R8→R7→R6→R5→R4→R3→R2→R1 DESC） → CB ASC → FR DESC
 valid_ranked AS (
   SELECT tournament_id, member_code,
     RANK() OVER (
       PARTITION BY tournament_id
-      ORDER BY total DESC, COALESCE(cb, 999) ASC, COALESCE(fr, 0) DESC
+      ORDER BY
+        total DESC,
+        COALESCE(r8, 0) DESC,
+        COALESCE(r7, 0) DESC,
+        COALESCE(r6, 0) DESC,
+        COALESCE(r5, 0) DESC,
+        COALESCE(r4, 0) DESC,
+        COALESCE(r3, 0) DESC,
+        COALESCE(r2, 0) DESC,
+        COALESCE(r1, 0) DESC,
+        COALESCE(cb, 999) ASC,
+        COALESCE(fr, 0) DESC
     ) AS rank
   FROM combined
   WHERE status = 'valid'
@@ -202,7 +214,7 @@ final AS (
 )
 SELECT * FROM final;
 
-COMMENT ON VIEW v_results IS '成績集計ビュー（合計・平均・順位・CB・FR・成績ステータス付き）';
+COMMENT ON VIEW v_results IS '成績集計ビュー（合計・平均・カウントバック順位・CB・FR・成績ステータス付き）';
 
 
 -- ============================================================
