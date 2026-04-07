@@ -20,9 +20,7 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [loginBelong, setLoginBelong] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const highlightedRowRef = useRef<HTMLTableRowElement>(null);
-  const headerRef = useRef<HTMLElement>(null);
   const tableWrapRef = useRef<HTMLDivElement>(null);
-  const [headerH, setHeaderH] = useState(70);
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [has2ndDay, setHas2ndDay] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -90,34 +88,6 @@ export default function ViewerPage({ tournamentId }: Props) {
     if (match) setHighlightedCode(match.member_code);
   }, [loggedIn, results, loginName, loginBelong]);
 
-  // モーダル表示中はバックグラウンドスクロール防止 + 閉じた後にsticky再描画を強制
-  const anyModalOpen = showQrModal || filterOpen;
-  useEffect(() => {
-    if (anyModalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-      // モーダルを閉じた後、テーブルコンテナを強制再描画してstickyを復帰させる
-      const el = tableWrapRef.current;
-      if (el) {
-        el.style.display = 'none';
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        el.offsetHeight; // reflow強制
-        el.style.display = '';
-      }
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [anyModalOpen]);
-
-  // ヘッダーの高さを測定
-  useEffect(() => {
-    function measure() {
-      if (headerRef.current) setHeaderH(headerRef.current.offsetHeight);
-    }
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, [loading, tournament]);
 
   // ハイライト行へ自動スクロール
   useEffect(() => {
@@ -207,15 +177,14 @@ export default function ViewerPage({ tournamentId }: Props) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif', position: 'relative' }}>
+    <div style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif', position: 'relative' }}>
       <LoadingOverlay show={loading} message="読み込み中..." />
       {/* Header / Banner */}
-      <header ref={headerRef} style={{
+      <header style={{
         background: `linear-gradient(135deg, ${C.surface} 0%, ${C.surface2} 100%)`,
         borderBottom: `1px solid ${C.border}`,
         padding: '20px 20px 16px',
-        position: 'sticky',
-        top: 0,
+        flexShrink: 0,
         zIndex: 20,
       }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -326,7 +295,9 @@ export default function ViewerPage({ tournamentId }: Props) {
         </div>
       </header>
 
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px' }}>
+      <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div ref={tableWrapRef} style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' as never }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px' }}>
         {/* Error */}
         {error && (
           <div style={{
@@ -346,7 +317,6 @@ export default function ViewerPage({ tournamentId }: Props) {
                 成績データがありません
               </div>
             ) : (
-              <div ref={tableWrapRef} style={{ overflow: 'auto', maxHeight: `calc(100vh - ${headerH}px)`, WebkitOverflowScrolling: 'touch' as never }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: has2ndDay ? 780 : 560, background: C.surface }}>
                     <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
@@ -424,11 +394,12 @@ export default function ViewerPage({ tournamentId }: Props) {
                       })}
                     </tbody>
                   </table>
-              </div>
             )}
           </>
         )}
         <Footer />
+          </div>
+        </div>
       </main>
 
       {/* Hidden admin button (bottom-left, 32x32px transparent) */}
