@@ -94,6 +94,7 @@ export default function AssociationsPage() {
         body: JSON.stringify({
           cancellation_notice: editData.cancellation_notice || null,
           notes: editData.notes || null,
+          president_name: editData.president_name || null,
           shooting_range_ids: editData.shooting_range_ids,
         }),
       });
@@ -103,7 +104,7 @@ export default function AssociationsPage() {
       setTimeout(() => setSuccess(null), 3000);
       setAssociations(prev => prev.map(a =>
         a.cd === editData.cd
-          ? { ...a, cancellation_notice: editData.cancellation_notice, notes: editData.notes }
+          ? { ...a, cancellation_notice: editData.cancellation_notice, notes: editData.notes, president_name: editData.president_name }
           : a
       ));
     } catch (e) {
@@ -225,6 +226,23 @@ export default function AssociationsPage() {
             <h2 style={{ margin: '0 0 16px', fontSize: 18, color: C.gold }}>
               {editData.name} 協会
             </h2>
+
+            {/* 会長名 */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 4 }}>
+                会長名
+              </label>
+              <input
+                value={editData.president_name ?? ''}
+                onChange={e => setEditData({ ...editData, president_name: e.target.value || null })}
+                maxLength={100}
+                style={{
+                  ...inputStyle,
+                  resize: 'none' as const,
+                }}
+                placeholder="会長名を入力"
+              />
+            </div>
 
             {/* 射撃場選択 */}
             <div style={{ marginBottom: 20 }}>

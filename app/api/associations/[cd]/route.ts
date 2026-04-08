@@ -21,7 +21,7 @@ export async function GET(
 
     const sql = getDb();
     const rows = await sql`
-      SELECT cd, name, cancellation_notice, notes
+      SELECT cd, name, cancellation_notice, notes, president_name
       FROM associations
       WHERE cd = ${cdNum}
     `;
@@ -86,9 +86,10 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { cancellation_notice, notes, shooting_range_ids } = body as {
+    const { cancellation_notice, notes, president_name, shooting_range_ids } = body as {
       cancellation_notice?: string | null;
       notes?: string | null;
+      president_name?: string | null;
       shooting_range_ids?: number[];
     };
 
@@ -99,6 +100,7 @@ export async function PUT(
       UPDATE associations
       SET cancellation_notice = ${cancellation_notice ?? null},
           notes = ${notes ?? null},
+          president_name = ${president_name ?? null},
           updated_at = NOW()
       WHERE cd = ${cdNum}
     `;
