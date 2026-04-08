@@ -55,6 +55,19 @@ function setCellInXml(xml: string, ref: string, value: string | number | null): 
   return xml.substring(0, pos) + newCell + xml.substring(endIdx);
 }
 
+// Safely parse DB date value (handles Date objects, ISO strings, date strings)
+function parseDate(val: unknown): Date {
+  if (!val) return new Date();
+  if (val instanceof Date) return val;
+  const s = String(val);
+  // Extract YYYY-MM-DD from any format and create local date
+  const m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  // Fallback: try direct parse
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
 // Excel serial date from JS Date
 function dateToSerial(d: Date): number {
   const epoch = new Date(1899, 11, 30);
@@ -64,11 +77,9 @@ function dateToSerial(d: Date): number {
 
 // Clear cached <v> from formula cells so Excel recalculates on open
 function clearFormulaCache(xml: string): string {
-  // Match cells with <f>...</f><v>...</v> or <f>...</f><v/>
   return xml.replace(
     /<c ([^>]*)><f>([\s\S]*?)<\/f>(?:<v\/>|<v>[^<]*<\/v>)<\/c>/g,
     (_match, attrs: string, formula: string) => {
-      // Remove cached type attributes (t="str", t="b") that may change after recalc
       const cleanAttrs = attrs.replace(/ t="[^"]*"/, '');
       return `<c ${cleanAttrs}><f>${formula}</f></c>`;
     }
@@ -76,8 +87,8 @@ function clearFormulaCache(xml: string): string {
 }
 
 // Fiscal year (April start)
-function getFiscalYear(dateStr: string): number {
-  const d = new Date(dateStr);
+function getFiscalYear(val: unknown): number {
+  const d = parseDate(val);
   const y = d.getFullYear();
   const m = d.getMonth() + 1;
   return m >= 4 ? y : y - 1;
@@ -176,13 +187,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
     let xml = await sheetFile.async('string');
 
     // Fiscal year
-    const fiscalYear = t.day1_date ? getFiscalYear(String(t.day1_date)) : new Date().getFullYear();
+    const fiscalYear = t.day1_date ? getFiscalYear(t.day1_date) : new Date().getFullYear();
 
     // A1: Title with fiscal year
     xml = setCellInXml(xml, 'A1', `\u226A　${fiscalYear}年度　地方公式大会報告書　\u226B`);
 
-    // P6: Report date (P6:T6 merged, template has formula =D8+1, overwrite with actual date)
-    const reportDate = report?.report_date ? new Date(String(report.report_date).slice(0, 10) + 'T00:00:00') : new Date();
+    // P6: Report date (P6:T6 merged, overwrite template formula with actual date)
+    const reportDate = report?.report_date ? parseDate(report.report_date) : new Date();
     xml = setCellInXml(xml, 'P6', dateToSerial(reportDate));
 
     // C7: Tournament name (strip event type suffix)
@@ -195,8 +206,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     // D8: Opening date (D8:M8 merged)
     if (t.day1_date) {
-      const d1 = new Date(String(t.day1_date).slice(0, 10) + 'T00:00:00');
-      xml = setCellInXml(xml, 'D8', dateToSerial(d1));
+      xml = setCellInXml(xml, 'D8', dateToSerial(parseDate(t.day1_date)));
     }
 
     // P8: President name
@@ -296,6 +306,17 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     // Save XML back
     zip.file('xl/worksheets/sheet1.xml', xml);
+
+    // Force Excel to recalculate all formulas on open
+    const wbFile = zip.file('xl/workbook.xml');
+    if (wbFile) {
+      let wbXml = await wbFile.async('string');
+      wbXml = wbXml.replace(
+        /<calcPr([^/]*)\/?>/,
+        '<calcPr$1 fullCalcOnLoad="1"/>'
+      );
+      zip.file('xl/workbook.xml', wbXml);
+    }
 
     // Generate output
     const outBuf = await zip.generateAsync({
