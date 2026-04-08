@@ -55,6 +55,39 @@ interface ReportData {
 
 const AMOUNT_MAP: Record<number, number> = { 50: 20000, 75: 40000, 100: 80000 };
 
+/** 全角幅を計算（全角=1, 半角=0.5） */
+function measureFullWidthLength(str: string): number {
+  let len = 0;
+  for (const ch of str) {
+    const code = ch.codePointAt(0) ?? 0;
+    // 半角: ASCII (0x20-0x7E), 半角カナ (0xFF61-0xFF9F)
+    if ((code >= 0x20 && code <= 0x7E) || (code >= 0xFF61 && code <= 0xFF9F)) {
+      len += 0.5;
+    } else {
+      len += 1;
+    }
+  }
+  return len;
+}
+
+/** 摘要の入力制限: 横全角60文字以内、5行以内 */
+const REMARKS_MAX_WIDTH = 60;  // 全角文字換算
+const REMARKS_MAX_LINES = 5;
+
+function validateRemarks(newValue: string, oldValue: string): string {
+  const lines = newValue.split('\n');
+
+  // 5行を超える場合は拒否
+  if (lines.length > REMARKS_MAX_LINES) return oldValue;
+
+  // 各行が全角60文字以内かチェック
+  for (const line of lines) {
+    if (measureFullWidthLength(line) > REMARKS_MAX_WIDTH) return oldValue;
+  }
+
+  return newValue;
+}
+
 export default function ReportTab({ tournamentId, tournament, onUpdated }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -624,11 +657,14 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
         {/* 摘要 */}
         <div style={cardStyle}>
           <div style={sectionTitleStyle}>摘要</div>
+          <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>
+            入力制限：横全角60文字以内、５行以内。
+          </div>
           <textarea
             value={remarks}
-            onChange={e => setRemarks(e.target.value)}
-            rows={4}
-            style={{ ...inputStyle, resize: 'vertical' }}
+            onChange={e => setRemarks(validateRemarks(e.target.value, remarks))}
+            rows={5}
+            style={{ ...inputStyle, resize: 'none' }}
             placeholder="備考・摘要を入力..."
           />
         </div>
