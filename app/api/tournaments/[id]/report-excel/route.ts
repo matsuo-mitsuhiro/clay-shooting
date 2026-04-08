@@ -223,8 +223,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // Q9: Clay name
     xml = setCellInXml(xml, 'Q9', String(t.clay_name ?? ''));
 
-    // C10: Rule type — use current tournament's rule_type directly
-    xml = setCellInXml(xml, 'C10', String(t.rule_type ?? ''));
+    // C10: Rule type — validate against known options
+    const RULE_OPTIONS = ['ISSF（地方公式版）', 'ISSF（本部同等）', 'ビギナー・マスター'];
+    const rawRule = String(t.rule_type ?? '');
+    xml = setCellInXml(xml, 'C10', RULE_OPTIONS.includes(rawRule) ? rawRule : RULE_OPTIONS[0]);
 
     // Q10: Chief judge
     xml = setCellInXml(xml, 'Q10', String(t.chief_judge ?? ''));

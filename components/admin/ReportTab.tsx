@@ -254,9 +254,11 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
     ? (Number(data.tournament.id) === data.skeetTournamentId ? data.tournament : data.pairedTournament)
     : null;
 
-  // Rule text (combine if different)
-  const trapRule = trapT ? String(trapT.rule_type ?? '') : '';
-  const skeetRule = skeetT ? String(skeetT.rule_type ?? '') : '';
+  // Rule text — validate against known options, fallback to first option
+  const RULE_OPTIONS = ['ISSF（地方公式版）', 'ISSF（本部同等）', 'ビギナー・マスター'];
+  const normalizeRule = (val: string) => RULE_OPTIONS.includes(val) ? val : RULE_OPTIONS[0];
+  const trapRule = trapT ? normalizeRule(String(trapT.rule_type ?? '')) : '';
+  const skeetRule = skeetT ? normalizeRule(String(skeetT.rule_type ?? '')) : '';
   const ruleText = trapRule === skeetRule ? trapRule : [trapRule, skeetRule].filter(Boolean).join(' / ');
 
   // Event type text
