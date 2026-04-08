@@ -252,7 +252,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // Q12: Set checker
     xml = setCellInXml(xml, 'Q12', String(t.set_checker ?? ''));
 
-    // Participant counts — G=trap, K=skeet (rows 14-17: A,B,C,none)
+    // Participant counts — G=trap, K=skeet, O=total (rows 14-17: A,B,C,none; row 18: totals)
     const classRows = [
       { row: 14, cls: 'A' },
       { row: 15, cls: 'B' },
@@ -262,9 +262,15 @@ export async function GET(_req: NextRequest, { params }: Params) {
     for (const { row, cls } of classRows) {
       const trapN = (trapCounts as Record<string, number>)[cls] ?? 0;
       const skeetN = (skeetCounts as Record<string, number>)[cls] ?? 0;
+      const totalN = trapN + skeetN;
       xml = setCellInXml(xml, `G${row}`, trapN || null);
       xml = setCellInXml(xml, `K${row}`, skeetN || null);
+      xml = setCellInXml(xml, `O${row}`, totalN || null);
     }
+    // Row 18: totals (write values directly instead of relying on formulas)
+    xml = setCellInXml(xml, 'G18', trapCounts.total || null);
+    xml = setCellInXml(xml, 'K18', skeetCounts.total || null);
+    xml = setCellInXml(xml, 'O18', (trapCounts.total + skeetCounts.total) || null);
 
     // Incentive rows (rows 23-27, max 5)
     for (let i = 0; i < 5; i++) {
@@ -301,10 +307,18 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // O33: incentive count
     xml = setCellInXml(xml, 'O33', incentives.length || null);
 
-    // Remarks (A38)
+    // Remarks (A38) — with wrapText style for line breaks
     const remarksText = report ? String(report.remarks ?? '') : '';
     if (remarksText) {
       xml = setCellInXml(xml, 'A38', remarksText);
+      // If remarks contain newlines, apply wrapText style
+      if (remarksText.includes('\n')) {
+        // Replace style of A38 with wrapText style (will be created as index 204 below)
+        xml = xml.replace(
+          /<c r="A38" s="181"/,
+          '<c r="A38" s="204"'
+        );
+      }
     }
 
     // Clear cached formula values so Excel recalculates on open
@@ -312,6 +326,18 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     // Save XML back
     zip.file('xl/worksheets/sheet1.xml', xml);
+
+    // Add wrapText style (index 204) to styles.xml for remarks cell line breaks
+    const stylesFile = zip.file('xl/styles.xml');
+    if (stylesFile) {
+      let stylesXml = await stylesFile.async('string');
+      // Add new xf entry (copy of style 181 with wrapText)
+      const newXf = '<xf numFmtId="0" fontId="7" fillId="0" borderId="35" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="top" wrapText="1"/></xf>';
+      stylesXml = stylesXml.replace('</cellXfs>', newXf + '</cellXfs>');
+      // Update count
+      stylesXml = stylesXml.replace(/<cellXfs count="204"/, '<cellXfs count="205"');
+      zip.file('xl/styles.xml', stylesXml);
+    }
 
     // Force Excel to recalculate all formulas on open
     const wbFile = zip.file('xl/workbook.xml');
