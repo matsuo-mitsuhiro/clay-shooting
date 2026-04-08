@@ -13,7 +13,8 @@ import SettingsTab from './SettingsTab';
 import ApplySettingsTab from './ApplySettingsTab';
 import ViewerHistoryTab from './ViewerHistoryTab';
 import InspectionTab from './InspectionTab';
-import ReportTab from './ReportTab';
+import dynamic from 'next/dynamic';
+const ReportTab = dynamic(() => import('./ReportTab'), { ssr: false });
 import RegistrationsTab from './RegistrationsTab';
 import Footer from '@/components/Footer';
 
