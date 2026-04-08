@@ -86,7 +86,7 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
 
       // Populate form
       if (d.report) {
-        setReportDate(d.report.report_date ? new Date(d.report.report_date + 'T00:00:00') : new Date());
+        setReportDate(d.report.report_date ? new Date(d.report.report_date) : new Date());
         setCertFee(d.report.certification_fee ?? 50000);
         setAdFee(d.report.advertising_fee ?? 5000);
         setRemarks(d.report.remarks ?? '');
