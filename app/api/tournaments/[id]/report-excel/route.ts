@@ -42,7 +42,12 @@ function setCellInXml(xml: string, ref: string, value: string | number | null): 
   if (value === null || value === '') {
     newCell = `<c r="${ref}"${style}/>`;
   } else if (typeof value === 'number') {
-    newCell = `<c r="${ref}"${style}><v>${value}</v></c>`;
+    // NaN/Infinity protection — write as empty cell to prevent XML corruption
+    if (isNaN(value) || !isFinite(value)) {
+      newCell = `<c r="${ref}"${style}/>`;
+    } else {
+      newCell = `<c r="${ref}"${style}><v>${value}</v></c>`;
+    }
   } else {
     newCell = `<c r="${ref}"${style} t="inlineStr"><is><t>${xmlEscape(value)}</t></is></c>`;
   }
@@ -176,9 +181,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // A1: Title with fiscal year
     xml = setCellInXml(xml, 'A1', `\u226A　${fiscalYear}年度　地方公式大会報告書　\u226B`);
 
-    // O6: Report date
+    // P6: Report date (P6:T6 merged, template has formula =D8+1, overwrite with actual date)
     const reportDate = report?.report_date ? new Date(String(report.report_date).slice(0, 10) + 'T00:00:00') : new Date();
-    xml = setCellInXml(xml, 'O6', dateToSerial(reportDate));
+    xml = setCellInXml(xml, 'P6', dateToSerial(reportDate));
 
     // C7: Tournament name (strip event type suffix)
     const tName = String(t.name ?? '');
@@ -188,10 +193,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const assocName = association ? String(association.name ?? '') : '';
     xml = setCellInXml(xml, 'N7', assocName);
 
-    // B8: Opening date
+    // D8: Opening date (D8:M8 merged)
     if (t.day1_date) {
-      const d1 = new Date(String(t.day1_date) + 'T00:00:00');
-      xml = setCellInXml(xml, 'B8', dateToSerial(d1));
+      const d1 = new Date(String(t.day1_date).slice(0, 10) + 'T00:00:00');
+      xml = setCellInXml(xml, 'D8', dateToSerial(d1));
     }
 
     // P8: President name
