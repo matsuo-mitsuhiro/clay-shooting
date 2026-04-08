@@ -22,6 +22,8 @@ const ACTION_LABELS: Record<OperationAction, string> = {
   login: 'ログイン',
   inspection_save: '記録審査を保存',
   inspection_download: '記録審査表ダウンロード',
+  report_save: '大会報告を保存',
+  report_download: '大会報告書ダウンロード',
 };
 
 const PAGE_SIZE = 50;

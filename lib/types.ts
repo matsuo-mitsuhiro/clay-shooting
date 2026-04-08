@@ -240,6 +240,32 @@ export interface Association {
   name: string;
   cancellation_notice: string | null;
   notes: string | null;
+  president_name: string | null;
+}
+
+// ---------- TournamentReport ----------
+export interface TournamentReport {
+  id: number;
+  tournament_id: number | null;
+  paired_tournament_id: number | null;
+  report_date: string | null;
+  certification_fee: number;
+  advertising_fee: number;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReportIncentive {
+  id?: number;
+  report_id?: number;
+  event_type: string;
+  straight_type: number;
+  player_name: string;
+  member_code: string;
+  belong: string;
+  amount: number;
+  sort_order: number;
 }
 
 // ---------- ShootingRange ----------
@@ -264,7 +290,9 @@ export type OperationAction =
   | 'member_delete'
   | 'login'
   | 'inspection_save'
-  | 'inspection_download';
+  | 'inspection_download'
+  | 'report_save'
+  | 'report_download';
 
 export interface OperationLog {
   id: number;
