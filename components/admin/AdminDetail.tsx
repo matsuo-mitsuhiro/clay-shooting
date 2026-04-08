@@ -198,25 +198,6 @@ export default function AdminDetail({ tournamentId }: Props) {
             <span style={{ color: C.gold, fontWeight: 700, fontSize: 15 }}>
               {tabs.find(t => t.key === activeTab)?.label ?? ''}
             </span>
-            {tournament && (
-              <button
-                onClick={() => window.open(`/viewer/${tournamentId}`, '_blank')}
-                style={{
-                  marginLeft: 'auto',
-                  background: `${C.blue2}22`,
-                  color: C.blue2,
-                  border: `1px solid ${C.blue2}`,
-                  borderRadius: 5,
-                  padding: '5px 10px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                本大会閲覧用確認 ↗
-              </button>
-            )}
           </div>
 
           {/* ドロワーオーバーレイ */}
@@ -448,26 +429,6 @@ export default function AdminDetail({ tournamentId }: Props) {
               {tab.label}
             </button>
           ))}
-          {tournament && (
-            <button
-              onClick={() => window.open(`/viewer/${tournamentId}`, '_blank')}
-              style={{
-                marginLeft: 'auto',
-                marginRight: 12,
-                background: `${C.blue2}22`,
-                color: C.blue2,
-                border: `1px solid ${C.blue2}`,
-                borderRadius: 5,
-                padding: '6px 14px',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              本大会閲覧用確認 ↗
-            </button>
-          )}
         </div>
       )}
 
