@@ -15,6 +15,7 @@ interface Props {
 
 const RULE_OPTIONS = [
   'ISSF（地方公式版）',
+  'ISSF（本部同等）',
   'ビギナー・マスター',
 ];
 
