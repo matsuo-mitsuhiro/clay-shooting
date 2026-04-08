@@ -49,7 +49,11 @@ function setCellInXml(xml: string, ref: string, value: string | number | null): 
       newCell = `<c r="${ref}"${style}><v>${value}</v></c>`;
     }
   } else {
-    newCell = `<c r="${ref}"${style} t="inlineStr"><is><t>${xmlEscape(value)}</t></is></c>`;
+    // Preserve newlines in Excel: use &#10; and xml:space="preserve"
+    const hasNewline = value.includes('\n');
+    const escaped = xmlEscape(value).replace(/\n/g, '&#10;');
+    const spaceAttr = hasNewline ? ' xml:space="preserve"' : '';
+    newCell = `<c r="${ref}"${style} t="inlineStr"><is><t${spaceAttr}>${escaped}</t></is></c>`;
   }
 
   return xml.substring(0, pos) + newCell + xml.substring(endIdx);
@@ -295,10 +299,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // O33: incentive count
     xml = setCellInXml(xml, 'O33', incentives.length || null);
 
-    // Remarks (C37 area - merged A37+)
+    // Remarks (A38)
     const remarksText = report ? String(report.remarks ?? '') : '';
     if (remarksText) {
-      xml = setCellInXml(xml, 'C37', remarksText);
+      xml = setCellInXml(xml, 'A38', remarksText);
     }
 
     // Clear cached formula values so Excel recalculates on open
@@ -317,6 +321,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
       );
       zip.file('xl/workbook.xml', wbXml);
     }
+
+    // Remove calcChain.xml to prevent repair error (Excel rebuilds it on open)
+    zip.remove('xl/calcChain.xml');
 
     // Generate output
     const outBuf = await zip.generateAsync({
