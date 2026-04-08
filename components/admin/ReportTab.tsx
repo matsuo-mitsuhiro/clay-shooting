@@ -651,7 +651,13 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
             {saving ? '保存中...' : '保存'}
           </button>
           <button
-            onClick={() => setShowExcelDialog(true)}
+            onClick={() => {
+              if (!data?.report?.id) {
+                alert('大会報告を保存してから報告書を作成してください。');
+                return;
+              }
+              setShowExcelDialog(true);
+            }}
             style={{
               padding: '10px 24px', fontSize: 14, fontWeight: 700,
               color: C.text, background: C.surface2,

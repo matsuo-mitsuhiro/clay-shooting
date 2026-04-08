@@ -57,6 +57,19 @@ function dateToSerial(d: Date): number {
   return Math.floor(diff / (24 * 60 * 60 * 1000));
 }
 
+// Clear cached <v> from formula cells so Excel recalculates on open
+function clearFormulaCache(xml: string): string {
+  // Match cells with <f>...</f><v>...</v> or <f>...</f><v/>
+  return xml.replace(
+    /<c ([^>]*)><f>([\s\S]*?)<\/f>(?:<v\/>|<v>[^<]*<\/v>)<\/c>/g,
+    (_match, attrs: string, formula: string) => {
+      // Remove cached type attributes (t="str", t="b") that may change after recalc
+      const cleanAttrs = attrs.replace(/ t="[^"]*"/, '');
+      return `<c ${cleanAttrs}><f>${formula}</f></c>`;
+    }
+  );
+}
+
 // Fiscal year (April start)
 function getFiscalYear(dateStr: string): number {
   const d = new Date(dateStr);
@@ -164,7 +177,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     xml = setCellInXml(xml, 'A1', `\u226A　${fiscalYear}年度　地方公式大会報告書　\u226B`);
 
     // O6: Report date
-    const reportDate = report?.report_date ? new Date(String(report.report_date) + 'T00:00:00') : new Date();
+    const reportDate = report?.report_date ? new Date(String(report.report_date).slice(0, 10) + 'T00:00:00') : new Date();
     xml = setCellInXml(xml, 'O6', dateToSerial(reportDate));
 
     // C7: Tournament name (strip event type suffix)
@@ -191,11 +204,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // Q9: Clay name
     xml = setCellInXml(xml, 'Q9', String(t.clay_name ?? ''));
 
-    // C10: Rule type
-    const trapRule = trapT ? String(trapT.rule_type ?? '') : '';
-    const skeetRule = skeetT ? String(skeetT.rule_type ?? '') : '';
-    const ruleText = trapRule === skeetRule ? trapRule : [trapRule, skeetRule].filter(Boolean).join('・');
-    xml = setCellInXml(xml, 'C10', ruleText);
+    // C10: Rule type — use current tournament's rule_type directly
+    xml = setCellInXml(xml, 'C10', String(t.rule_type ?? ''));
 
     // Q10: Chief judge
     xml = setCellInXml(xml, 'Q10', String(t.chief_judge ?? ''));
@@ -275,6 +285,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
     if (remarksText) {
       xml = setCellInXml(xml, 'C37', remarksText);
     }
+
+    // Clear cached formula values so Excel recalculates on open
+    xml = clearFormulaCache(xml);
 
     // Save XML back
     zip.file('xl/worksheets/sheet1.xml', xml);
