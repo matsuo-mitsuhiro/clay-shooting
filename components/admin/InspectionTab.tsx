@@ -15,9 +15,7 @@ interface Props {
 
 const RULE_OPTIONS = [
   'ISSF（地方公式版）',
-  'ISSF（全日本版）',
-  'ATA',
-  'JCSAルール',
+  'ビギナー・マスター',
 ];
 
 const CLASS_DIVISION_OPTIONS: { value: string; label: string }[] = [
