@@ -238,6 +238,18 @@ export default function AdminPage() {
       setCopyError('1日目の日付は必須です');
       return;
     }
+    if (!copyForm.apply_start_at) {
+      setCopyError('募集開始日時は必須です');
+      return;
+    }
+    if (!copyForm.apply_end_at) {
+      setCopyError('募集終了日時は必須です');
+      return;
+    }
+    if (!copyForm.cancel_end_at) {
+      setCopyError('キャンセル可能日時は必須です');
+      return;
+    }
     const dateStatus = validateDates(copyForm.day1_date, copyForm.day2_date);
     if (dateStatus === 'error') {
       setCopyError('2日目の日付は1日目より後にしか設定できません。');
@@ -850,7 +862,9 @@ export default function AdminPage() {
                   </div>
                   <div />
                   <div>
-                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>募集開始日時</label>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>
+                      募集開始日時 <span style={{ color: C.red }}>*</span>
+                    </label>
                     <DatePicker
                       selected={copyForm.apply_start_at}
                       onChange={(date: Date | null) => setCopyForm(f => ({ ...f, apply_start_at: date }))}
@@ -859,13 +873,15 @@ export default function AdminPage() {
                       timeIntervals={15}
                       dateFormat="yyyy/MM/dd HH:mm"
                       locale={ja}
-                      placeholderText="日付・時刻を選択"
+                      placeholderText="日付・時刻を選択（必須）"
                       isClearable
-                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
+                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `2px solid ${copyForm.apply_start_at ? C.border : C.red}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>募集終了日時</label>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>
+                      募集終了日時 <span style={{ color: C.red }}>*</span>
+                    </label>
                     <DatePicker
                       selected={copyForm.apply_end_at}
                       onChange={(date: Date | null) => setCopyForm(f => ({ ...f, apply_end_at: date }))}
@@ -874,13 +890,15 @@ export default function AdminPage() {
                       timeIntervals={15}
                       dateFormat="yyyy/MM/dd HH:mm"
                       locale={ja}
-                      placeholderText="日付・時刻を選択"
+                      placeholderText="日付・時刻を選択（必須）"
                       isClearable
-                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
+                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `2px solid ${copyForm.apply_end_at ? C.border : C.red}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>キャンセル可能日時</label>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>
+                      キャンセル可能日時 <span style={{ color: C.red }}>*</span>
+                    </label>
                     <DatePicker
                       selected={copyForm.cancel_end_at}
                       onChange={(date: Date | null) => setCopyForm(f => ({ ...f, cancel_end_at: date }))}
@@ -889,9 +907,9 @@ export default function AdminPage() {
                       timeIntervals={15}
                       dateFormat="yyyy/MM/dd HH:mm"
                       locale={ja}
-                      placeholderText="日付・時刻を選択"
+                      placeholderText="日付・時刻を選択（必須）"
                       isClearable
-                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
+                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `2px solid ${copyForm.cancel_end_at ? C.border : C.red}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
                     />
                   </div>
                   <div />
@@ -1045,12 +1063,12 @@ export default function AdminPage() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
                   type="submit"
-                  disabled={copyCreating || !copyForm.day1_date || validateDates(copyForm.day1_date, copyForm.day2_date) === 'error'}
+                  disabled={copyCreating || !copyForm.day1_date || !copyForm.apply_start_at || !copyForm.apply_end_at || !copyForm.cancel_end_at || validateDates(copyForm.day1_date, copyForm.day2_date) === 'error'}
                   style={{
                     background: C.gold, color: '#000', border: 'none', borderRadius: 5,
                     padding: '10px 24px', fontWeight: 700, fontSize: 16,
-                    cursor: (copyCreating || !copyForm.day1_date || validateDates(copyForm.day1_date, copyForm.day2_date) === 'error') ? 'not-allowed' : 'pointer',
-                    opacity: (copyCreating || !copyForm.day1_date || validateDates(copyForm.day1_date, copyForm.day2_date) === 'error') ? 0.7 : 1,
+                    cursor: (copyCreating || !copyForm.day1_date || !copyForm.apply_start_at || !copyForm.apply_end_at || !copyForm.cancel_end_at || validateDates(copyForm.day1_date, copyForm.day2_date) === 'error') ? 'not-allowed' : 'pointer',
+                    opacity: (copyCreating || !copyForm.day1_date || !copyForm.apply_start_at || !copyForm.apply_end_at || !copyForm.cancel_end_at || validateDates(copyForm.day1_date, copyForm.day2_date) === 'error') ? 0.7 : 1,
                   }}
                 >
                   {copyCreating ? '作成中...' : '作成する'}
