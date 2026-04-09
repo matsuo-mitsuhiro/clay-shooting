@@ -149,7 +149,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   }
 
   async function handleRestore(reg: Registration) {
-    if (!window.confirm(`${reg.name} さんの申込を未移行に戻します。よろしいですか？`)) return;
+    if (!window.confirm(`${reg.name} さんの申込を申込中に戻します。よろしいですか？`)) return;
     try {
       const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}/restore`, {
         method: 'POST',
@@ -247,7 +247,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
       }
     }
 
-    if (!window.confirm(`未移行の ${untransferred.length} 名を選手管理に移行しますか？\n申込期間が終了している必要があります。`)) return;
+    if (!window.confirm(`未登録の ${untransferred.length} 名を選手管理に移行しますか？\n申込期間が終了している必要があります。`)) return;
     try {
       setTransferring(true);
       const res = await fetch(`/api/tournaments/${tournamentId}/registrations/transfer`, {
@@ -729,7 +729,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
             marginLeft: 'auto',
           }}
         >
-          {transferring ? '移行中...' : `未移行 ${untransferredCount}名 → 選手管理に移行`}
+          {transferring ? '移行中...' : `未登録 ${untransferredCount}名 → 選手管理に移行`}
         </button>
       </div>
 
@@ -740,7 +740,10 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
         }}>{transferError}</div>
       )}
 
-      <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 10 }}>申込管理リスト</div>
+      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>申込管理リスト</span>
+        <span style={{ fontSize: 13, color: C.muted }}>※すべての選手を「選手管理」に移行し、「登録済」になっていることを確認してください。</span>
+      </div>
 
       {loading ? (
         <p style={{ color: C.muted, textAlign: 'center', padding: '40px 0' }}>読み込み中...</p>
@@ -909,7 +912,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                         <span style={{
                           background: `${C.blue2}22`, color: C.blue2,
                           border: `1px solid ${C.blue2}`, borderRadius: 4, padding: '2px 8px', fontSize: 12,
-                        }}>移行済</span>
+                        }}>登録済</span>
                       ) : (
                         <span style={{
                           background: `${C.green}22`, color: C.green,
@@ -926,7 +929,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                             background: 'transparent', color: C.blue2, border: `1px solid ${C.blue2}`,
                             borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
                           }}>
-                          未移行に戻す
+                          申込中に戻す
                         </button>
                       ) : (
                         <button onClick={() => handleCancel(reg)}
