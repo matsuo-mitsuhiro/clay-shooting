@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { randomBytes } from 'crypto';
 import { sendApplyConfirmation } from '@/lib/email';
 import type { ApiResponse, Registration, ParticipationDay, ClassType } from '@/lib/types';
 
@@ -122,8 +123,16 @@ export async function POST(req: NextRequest, { params }: Params) {
       WHERE id = ${tok.id}
     `;
 
-    // 申込完了メール送信（キャンセルURL付き）
-    const cancelUrl = `${BASE_URL}/tournaments/${tid}/cancel`;
+    // キャンセルトークン生成（30日有効）して直リンクURLを作成
+    const cancelToken = randomBytes(32).toString('hex');
+    const cancelExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await sql`
+      INSERT INTO registration_tokens (tournament_id, email, token, purpose, expires_at, registration_id)
+      VALUES (${tid}, ${tok.email}, ${cancelToken}, 'cancel', ${cancelExpiresAt.toISOString()}, ${registration.id})
+    `;
+    const cancelUrl = `${BASE_URL}/tournaments/${tid}/cancel/${cancelToken}`;
+
+    // 申込完了メール送信
     await sendApplyConfirmation(tok.email, name, {
       name: t.name,
       venue: t.venue,

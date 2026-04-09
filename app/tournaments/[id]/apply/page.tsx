@@ -133,6 +133,10 @@ export default function ApplyPage() {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
+      // 申込数を最新化
+      const infoRes = await fetch(`/api/tournaments/${id}/apply-info`);
+      const infoJson = await infoRes.json();
+      if (infoJson.success) setApplyInfo(infoJson.data);
       setCompleted(true);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : '申込に失敗しました');

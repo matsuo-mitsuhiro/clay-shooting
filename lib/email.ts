@@ -185,7 +185,8 @@ export async function sendApplyConfirmation(
       <hr>
       <pre style="font-family: sans-serif; white-space: pre-wrap;">${lines.join('\n')}</pre>
       <hr>
-      <p>申込のキャンセルは以下のURLから手続きできます：</p>
+      <p>申込のキャンセルは以下のURLから手続きできます：<br>
+      ただし、運営者が設定したキャンセル期限を超えた場合はキャンセルできません。</p>
       <p><a href="${cancelUrl}">${cancelUrl}</a></p>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
