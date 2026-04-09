@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import type { Tournament, ParticipationDay, ClassType, SquadMember } from '@/lib/types';
 import Footer from '@/components/Footer';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface SquadData {
   squad_published_at: string | null;
@@ -207,6 +208,10 @@ export default function ApplyPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
+      <LoadingOverlay
+        show={codeSending || submitting}
+        message="しばらくお待ちください。"
+      />
       <header style={{
         background: C.surface, borderBottom: `1px solid ${C.border}`,
         padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12,
