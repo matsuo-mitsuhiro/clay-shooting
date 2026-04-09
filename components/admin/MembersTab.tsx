@@ -313,8 +313,12 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
     const json = await res.json();
     if (json.success) {
       await fetchMembers();
-      setSuccess(`${m.name}を削除しました`);
-      setTimeout(() => setSuccess(null), 3000);
+      if (json.data?.cancelledRegistration) {
+        setSuccess(`${m.name}を削除しました。申込管理リストはキャンセルとして残ります。`);
+      } else {
+        setSuccess(`${m.name}を削除しました`);
+      }
+      setTimeout(() => setSuccess(null), 5000);
     } else {
       setError(json.error || '削除に失敗しました');
     }

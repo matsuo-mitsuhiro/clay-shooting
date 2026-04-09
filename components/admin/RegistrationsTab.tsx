@@ -143,6 +143,9 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
       fetchRegistrations();
+      if (json.data?.deletedFromMembers) {
+        alert(`${reg.name} さんの申込をキャンセルしました。\n選手管理からも削除しました。`);
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : 'キャンセルに失敗しました');
     }

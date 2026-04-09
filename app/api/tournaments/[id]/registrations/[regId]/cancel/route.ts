@@ -54,7 +54,35 @@ export async function POST(req: NextRequest, { params }: Params) {
       detail: `${reg.member_code} ${reg.name}`,
     });
 
-    return NextResponse.json<ApiResponse>({ success: true });
+    // 移行済みの場合、選手管理からも削除する
+    let deletedFromMembers = false;
+    if (reg.transferred_at && reg.member_code) {
+      const participation_day: string = reg.participation_day ?? 'day1';
+      if (participation_day === 'day1') {
+        const del = await sql`
+          DELETE FROM members
+          WHERE tournament_id = ${tid} AND member_code = ${reg.member_code} AND day = 1
+          RETURNING id
+        `;
+        if (del.length > 0) deletedFromMembers = true;
+      } else if (participation_day === 'day2') {
+        const del = await sql`
+          DELETE FROM members
+          WHERE tournament_id = ${tid} AND member_code = ${reg.member_code} AND day = 2
+          RETURNING id
+        `;
+        if (del.length > 0) deletedFromMembers = true;
+      } else if (participation_day === 'both') {
+        const del = await sql`
+          DELETE FROM members
+          WHERE tournament_id = ${tid} AND member_code = ${reg.member_code}
+          RETURNING id
+        `;
+        if (del.length > 0) deletedFromMembers = true;
+      }
+    }
+
+    return NextResponse.json<ApiResponse<{ deletedFromMembers: boolean }>>({ success: true, data: { deletedFromMembers } });
   } catch (e) {
     console.error(e);
     return NextResponse.json<ApiResponse>({ success: false, error: 'キャンセル処理に失敗しました' }, { status: 500 });

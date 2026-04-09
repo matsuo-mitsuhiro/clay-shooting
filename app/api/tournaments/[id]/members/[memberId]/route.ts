@@ -35,6 +35,23 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       await sql`DELETE FROM scores WHERE tournament_id = ${tournamentId} AND member_code = ${member.member_code}`;
     }
 
+    // 対応する申込をキャンセルにする
+    let cancelledRegistration = false;
+    if (member.member_code) {
+      const cancelledRows = await sql`
+        UPDATE registrations
+        SET status = 'cancelled',
+            cancelled_at = NOW(),
+            cancelled_by = 'admin',
+            cancelled_by_name = '選手管理から削除'
+        WHERE tournament_id = ${tournamentId}
+          AND member_code = ${member.member_code}
+          AND status = 'active'
+        RETURNING id
+      `;
+      if (cancelledRows.length > 0) cancelledRegistration = true;
+    }
+
     // 操作ログ
     const jwtToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     const tRows = await sql`SELECT name FROM tournaments WHERE id = ${tournamentId}`;
@@ -49,7 +66,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       detail: `${member.member_code ?? ''} ${member.name}`.trim(),
     });
 
-    return NextResponse.json<ApiResponse<{ hadScores: boolean }>>({ success: true, data: { hadScores: hasScores } });
+    return NextResponse.json<ApiResponse<{ hadScores: boolean; cancelledRegistration: boolean }>>({ success: true, data: { hadScores: hasScores, cancelledRegistration } });
   } catch (e) {
     console.error(e);
     return NextResponse.json<ApiResponse>({ success: false, error: '選手の削除に失敗しました' }, { status: 500 });
