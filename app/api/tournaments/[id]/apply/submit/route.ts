@@ -5,15 +5,18 @@ import type { ApiResponse, Registration, ParticipationDay, ClassType } from '@/l
 
 type Params = { params: Promise<{ id: string }> };
 
+const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://clay-shooting.vercel.app';
+
 // POST /api/tournaments/[id]/apply/submit
-// body: { token, member_code, name, belong, class, participation_day }
+// body: { code, member_code, name, belong, class, participation_day, is_judge }
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const tid = Number(id);
     const body = await req.json();
 
-    const token: string = (body.token ?? '').trim();
+    // code（新フロー）またはtoken（旧URLフロー）を受け付ける
+    const tokenOrCode: string = (body.code ?? body.token ?? '').trim();
     const member_code: string = (body.member_code ?? '').trim();
     const name: string = (body.name ?? '').trim();
     const belong: string | null = body.belong?.trim() || null;
@@ -21,28 +24,28 @@ export async function POST(req: NextRequest, { params }: Params) {
     const is_judge: boolean = body.is_judge === true;
     const participation_day: ParticipationDay = body.participation_day ?? 'day1';
 
-    if (!token || !member_code || !name) {
+    if (!tokenOrCode || !member_code || !name) {
       return NextResponse.json<ApiResponse>({ success: false, error: '必須項目を入力してください' }, { status: 400 });
     }
 
-    // トークン検証
+    // トークン/コード検証
     const tokenRows = await sql`
       SELECT * FROM registration_tokens
-      WHERE token = ${token} AND purpose = 'apply'
+      WHERE token = ${tokenOrCode} AND purpose = 'apply'
     `;
     if (!tokenRows.length) {
-      return NextResponse.json<ApiResponse>({ success: false, error: 'URLが無効です' }, { status: 400 });
+      return NextResponse.json<ApiResponse>({ success: false, error: '申込コードが無効です' }, { status: 400 });
     }
     const tok = tokenRows[0];
 
     if (tok.used_at) {
-      return NextResponse.json<ApiResponse>({ success: false, error: 'このURLは既に使用済みです' }, { status: 400 });
+      return NextResponse.json<ApiResponse>({ success: false, error: 'この申込コードは既に使用済みです' }, { status: 400 });
     }
     if (new Date(tok.expires_at).getTime() < Date.now()) {
-      return NextResponse.json<ApiResponse>({ success: false, error: 'URLの有効期限が切れています' }, { status: 400 });
+      return NextResponse.json<ApiResponse>({ success: false, error: '申込コードの有効期限が切れています' }, { status: 400 });
     }
     if (tok.tournament_id !== tid) {
-      return NextResponse.json<ApiResponse>({ success: false, error: 'URLが無効です' }, { status: 400 });
+      return NextResponse.json<ApiResponse>({ success: false, error: '申込コードが無効です' }, { status: 400 });
     }
 
     // 大会情報取得・申込期間チェック
@@ -55,6 +58,38 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json<ApiResponse>({ success: false, error: '募集終了日時を過ぎました。' }, { status: 400 });
     }
 
+    // 定員チェック
+    if (t.max_participants) {
+      const daysToCheck: { day: 'day1' | 'day2'; label: string }[] =
+        participation_day === 'both'
+          ? [{ day: 'day1', label: '1日目' }, { day: 'day2', label: '2日目' }]
+          : participation_day === 'day2'
+          ? [{ day: 'day2', label: '2日目' }]
+          : [{ day: 'day1', label: '1日目' }];
+
+      for (const { day, label } of daysToCheck) {
+        const countRows = day === 'day1'
+          ? await sql`
+              SELECT COUNT(*)::int AS cnt
+              FROM registrations
+              WHERE tournament_id = ${tid}
+                AND status = 'active'
+                AND participation_day IN ('day1', 'both')
+            `
+          : await sql`
+              SELECT COUNT(*)::int AS cnt
+              FROM registrations
+              WHERE tournament_id = ${tid}
+                AND status = 'active'
+                AND participation_day IN ('day2', 'both')
+            `;
+        const cnt = Number(countRows[0]?.cnt ?? 0);
+        if (cnt >= t.max_participants) {
+          return NextResponse.json<ApiResponse>({ success: false, error: `${label}の定員に達しています` }, { status: 400 });
+        }
+      }
+    }
+
     // 重複申込チェック
     const dupRows = await sql`
       SELECT id FROM registrations
@@ -63,7 +98,6 @@ export async function POST(req: NextRequest, { params }: Params) {
         AND status = 'active'
     `;
     if (dupRows.length) {
-      // ログ記録
       await sql`
         INSERT INTO registration_logs (tournament_id, log_type, member_code, email, note)
         VALUES (${tid}, 'duplicate_error', ${member_code}, ${tok.email}, '重複申込')
@@ -88,7 +122,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       WHERE id = ${tok.id}
     `;
 
-    // 申込完了メール送信
+    // 申込完了メール送信（キャンセルURL付き）
+    const cancelUrl = `${BASE_URL}/tournaments/${tid}/cancel`;
     await sendApplyConfirmation(tok.email, name, {
       name: t.name,
       venue: t.venue,
@@ -101,7 +136,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       practice_clay_time: t.practice_clay_time,
       cancellation_notice: t.cancellation_notice,
       notes: t.notes,
-    });
+    }, cancelUrl);
 
     return NextResponse.json<ApiResponse<Registration>>({ success: true, data: registration });
   } catch (e) {

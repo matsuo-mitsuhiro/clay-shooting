@@ -119,16 +119,16 @@ export async function sendAnswerNotification(
 // 申込関連メール送信関数
 // ============================================================
 
-export async function sendApplyToken(to: string, tournamentName: string, applyUrl: string): Promise<void> {
+export async function sendApplyCode(to: string, tournamentName: string, code: string): Promise<void> {
   await getTransporter().sendMail({
     from: `"クレー射撃 成績管理システム" <${process.env.GMAIL_USER}>`,
     to,
-    subject: `「${tournamentName}」申込フォームのご案内`,
+    subject: `「${tournamentName}」申込コードのご案内`,
     html: `
       <p>この度は「${tournamentName}」へのお申込みありがとうございます。</p>
-      <p>以下のURLから <strong>1時間以内</strong> に申込を完了してください。</p>
-      <p><a href="${applyUrl}">${applyUrl}</a></p>
-      <p>※このURLは1回のみ有効です。</p>
+      <p>以下の6桁の申込コードを申込フォームに入力してください。</p>
+      <p style="font-size: 36px; font-weight: bold; letter-spacing: 10px; text-align: center; padding: 20px; background: #f5f5f5; border-radius: 8px; margin: 16px 0;">${code}</p>
+      <p>このコードの有効期限は <strong>10分</strong> です。</p>
       <p>※このリンクに心当たりがない場合は、このメールを無視してください。</p>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
@@ -152,7 +152,8 @@ export async function sendApplyConfirmation(
     practice_clay_time: string | null;
     cancellation_notice: string | null;
     notes: string | null;
-  }
+  },
+  cancelUrl: string
 ): Promise<void> {
   const fmtDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
@@ -184,6 +185,8 @@ export async function sendApplyConfirmation(
       <hr>
       <pre style="font-family: sans-serif; white-space: pre-wrap;">${lines.join('\n')}</pre>
       <hr>
+      <p>申込のキャンセルは以下のURLから手続きできます：</p>
+      <p><a href="${cancelUrl}">${cancelUrl}</a></p>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
       <p>クレー射撃 成績管理システム</p>
