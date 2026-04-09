@@ -53,9 +53,9 @@ export default function AdminPage() {
     event_type: 'trap' as EventType,
     organizer_cd: 0,
     max_participants: '' as string,
-    apply_start_at: '',
-    apply_end_at: '',
-    cancel_end_at: '',
+    apply_start_at: null as Date | null,
+    apply_end_at: null as Date | null,
+    cancel_end_at: null as Date | null,
     gate_open_time: '',
     reception_start_time: '',
     practice_clay_time: '',
@@ -202,9 +202,9 @@ export default function AdminPage() {
       event_type: t.event_type,
       organizer_cd: t.organizer_cd ?? 0,
       max_participants: t.max_participants != null ? String(t.max_participants) : '',
-      apply_start_at: '',
-      apply_end_at: '',
-      cancel_end_at: '',
+      apply_start_at: t.apply_start_at ? new Date(t.apply_start_at) : null,
+      apply_end_at: t.apply_end_at ? new Date(t.apply_end_at) : null,
+      cancel_end_at: t.cancel_end_at ? new Date(t.cancel_end_at) : null,
       gate_open_time: t.gate_open_time ?? '',
       reception_start_time: t.reception_start_time ?? '',
       practice_clay_time: t.practice_clay_time ?? '',
@@ -263,6 +263,9 @@ export default function AdminPage() {
           event_type: copyForm.event_type,
           organizer_cd: copyForm.organizer_cd || undefined,
           max_participants: copyForm.max_participants ? Number(copyForm.max_participants) : undefined,
+          apply_start_at: copyForm.apply_start_at ? copyForm.apply_start_at.toISOString() : undefined,
+          apply_end_at: copyForm.apply_end_at ? copyForm.apply_end_at.toISOString() : undefined,
+          cancel_end_at: copyForm.cancel_end_at ? copyForm.cancel_end_at.toISOString() : undefined,
           gate_open_time: copyForm.gate_open_time || undefined,
           reception_start_time: copyForm.reception_start_time || undefined,
           practice_clay_time: copyForm.practice_clay_time || undefined,
@@ -843,6 +846,52 @@ export default function AdminPage() {
                       onChange={e => setCopyForm(f => ({ ...f, max_participants: e.target.value }))}
                       placeholder="例: 50"
                       style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div />
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>募集開始日時</label>
+                    <DatePicker
+                      selected={copyForm.apply_start_at}
+                      onChange={(date: Date | null) => setCopyForm(f => ({ ...f, apply_start_at: date }))}
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={15}
+                      dateFormat="yyyy/MM/dd HH:mm"
+                      locale={ja}
+                      placeholderText="日付・時刻を選択"
+                      isClearable
+                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>募集終了日時</label>
+                    <DatePicker
+                      selected={copyForm.apply_end_at}
+                      onChange={(date: Date | null) => setCopyForm(f => ({ ...f, apply_end_at: date }))}
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={15}
+                      dateFormat="yyyy/MM/dd HH:mm"
+                      locale={ja}
+                      placeholderText="日付・時刻を選択"
+                      isClearable
+                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>キャンセル可能日時</label>
+                    <DatePicker
+                      selected={copyForm.cancel_end_at}
+                      onChange={(date: Date | null) => setCopyForm(f => ({ ...f, cancel_end_at: date }))}
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={15}
+                      dateFormat="yyyy/MM/dd HH:mm"
+                      locale={ja}
+                      placeholderText="日付・時刻を選択"
+                      isClearable
+                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
                     />
                   </div>
                   <div />
