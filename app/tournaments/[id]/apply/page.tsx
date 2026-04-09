@@ -3,8 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
-import type { Tournament, ParticipationDay, ClassType } from '@/lib/types';
+import type { Tournament, ParticipationDay, ClassType, SquadMember } from '@/lib/types';
 import Footer from '@/components/Footer';
+
+interface SquadData {
+  squad_published_at: string | null;
+  squad_comment: string | null;
+  members: SquadMember[];
+}
 
 interface ApplyInfoData {
   tournament: Tournament;
@@ -28,6 +34,10 @@ export default function ApplyPage() {
   const [codeSendError, setCodeSendError] = useState<string | null>(null);
   const [codeSent, setCodeSent] = useState(false);
 
+  // 組発表
+  const [squadData, setSquadData] = useState<SquadData | null>(null);
+  const [squadDay, setSquadDay] = useState<1 | 2>(1);
+
   // ステップ2: 申込フォーム
   const [code, setCode] = useState('');
   const [memberCode, setMemberCode] = useState('');
@@ -49,6 +59,18 @@ export default function ApplyPage() {
       })
       .catch(() => setFetchError('データ取得に失敗しました'))
       .finally(() => setLoading(false));
+  }, [id]);
+
+  // 組発表データ取得
+  useEffect(() => {
+    fetch(`/api/tournaments/${id}/squad`)
+      .then(r => r.json())
+      .then(j => {
+        if (j.success && j.data.squad_published_at) {
+          setSquadData(j.data as SquadData);
+        }
+      })
+      .catch(() => {});
   }, [id]);
 
   useEffect(() => {
@@ -551,6 +573,94 @@ export default function ApplyPage() {
             申込キャンセルの方はこちら
           </button>
         </div>
+        {/* 組発表 */}
+        {squadData && squadData.squad_published_at && squadData.members.length > 0 && (() => {
+          const is2DaySquad = squadData.members.some(m => m.day === 2);
+          const displayDay = is2DaySquad ? squadDay : 1;
+          const dayMembers = squadData.members.filter(m => m.day === displayDay);
+          const groups = [...new Set(dayMembers.map(m => m.group_number))].sort((a, b) => a - b);
+
+          return (
+            <section style={{
+              background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+              padding: '20px', marginTop: 20,
+            }}>
+              <h2 style={{ margin: '0 0 12px', fontSize: 17, color: C.gold }}>組発表</h2>
+
+              {/* コメント */}
+              {squadData.squad_comment && (
+                <div style={{
+                  background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6,
+                  padding: '10px 14px', fontSize: 14, color: C.text,
+                  whiteSpace: 'pre-wrap', marginBottom: 16,
+                }}>
+                  {squadData.squad_comment}
+                </div>
+              )}
+
+              {/* 日切替（2日制のみ） */}
+              {is2DaySquad && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  {([1, 2] as const).map(d => (
+                    <button
+                      key={d}
+                      onClick={() => setSquadDay(d)}
+                      style={{
+                        background: squadDay === d ? C.gold : 'transparent',
+                        color: squadDay === d ? '#000' : C.muted,
+                        border: `1px solid ${squadDay === d ? C.gold : C.border}`,
+                        borderRadius: 5, padding: '6px 20px', fontSize: 14,
+                        fontWeight: squadDay === d ? 700 : 400, cursor: 'pointer',
+                      }}
+                    >
+                      {d}日目
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* テーブル */}
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+                      {['組', '射順', '所属協会', '氏名', 'クラス', '審判'].map(h => (
+                        <th key={h} style={{
+                          padding: '6px 10px', color: C.muted, fontWeight: 600,
+                          textAlign: h === '氏名' || h === '所属協会' ? 'left' : 'center',
+                          whiteSpace: 'nowrap',
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groups.map((g, gi) => (
+                      <>
+                        {gi > 0 && (
+                          <tr key={`spacer-${g}`}>
+                            <td colSpan={6} style={{ padding: '4px 0' }} />
+                          </tr>
+                        )}
+                        {dayMembers.filter(m => m.group_number === g).map(m => (
+                          <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}22` }}>
+                            <td style={{ padding: '6px 10px', textAlign: 'center', color: C.gold, fontWeight: 700 }}>{m.group_number}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'center', color: C.text }}>{m.position}</td>
+                            <td style={{ padding: '6px 10px', color: C.muted, whiteSpace: 'nowrap' }}>{m.belong ?? '—'}</td>
+                            <td style={{ padding: '6px 10px', color: C.text, fontWeight: 500 }}>{m.name}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'center', color: C.text }}>{m.class ?? '—'}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                              {m.is_judge ? <span title="審判資格あり">🚩</span> : ''}
+                            </td>
+                          </tr>
+                        ))}
+                      </>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          );
+        })()}
       </main>
       <Footer />
     </div>
