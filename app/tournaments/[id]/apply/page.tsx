@@ -419,9 +419,9 @@ export default function ApplyPage() {
                       <input
                         type="text"
                         value={code}
-                        onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        onChange={e => setCode(e.target.value.replace(/[\s\u3000]/g, '').replace(/\D/g, '').slice(0, 6))}
                         placeholder="例: 123456"
-                        style={{ ...inputStyle, letterSpacing: 6, fontSize: 22, textAlign: 'center' }}
+                        style={{ ...inputStyle, fontSize: 22, textAlign: 'center' }}
                         inputMode="numeric"
                         maxLength={6}
                         autoComplete="off"

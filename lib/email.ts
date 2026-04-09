@@ -127,7 +127,7 @@ export async function sendApplyCode(to: string, tournamentName: string, code: st
     html: `
       <p>この度は「${tournamentName}」へのお申込みありがとうございます。</p>
       <p>以下の6桁の申込コードを申込フォームに入力してください。</p>
-      <p style="font-size: 36px; font-weight: bold; letter-spacing: 10px; text-align: center; padding: 20px; background: #f5f5f5; border-radius: 8px; margin: 16px 0;">${code}</p>
+      <p style="font-size: 36px; font-weight: bold; text-align: center; padding: 20px; background: #f5f5f5; border-radius: 8px; margin: 16px 0;">${code}</p>
       <p>このコードの有効期限は <strong>10分</strong> です。</p>
       <p>※このリンクに心当たりがない場合は、このメールを無視してください。</p>
       <br>

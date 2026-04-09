@@ -17,7 +17,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     const body = await req.json();
 
     // code（新フロー）またはtoken（旧URLフロー）を受け付ける
-    const tokenOrCode: string = (body.code ?? body.token ?? '').trim();
+    // 半角・全角スペースを除去してからトリム
+    const tokenOrCode: string = (body.code ?? body.token ?? '').replace(/[\s\u3000]/g, '').trim();
     const member_code: string = (body.member_code ?? '').trim();
     const name: string = (body.name ?? '').trim();
     const belong: string | null = body.belong?.trim() || null;
