@@ -24,6 +24,7 @@ import LoadingOverlay from '@/components/LoadingOverlay';
 interface Props {
   tournamentId: number;
   tournament: Tournament | null;
+  onNavigateToApplySettings?: () => void;
 }
 
 interface SlotItem {
@@ -88,7 +89,7 @@ interface EditableMember {
   is_judge: boolean;
 }
 
-export default function MembersTab({ tournamentId, tournament }: Props) {
+export default function MembersTab({ tournamentId, tournament, onNavigateToApplySettings }: Props) {
   const hasTwoDays = !!(tournament?.day2_date);
 
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
@@ -552,6 +553,31 @@ export default function MembersTab({ tournamentId, tournament }: Props) {
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.muted }}>読み込み中...</div>
       ) : (
         <>
+          {/* 射順発表バナー（選手登録済み & 非公開時のみ） */}
+          {savedMembers.length > 0 && !tournament?.squad_published_at && (
+            <div style={{
+              background: `${C.gold}18`,
+              border: `1px solid ${C.gold}66`,
+              borderRadius: 6,
+              padding: '8px 14px',
+              marginBottom: 12,
+              fontSize: 14,
+              color: C.text,
+            }}>
+              射順の選定が完了したら、
+              <button
+                onClick={onNavigateToApplySettings}
+                style={{
+                  background: 'none', border: 'none', padding: 0,
+                  color: C.gold, fontWeight: 700, fontSize: 14,
+                  cursor: 'pointer', textDecoration: 'underline',
+                }}
+              >
+                公開してください。
+              </button>
+            </div>
+          )}
+
           {/* Group Tabs */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             {groupsInDay.map(g => {

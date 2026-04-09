@@ -108,6 +108,12 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
   const [applyError, setApplyError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // 射順発表
+  const [squadComment, setSquadComment] = useState('');
+  const [squadPublishedAt, setSquadPublishedAt] = useState<string | null>(null);
+  const [previousComment, setPreviousComment] = useState<string | null>(null);
+  const [squadSaving, setSquadSaving] = useState(false);
+
   useEffect(() => {
     // 協会マスターから cancellation_notice / notes のデフォルト値を取得
     const orgCd = tournament.organizer_cd;
@@ -138,6 +144,44 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
       setApplyFormDefault();
     }
   }, [tournament]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 射順発表データ取得
+  useEffect(() => {
+    fetch(`/api/tournaments/${tournamentId}/squad`)
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) {
+          const d = j.data;
+          setSquadPublishedAt(d.squad_published_at ?? null);
+          setPreviousComment(d.previous_comment ?? null);
+          const defaultComment = 'Aクラスの人数が6名未満につき、本公式はクラス分けなしとして順位を決定致します';
+          setSquadComment(d.squad_comment ?? d.previous_comment ?? defaultComment);
+        }
+      })
+      .catch(() => {});
+  }, [tournamentId]);
+
+  async function handleSquadPublish(action: 'publish' | 'unpublish') {
+    setApplyError(null);
+    setSuccess(null);
+    setSquadSaving(true);
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/squad`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, comment: squadComment }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setSquadPublishedAt(action === 'publish' ? new Date().toISOString() : null);
+      setSuccess(action === 'publish' ? '射順発表を公開しました' : '射順発表を非公開にしました');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (e) {
+      setApplyError(e instanceof Error ? e.message : '保存に失敗しました');
+    } finally {
+      setSquadSaving(false);
+    }
+  }
 
   function setApplyFormDefault() {
     setApplyForm({
@@ -523,6 +567,82 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
             )}
           </div>
         </form>
+      </section>
+
+      {/* 射順発表 */}
+      <section style={{
+        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+        padding: '20px', marginBottom: 20,
+      }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: 17, color: C.gold }}>射順発表</h3>
+        <div style={{ marginBottom: 14 }}>
+          <span style={{
+            background: squadPublishedAt ? `${C.green}22` : C.surface2,
+            color: squadPublishedAt ? C.green : C.muted,
+            border: `1px solid ${squadPublishedAt ? C.green : C.border}`,
+            borderRadius: 4, padding: '3px 12px', fontSize: 13, fontWeight: 700,
+          }}>
+            {squadPublishedAt ? `公開中（${formatSavedAt(squadPublishedAt)}）` : '非公開'}
+          </span>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
+            <label style={{ fontSize: 14, color: C.muted }}>コメント（組一覧の前に表示されます）</label>
+            {previousComment && previousComment !== squadComment && (
+              <button
+                type="button"
+                onClick={() => setSquadComment(previousComment)}
+                style={{
+                  background: 'transparent', color: C.gold, border: `1px solid ${C.gold}`,
+                  borderRadius: 4, padding: '2px 10px', fontSize: 12, cursor: 'pointer',
+                }}
+              >
+                前回のコメントを使用
+              </button>
+            )}
+          </div>
+          <textarea
+            value={squadComment}
+            onChange={e => setSquadComment(e.target.value)}
+            rows={3}
+            style={{
+              width: '100%', background: '#1a1a2e', border: `1px solid ${C.border}`,
+              borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15,
+              boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit',
+            }}
+            placeholder="コメントを入力（空欄でも可）"
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => handleSquadPublish('publish')}
+            disabled={squadSaving}
+            style={{
+              background: C.green, color: '#000', border: 'none', borderRadius: 5,
+              padding: '9px 24px', fontWeight: 700, fontSize: 15,
+              cursor: squadSaving ? 'not-allowed' : 'pointer', opacity: squadSaving ? 0.7 : 1,
+            }}
+          >
+            {squadSaving ? '処理中...' : squadPublishedAt ? '再公開（更新）' : '公開する'}
+          </button>
+          {squadPublishedAt && (
+            <button
+              type="button"
+              onClick={() => handleSquadPublish('unpublish')}
+              disabled={squadSaving}
+              style={{
+                background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
+                borderRadius: 5, padding: '9px 24px', fontSize: 15,
+                cursor: squadSaving ? 'not-allowed' : 'pointer', opacity: squadSaving ? 0.7 : 1,
+              }}
+            >
+              非公開にする
+            </button>
+          )}
+        </div>
       </section>
     </div>
   );

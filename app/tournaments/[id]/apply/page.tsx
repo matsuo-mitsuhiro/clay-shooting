@@ -578,7 +578,7 @@ export default function ApplyPage() {
             申込キャンセルの方はこちら
           </button>
         </div>
-        {/* 組発表 */}
+        {/* 射順発表 */}
         {squadData && squadData.squad_published_at && squadData.members.length > 0 && (() => {
           const is2DaySquad = squadData.members.some(m => m.day === 2);
           const displayDay = is2DaySquad ? squadDay : 1;
@@ -590,7 +590,7 @@ export default function ApplyPage() {
               background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
               padding: '20px', marginTop: 20,
             }}>
-              <h2 style={{ margin: '0 0 12px', fontSize: 17, color: C.gold }}>組発表</h2>
+              <h2 style={{ margin: '0 0 12px', fontSize: 17, color: C.gold }}>射順発表</h2>
 
               {/* コメント */}
               {squadData.squad_comment && (

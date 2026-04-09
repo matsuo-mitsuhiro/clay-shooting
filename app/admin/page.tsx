@@ -1046,11 +1046,11 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* 組発表 */}
+              {/* 射順発表 */}
               <div style={{ marginBottom: 24 }}>
-                <h4 style={{ margin: '0 0 12px', fontSize: 15, color: C.muted, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>組発表</h4>
+                <h4 style={{ margin: '0 0 12px', fontSize: 15, color: C.muted, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>射順発表</h4>
                 <div>
-                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>組発表コメント（テンプレート）</label>
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>射順発表コメント（テンプレート）</label>
                   <textarea
                     value={copyForm.squad_comment}
                     onChange={e => setCopyForm(f => ({ ...f, squad_comment: e.target.value }))}
