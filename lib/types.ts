@@ -93,6 +93,16 @@ export interface TournamentInput {
   cancellation_notice?: string | null;
   notes?: string | null;
   apply_qr?: string | null;
+  // 記録審査
+  rule_type?: string | null;
+  chief_judge?: string | null;
+  operation_manager?: string | null;
+  record_manager?: string | null;
+  set_checker?: string | null;
+  clay_name?: string | null;
+  class_division?: string | null;
+  // 組発表
+  squad_comment?: string | null;
 }
 
 // ---------- Member ----------

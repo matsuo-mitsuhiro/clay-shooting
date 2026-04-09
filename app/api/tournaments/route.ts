@@ -42,12 +42,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json<ApiResponse>({ success: false, error: '大会名は必須です' }, { status: 400 });
     }
 
+    // 大会名の同年重複チェック（day1_dateの年で判定）
+    const targetYear = body.day1_date ? body.day1_date.slice(0, 4) : new Date().getFullYear().toString();
+    const dupCheck = await sql`
+      SELECT id FROM tournaments
+      WHERE TRIM(name) = ${body.name.trim()}
+        AND EXTRACT(YEAR FROM day1_date)::text = ${targetYear}
+    `;
+    if (dupCheck.length > 0) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: '同じ大会名が登録されていますので、この大会名では登録できません。' },
+        { status: 409 }
+      );
+    }
+
     const session = await getServerSession(authOptions);
     const adminName = session?.user?.name ?? session?.user?.email ?? null;
     const adminAffiliation = session?.user?.affiliation ?? null;
 
     const rows = await sql`
-      INSERT INTO tournaments (name, venue, day1_date, day2_date, event_type, day1_set, day2_set, organizer_cd)
+      INSERT INTO tournaments (
+        name, venue, day1_date, day2_date, event_type, day1_set, day2_set, organizer_cd,
+        max_participants, competition_start_time, gate_open_time, reception_start_time, practice_clay_time,
+        cancellation_notice, notes,
+        rule_type, chief_judge, operation_manager, record_manager, set_checker, clay_name, class_division,
+        squad_comment
+      )
       VALUES (
         ${body.name.trim()},
         ${body.venue ?? null},
@@ -56,7 +76,22 @@ export async function POST(req: NextRequest) {
         ${body.event_type ?? 'trap'},
         ${body.day1_set ?? null},
         ${body.day2_set ?? null},
-        ${body.organizer_cd ?? 27}
+        ${body.organizer_cd ?? 27},
+        ${body.max_participants ?? null},
+        ${body.competition_start_time ?? null},
+        ${body.gate_open_time ?? null},
+        ${body.reception_start_time ?? null},
+        ${body.practice_clay_time ?? null},
+        ${body.cancellation_notice ?? null},
+        ${body.notes ?? null},
+        ${body.rule_type ?? null},
+        ${body.chief_judge ?? null},
+        ${body.operation_manager ?? null},
+        ${body.record_manager ?? null},
+        ${body.set_checker ?? null},
+        ${body.clay_name ?? null},
+        ${body.class_division ?? 'none'},
+        ${body.squad_comment ?? null}
       )
       RETURNING *
     `;

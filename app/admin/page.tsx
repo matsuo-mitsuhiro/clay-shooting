@@ -38,6 +38,40 @@ export default function AdminPage() {
     organizer_cd: 0,
   });
 
+  // コピー作成フォーム
+  const [copySource, setCopySource] = useState<Tournament | null>(null);
+  const [showCopyForm, setShowCopyForm] = useState(false);
+  const [copyCreating, setCopyCreating] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
+  const [copyForm, setCopyForm] = useState({
+    name: '',
+    venue: '',
+    day1_date: '',
+    day2_date: '',
+    day1_set: '',
+    day2_set: '',
+    event_type: 'trap' as EventType,
+    organizer_cd: 0,
+    max_participants: '' as string,
+    apply_start_at: '',
+    apply_end_at: '',
+    cancel_end_at: '',
+    gate_open_time: '',
+    reception_start_time: '',
+    practice_clay_time: '',
+    competition_start_time: '',
+    cancellation_notice: '',
+    notes: '',
+    rule_type: 'ISSF（地方公式版）',
+    chief_judge: '',
+    operation_manager: '',
+    record_manager: '',
+    set_checker: '',
+    clay_name: '',
+    class_division: 'none',
+    squad_comment: '',
+  });
+
   // モバイル検出
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -151,6 +185,110 @@ export default function AdminPage() {
       setError(e instanceof Error ? e.message : '大会の作成に失敗しました');
     } finally {
       setCreating(false);
+    }
+  }
+
+  // コピー作成フォームを開く
+  function handleOpenCopy(t: Tournament) {
+    setCopySource(t);
+    setCopyError(null);
+    setCopyForm({
+      name: t.name,
+      venue: t.venue ?? '',
+      day1_date: '',
+      day2_date: '',
+      day1_set: '',
+      day2_set: '',
+      event_type: t.event_type,
+      organizer_cd: t.organizer_cd ?? 0,
+      max_participants: t.max_participants != null ? String(t.max_participants) : '',
+      apply_start_at: '',
+      apply_end_at: '',
+      cancel_end_at: '',
+      gate_open_time: t.gate_open_time ?? '',
+      reception_start_time: t.reception_start_time ?? '',
+      practice_clay_time: t.practice_clay_time ?? '',
+      competition_start_time: t.competition_start_time ?? '',
+      cancellation_notice: t.cancellation_notice ?? '',
+      notes: t.notes ?? '',
+      rule_type: t.rule_type ?? 'ISSF（地方公式版）',
+      chief_judge: t.chief_judge ?? '',
+      operation_manager: t.operation_manager ?? '',
+      record_manager: t.record_manager ?? '',
+      set_checker: t.set_checker ?? '',
+      clay_name: t.clay_name ?? '',
+      class_division: t.class_division ?? 'none',
+      squad_comment: t.squad_comment ?? '',
+    });
+    setShowCopyForm(true);
+    setShowForm(false);
+    setTimeout(() => {
+      document.getElementById('copy-form-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+
+  // コピー作成実行
+  async function handleCopyCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!copyForm.name.trim()) {
+      setCopyError('大会名を入力してください');
+      return;
+    }
+    if (!copyForm.day1_date) {
+      setCopyError('1日目の日付は必須です');
+      return;
+    }
+    const dateStatus = validateDates(copyForm.day1_date, copyForm.day2_date);
+    if (dateStatus === 'error') {
+      setCopyError('2日目の日付は1日目より後にしか設定できません。');
+      return;
+    }
+    if (dateStatus === 'warn') {
+      const ok = window.confirm('1日目と2日目が連続していません。間違えていませんか？');
+      if (!ok) return;
+    }
+    try {
+      setCopyCreating(true);
+      setCopyError(null);
+      const res = await fetch('/api/tournaments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: copyForm.name.trim(),
+          venue: copyForm.venue || undefined,
+          day1_date: copyForm.day1_date || undefined,
+          day2_date: copyForm.day2_date || undefined,
+          day1_set: copyForm.day1_set || undefined,
+          day2_set: copyForm.day2_set || undefined,
+          event_type: copyForm.event_type,
+          organizer_cd: copyForm.organizer_cd || undefined,
+          max_participants: copyForm.max_participants ? Number(copyForm.max_participants) : undefined,
+          gate_open_time: copyForm.gate_open_time || undefined,
+          reception_start_time: copyForm.reception_start_time || undefined,
+          practice_clay_time: copyForm.practice_clay_time || undefined,
+          competition_start_time: copyForm.competition_start_time || undefined,
+          cancellation_notice: copyForm.cancellation_notice || undefined,
+          notes: copyForm.notes || undefined,
+          rule_type: copyForm.rule_type || undefined,
+          chief_judge: copyForm.chief_judge || undefined,
+          operation_manager: copyForm.operation_manager || undefined,
+          record_manager: copyForm.record_manager || undefined,
+          set_checker: copyForm.set_checker || undefined,
+          clay_name: copyForm.clay_name || undefined,
+          class_division: copyForm.class_division || 'none',
+          squad_comment: copyForm.squad_comment || undefined,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setShowCopyForm(false);
+      setCopySource(null);
+      await fetchTournaments();
+      router.push(`/admin/${(json.data as Tournament).id}?tab=settings`);
+    } catch (e) {
+      setCopyError(e instanceof Error ? e.message : '大会の作成に失敗しました');
+    } finally {
+      setCopyCreating(false);
     }
   }
 
@@ -558,6 +696,331 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Copy Form */}
+        {showCopyForm && copySource && (
+          <div id="copy-form-top" style={{
+            background: C.surface, border: `2px solid ${C.gold}`, borderRadius: 8,
+            padding: 24, marginBottom: 28,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              <h3 style={{ margin: 0, fontSize: 18, color: C.gold }}>
+                📋 コピーして新規作成
+              </h3>
+              <span style={{ fontSize: 13, color: C.muted }}>コピー元：{copySource.name}</span>
+            </div>
+
+            {copyError && (
+              <div style={{
+                background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
+                borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 15,
+              }}>
+                {copyError}
+              </div>
+            )}
+
+            <form onSubmit={handleCopyCreate}>
+              {/* 大会設定 */}
+              <div style={{ marginBottom: 20 }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: 15, color: C.muted, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>大会設定</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>主催</label>
+                    <select
+                      value={copyForm.organizer_cd}
+                      onChange={e => setCopyForm(f => ({ ...f, organizer_cd: Number(e.target.value), venue: '' }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    >
+                      {associations.map(o => <option key={o.cd} value={o.cd}>{o.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>
+                      大会名 <span style={{ color: C.red }}>*</span>
+                      <span style={{ color: C.gold, fontSize: 12, marginLeft: 8 }}>← 必要に応じて修正してください</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={copyForm.name}
+                      onChange={e => setCopyForm(f => ({ ...f, name: e.target.value }))}
+                      style={{
+                        width: '100%', background: C.inputBg, border: `2px solid ${C.gold}`,
+                        borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>射撃場名</label>
+                    <select
+                      value={copyForm.venue}
+                      onChange={e => setCopyForm(f => ({ ...f, venue: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    >
+                      <option value="">— 未選択 —</option>
+                      {allRanges.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>種目</label>
+                    <select
+                      value={copyForm.event_type}
+                      onChange={e => setCopyForm(f => ({ ...f, event_type: e.target.value as EventType }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    >
+                      <option value="trap">トラップ</option>
+                      <option value="skeet">スキート</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* 日程 */}
+              <div style={{ marginBottom: 20 }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: 15, color: C.muted, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>
+                  日程・セット番号
+                  <span style={{ color: C.red, fontSize: 13, fontWeight: 400, marginLeft: 8 }}>※ 日付は必須入力</span>
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>
+                      1日目 <span style={{ color: C.red }}>*</span>
+                    </label>
+                    <DatePicker
+                      selected={copyForm.day1_date ? new Date(copyForm.day1_date) : null}
+                      onChange={(date: Date | null) => setCopyForm(f => ({ ...f, day1_date: date ? date.toISOString().slice(0, 10) : '' }))}
+                      dateFormat="yyyy/MM/dd"
+                      locale={ja}
+                      placeholderText="日付を選択（必須）"
+                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `2px solid ${copyForm.day1_date ? C.border : C.red}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>2日目（任意）</label>
+                    <DatePicker
+                      selected={copyForm.day2_date ? new Date(copyForm.day2_date) : null}
+                      onChange={(date: Date | null) => setCopyForm(f => ({ ...f, day2_date: date ? date.toISOString().slice(0, 10) : '' }))}
+                      dateFormat="yyyy/MM/dd"
+                      locale={ja}
+                      placeholderText="1日開催の場合は空欄"
+                      isClearable
+                      customInput={<input style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' as const }} />}
+                    />
+                    {validateDates(copyForm.day1_date, copyForm.day2_date) === 'error' && (
+                      <div style={{ color: '#e74c3c', fontSize: 13, marginTop: 4 }}>2日目の日付は1日目より後にしか設定できません。</div>
+                    )}
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>1日目セット番号</label>
+                    <input
+                      type="text"
+                      value={copyForm.day1_set}
+                      onChange={e => setCopyForm(f => ({ ...f, day1_set: e.target.value }))}
+                      placeholder="例: 1番セット"
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>2日目セット番号</label>
+                    <input
+                      type="text"
+                      value={copyForm.day2_set}
+                      onChange={e => setCopyForm(f => ({ ...f, day2_set: e.target.value }))}
+                      placeholder="例: 10番セット裏"
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 申込設定 */}
+              <div style={{ marginBottom: 20 }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: 15, color: C.muted, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>申込設定</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>募集人数（日程ごと）</label>
+                    <input
+                      type="number"
+                      value={copyForm.max_participants}
+                      onChange={e => setCopyForm(f => ({ ...f, max_participants: e.target.value }))}
+                      placeholder="例: 50"
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div />
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>射撃場開門時間</label>
+                    <input
+                      type="time"
+                      value={copyForm.gate_open_time}
+                      onChange={e => setCopyForm(f => ({ ...f, gate_open_time: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>受付開始時間</label>
+                    <input
+                      type="time"
+                      value={copyForm.reception_start_time}
+                      onChange={e => setCopyForm(f => ({ ...f, reception_start_time: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>テストクレー放出時間</label>
+                    <input
+                      type="time"
+                      value={copyForm.practice_clay_time}
+                      onChange={e => setCopyForm(f => ({ ...f, practice_clay_time: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>競技開始時間</label>
+                    <input
+                      type="time"
+                      value={copyForm.competition_start_time}
+                      onChange={e => setCopyForm(f => ({ ...f, competition_start_time: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ gridColumn: isMobile ? undefined : 'span 2' }}>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>中止お知らせ方法</label>
+                    <textarea
+                      value={copyForm.cancellation_notice}
+                      onChange={e => setCopyForm(f => ({ ...f, cancellation_notice: e.target.value }))}
+                      rows={3}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box', resize: 'vertical' }}
+                    />
+                  </div>
+                  <div style={{ gridColumn: isMobile ? undefined : 'span 2' }}>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>申込注意書き</label>
+                    <textarea
+                      value={copyForm.notes}
+                      onChange={e => setCopyForm(f => ({ ...f, notes: e.target.value }))}
+                      rows={4}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box', resize: 'vertical' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 記録審査 */}
+              <div style={{ marginBottom: 20 }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: 15, color: C.muted, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>記録審査</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>ルール</label>
+                    <select
+                      value={copyForm.rule_type}
+                      onChange={e => setCopyForm(f => ({ ...f, rule_type: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    >
+                      {['ISSF（地方公式版）', 'ISSF（国際公式版）', 'ビギナー', 'マスター', 'その他'].map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>クラス分け</label>
+                    <select
+                      value={copyForm.class_division}
+                      onChange={e => setCopyForm(f => ({ ...f, class_division: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    >
+                      <option value="none">なし</option>
+                      <option value="divided">あり</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>使用クレー名</label>
+                    <input
+                      type="text"
+                      value={copyForm.clay_name}
+                      onChange={e => setCopyForm(f => ({ ...f, clay_name: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div />
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>審査委員長</label>
+                    <input
+                      type="text"
+                      value={copyForm.chief_judge}
+                      onChange={e => setCopyForm(f => ({ ...f, chief_judge: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>大会運営責任者</label>
+                    <input
+                      type="text"
+                      value={copyForm.operation_manager}
+                      onChange={e => setCopyForm(f => ({ ...f, operation_manager: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>記録責任者</label>
+                    <input
+                      type="text"
+                      value={copyForm.record_manager}
+                      onChange={e => setCopyForm(f => ({ ...f, record_manager: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>セット確認者</label>
+                    <input
+                      type="text"
+                      value={copyForm.set_checker}
+                      onChange={e => setCopyForm(f => ({ ...f, set_checker: e.target.value }))}
+                      style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 組発表 */}
+              <div style={{ marginBottom: 24 }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: 15, color: C.muted, borderBottom: `1px solid ${C.border}`, paddingBottom: 6 }}>組発表</h4>
+                <div>
+                  <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 5 }}>組発表コメント（テンプレート）</label>
+                  <textarea
+                    value={copyForm.squad_comment}
+                    onChange={e => setCopyForm(f => ({ ...f, squad_comment: e.target.value }))}
+                    rows={4}
+                    style={{ width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15, boxSizing: 'border-box', resize: 'vertical' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="submit"
+                  disabled={copyCreating || !copyForm.day1_date || validateDates(copyForm.day1_date, copyForm.day2_date) === 'error'}
+                  style={{
+                    background: C.gold, color: '#000', border: 'none', borderRadius: 5,
+                    padding: '10px 24px', fontWeight: 700, fontSize: 16,
+                    cursor: (copyCreating || !copyForm.day1_date || validateDates(copyForm.day1_date, copyForm.day2_date) === 'error') ? 'not-allowed' : 'pointer',
+                    opacity: (copyCreating || !copyForm.day1_date || validateDates(copyForm.day1_date, copyForm.day2_date) === 'error') ? 0.7 : 1,
+                  }}
+                >
+                  {copyCreating ? '作成中...' : '作成する'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowCopyForm(false); setCopySource(null); setCopyError(null); }}
+                  style={{
+                    background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
+                    borderRadius: 5, padding: '10px 18px', fontSize: 16, cursor: 'pointer',
+                  }}
+                >
+                  キャンセル
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {/* Tournament List */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: C.muted }}>
@@ -600,16 +1063,28 @@ export default function AdminPage() {
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => router.push(`/admin/${t.id}?tab=${getInitialTab(t)}`)}
-                  style={{
-                    background: C.surface2, color: C.gold, border: `1px solid ${C.gold}`,
-                    borderRadius: 6, padding: '8px 18px', fontSize: 16, fontWeight: 600,
-                    cursor: 'pointer', whiteSpace: 'nowrap',
-                  }}
-                >
-                  管理する →
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                  <button
+                    onClick={() => router.push(`/admin/${t.id}?tab=${getInitialTab(t)}`)}
+                    style={{
+                      background: C.surface2, color: C.gold, border: `1px solid ${C.gold}`,
+                      borderRadius: 6, padding: '8px 18px', fontSize: 16, fontWeight: 600,
+                      cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    管理する →
+                  </button>
+                  <button
+                    onClick={() => handleOpenCopy(t)}
+                    style={{
+                      background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
+                      borderRadius: 6, padding: '6px 14px', fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ＋ この大会をコピーして新規作成
+                  </button>
+                </div>
               </div>
             ))}
           </div>
