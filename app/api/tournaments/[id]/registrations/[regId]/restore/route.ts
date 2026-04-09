@@ -23,6 +23,24 @@ export async function POST(req: NextRequest, { params }: Params) {
       SELECT member_code, name FROM registrations
       WHERE id = ${rid} AND tournament_id = ${tid} AND status = 'cancelled'
     `;
+    if (!regRows.length) {
+      return NextResponse.json<ApiResponse>({ success: false, error: '対象の申込が見つかりません' }, { status: 404 });
+    }
+    const { member_code } = regRows[0] as { member_code: string; name: string };
+
+    // 同じ会員番号でアクティブな申込が既に存在する場合はブロック
+    if (member_code) {
+      const dupRows = await sql`
+        SELECT id FROM registrations
+        WHERE tournament_id = ${tid}
+          AND member_code = ${member_code}
+          AND status = 'active'
+          AND id != ${rid}
+      `;
+      if (dupRows.length) {
+        return NextResponse.json<ApiResponse>({ success: false, error: 'この会員番号はすでにアクティブな申込があるため、申込中に戻せません' }, { status: 400 });
+      }
+    }
 
     const rows = await sql`
       UPDATE registrations

@@ -782,6 +782,10 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                 const isTransferred = !!reg.transferred_at;
                 const isManual = reg.source === 'manual';
                 const isCancelled = reg.status === 'cancelled';
+                // 同じ会員番号でアクティブな申込が既に存在する場合は申込中に戻せない
+                const hasActiveDuplicate = isCancelled && reg.member_code
+                  ? registrations.some(r => r.id !== reg.id && r.member_code === reg.member_code && r.status === 'active')
+                  : false;
                 const rowOpacity = isCancelled ? 0.7 : isTransferred ? 0.85 : 1;
                 const rowBg = isCancelled ? `${C.surface2}88` : isTransferred ? `${C.surface2}44` : 'transparent';
 
@@ -924,10 +928,17 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                     {/* 操作 */}
                     <td style={{ padding: '7px 10px', whiteSpace: 'nowrap', display: 'flex', gap: 4 }}>
                       {isCancelled ? (
-                        <button onClick={() => handleRestore(reg)}
+                        <button
+                          onClick={() => !hasActiveDuplicate && handleRestore(reg)}
+                          disabled={hasActiveDuplicate}
+                          title={hasActiveDuplicate ? 'この会員番号はすでにアクティブな申込があります' : undefined}
                           style={{
-                            background: 'transparent', color: C.blue2, border: `1px solid ${C.blue2}`,
-                            borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
+                            background: 'transparent',
+                            color: hasActiveDuplicate ? C.muted : C.blue2,
+                            border: `1px solid ${hasActiveDuplicate ? C.border : C.blue2}`,
+                            borderRadius: 4, padding: '3px 10px', fontSize: 12,
+                            cursor: hasActiveDuplicate ? 'not-allowed' : 'pointer',
+                            opacity: hasActiveDuplicate ? 0.5 : 1,
                           }}>
                           申込中に戻す
                         </button>
