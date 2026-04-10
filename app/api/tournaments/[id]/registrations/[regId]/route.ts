@@ -18,9 +18,9 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     const tid = Number(id);
     const rid = Number(regId);
 
-    // 削除前に情報を取得（ログ用）
+    // 削除前に情報を取得（ログ用・members削除用）
     const regRows = await sql`
-      SELECT member_code, name FROM registrations
+      SELECT member_code, name, participation_day, transferred_at FROM registrations
       WHERE id = ${rid} AND tournament_id = ${tid} AND source = 'manual'
     `;
     if (!regRows.length) {
@@ -29,7 +29,25 @@ export async function DELETE(req: NextRequest, { params }: Params) {
         error: '削除対象が見つかりません（手動登録のみ削除可能です）',
       }, { status: 404 });
     }
-    const reg = regRows[0] as { member_code: string; name: string };
+    const reg = regRows[0] as { member_code: string; name: string; participation_day: string; transferred_at: string | null };
+
+    // 移行済みの場合、membersテーブルからも削除
+    let deletedFromMembers = false;
+    if (reg.transferred_at && reg.member_code) {
+      const pday = reg.participation_day ?? 'day1';
+      if (pday === 'both') {
+        const del = await sql`DELETE FROM members WHERE tournament_id = ${tid} AND member_code = ${reg.member_code} RETURNING id`;
+        if (del.length > 0) deletedFromMembers = true;
+      } else {
+        const dayNum = pday === 'day2' ? 2 : 1;
+        const del = await sql`DELETE FROM members WHERE tournament_id = ${tid} AND member_code = ${reg.member_code} AND day = ${dayNum} RETURNING id`;
+        if (del.length > 0) deletedFromMembers = true;
+      }
+      // scoresも削除
+      if (deletedFromMembers) {
+        await sql`DELETE FROM scores WHERE tournament_id = ${tid} AND member_code = ${reg.member_code}`;
+      }
+    }
 
     await sql`
       DELETE FROM registrations
@@ -49,7 +67,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       detail: `${reg.member_code} ${reg.name}`,
     });
 
-    return NextResponse.json<ApiResponse>({ success: true });
+    return NextResponse.json<ApiResponse<{ deletedFromMembers: boolean }>>({ success: true, data: { deletedFromMembers } });
   } catch (e) {
     console.error(e);
     return NextResponse.json<ApiResponse>({ success: false, error: '削除に失敗しました' }, { status: 500 });

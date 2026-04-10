@@ -180,6 +180,9 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
       fetchRegistrations();
+      if (json.data?.deletedFromMembers) {
+        alert(`${reg.name} さんを削除しました。\n選手管理からも削除しました。`);
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : '削除に失敗しました');
     }
