@@ -6,6 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
 import type { Tournament, ClassType } from '@/lib/types';
+import { AlertModal } from '@/components/ModalDialog';
 
 interface Props {
   tournamentId: number;
@@ -50,6 +51,7 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
   const [availableClasses, setAvailableClasses] = useState<ClassType[]>([]);
   const [selectedClasses, setSelectedClasses] = useState<ClassType[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [alertModal, setAlertModal] = useState<string | null>(null);
 
   useEffect(() => {
     setForm({
@@ -149,7 +151,7 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
       const res = await fetch(`/api/tournaments/${tournamentId}/inspection-report?${params}`);
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        alert(json?.error ?? 'レポート生成に失敗しました');
+        setAlertModal(json?.error ?? 'レポート生成に失敗しました');
         return;
       }
 
@@ -171,7 +173,7 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
       URL.revokeObjectURL(url);
       setShowExcelDialog(false);
     } catch {
-      alert('ダウンロードに失敗しました');
+      setAlertModal('ダウンロードに失敗しました');
     } finally {
       setGenerating(false);
     }
@@ -531,6 +533,10 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
             </div>
           </div>
         </div>
+      )}
+
+      {alertModal && (
+        <AlertModal message={alertModal} onClose={() => setAlertModal(null)} />
       )}
     </div>
   );

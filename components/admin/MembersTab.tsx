@@ -21,6 +21,7 @@ import { C } from '@/lib/colors';
 import type { Member, ClassType, ScoreStatus, Tournament } from '@/lib/types';
 import { PREFECTURES } from '@/lib/prefectures';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import { ConfirmModal } from '@/components/ModalDialog';
 
 interface Props {
   tournamentId: number;
@@ -110,6 +111,9 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
   // Delete modal state (両日参加者用)
   const [deleteModal, setDeleteModal] = useState<{ member: Member; hasScores: boolean } | null>(null);
   const [deleteScope, setDeleteScope] = useState<'day1' | 'day2' | 'both'>('day1');
+
+  // Confirm modal state (片日参加者削除用)
+  const [simpleConfirm, setSimpleConfirm] = useState<{ message: string; onOk: () => void } | null>(null);
 
   // Edit mode state
   const [editing, setEditing] = useState(false);
@@ -319,12 +323,17 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       return;
     }
 
-    // 片日のみ → 従来通りconfirm
+    // 片日のみ → モーダルで確認
     const msg = hasScores
       ? `${m.name}の点数データも削除されます。削除しますか？`
       : `${m.name}を削除しますか？`;
-    if (!window.confirm(msg)) return;
-    await executeDelete(m.id, 'both');
+    setSimpleConfirm({
+      message: msg,
+      onOk: () => {
+        setSimpleConfirm(null);
+        executeDelete(m.id, 'both');
+      },
+    });
   }
 
   async function executeDelete(memberId: number, scope: 'day1' | 'day2' | 'both') {
@@ -1158,6 +1167,16 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
             </div>
           </div>
         </div>
+      )}
+
+      {simpleConfirm && (
+        <ConfirmModal
+          message={simpleConfirm.message}
+          onOk={simpleConfirm.onOk}
+          onCancel={() => setSimpleConfirm(null)}
+          okLabel="削除"
+          okColor={C.red}
+        />
       )}
     </div>
   );

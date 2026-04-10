@@ -61,6 +61,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
     const eventType = tRows[0].event_type;
 
+    // 重複チェック（同一大会・同一会員番号・active）
+    const existing = await sql`
+      SELECT id, name FROM registrations
+      WHERE tournament_id = ${tid} AND member_code = ${member_code} AND status = 'active'
+      LIMIT 1
+    `;
+    if (existing.length > 0) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, error: `既に申込済みです: ${member_code}（${existing[0].name}）` },
+        { status: 409 }
+      );
+    }
+
     const rows = await sql`
       INSERT INTO registrations (
         tournament_id, member_code, name, belong, email, event_type,

@@ -6,6 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
 import type { Tournament } from '@/lib/types';
+import { AlertModal } from '@/components/ModalDialog';
 
 interface Props {
   tournamentId: number;
@@ -106,6 +107,7 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
   // Excel dialog
   const [showExcelDialog, setShowExcelDialog] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [alertModal, setAlertModal] = useState<string | null>(null);
 
   const fetchReport = useCallback(async () => {
     try {
@@ -221,7 +223,7 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
       const res = await fetch(`/api/tournaments/${tournamentId}/report-excel`);
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        alert(json?.error ?? 'Excel生成に失敗しました');
+        setAlertModal(json?.error ?? 'Excel生成に失敗しました');
         return;
       }
       const blob = await res.blob();
@@ -241,7 +243,7 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
       URL.revokeObjectURL(url);
       setShowExcelDialog(false);
     } catch {
-      alert('ダウンロードに失敗しました');
+      setAlertModal('ダウンロードに失敗しました');
     } finally {
       setGenerating(false);
     }
@@ -691,7 +693,7 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
           <button
             onClick={() => {
               if (!data?.report?.id) {
-                alert('大会報告を保存してから報告書を作成してください。');
+                setAlertModal('大会報告を保存してから報告書を作成してください。');
                 return;
               }
               setShowExcelDialog(true);
@@ -750,6 +752,10 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
             </div>
           </div>
         </div>
+      )}
+
+      {alertModal && (
+        <AlertModal message={alertModal} onClose={() => setAlertModal(null)} />
       )}
     </div>
   );

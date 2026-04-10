@@ -6,6 +6,7 @@ import { C } from '@/lib/colors';
 import { normalizeKanji } from '@/lib/kanji-normalize';
 import type { Registration, ParticipationDay, ClassType, Tournament } from '@/lib/types';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import { ConfirmModal, AlertModal } from '@/components/ModalDialog';
 
 interface Props {
   tournamentId: number;
@@ -72,6 +73,10 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   // Association names for dropdown
   const [associationNames, setAssociationNames] = useState<string[]>([]);
 
+  // Modal state
+  const [confirmModal, setConfirmModal] = useState<{ message: string; onOk: () => void; okLabel?: string; okColor?: string } | null>(null);
+  const [alertModal, setAlertModal] = useState<string | null>(null);
+
   // Filters for registration list
   const [filterClass, setFilterClass] = useState<string>('all');
   const [filterBelong, setFilterBelong] = useState<string>('all');
@@ -133,38 +138,48 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
     const msg = positions
       ? `${positions}に登録されている選手です。\nキャンセルしても良いですか？`
       : `${reg.name} さんの申込をキャンセルします。よろしいですか？`;
-    if (!window.confirm(msg)) return;
-    const adminName = session?.user?.name ?? 'admin';
-    try {
-      const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}/cancel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ admin_name: adminName }),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      fetchRegistrations();
-      if (json.data?.deletedFromMembers) {
-        alert(`${reg.name} さんの申込をキャンセルしました。\n選手管理からも削除しました。`);
-      }
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'キャンセルに失敗しました');
-    }
+    setConfirmModal({
+      message: msg, okLabel: 'キャンセルする', okColor: C.red,
+      onOk: async () => {
+        setConfirmModal(null);
+        const adminName = session?.user?.name ?? 'admin';
+        try {
+          const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}/cancel`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ admin_name: adminName }),
+          });
+          const json = await res.json();
+          if (!json.success) throw new Error(json.error);
+          fetchRegistrations();
+          if (json.data?.deletedFromMembers) {
+            setAlertModal(`${reg.name} さんの申込をキャンセルしました。\n選手管理からも削除しました。`);
+          }
+        } catch (e) {
+          setAlertModal(e instanceof Error ? e.message : 'キャンセルに失敗しました');
+        }
+      },
+    });
   }
 
   async function handleRestore(reg: Registration) {
-    if (!window.confirm(`${reg.name} さんの申込を申込中に戻します。よろしいですか？`)) return;
-    try {
-      const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}/restore`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      fetchRegistrations();
-    } catch (e) {
-      alert(e instanceof Error ? e.message : '復元に失敗しました');
-    }
+    setConfirmModal({
+      message: `${reg.name} さんの申込を申込中に戻します。よろしいですか？`,
+      onOk: async () => {
+        setConfirmModal(null);
+        try {
+          const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}/restore`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const json = await res.json();
+          if (!json.success) throw new Error(json.error);
+          fetchRegistrations();
+        } catch (e) {
+          setAlertModal(e instanceof Error ? e.message : '復元に失敗しました');
+        }
+      },
+    });
   }
 
   async function handleDeleteManual(reg: Registration) {
@@ -172,20 +187,25 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
     const msg = positions
       ? `${positions}に登録されている選手です。\n削除しても良いですか？`
       : `${reg.name} さんの手動登録を削除します。よろしいですか？`;
-    if (!window.confirm(msg)) return;
-    try {
-      const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}`, {
-        method: 'DELETE',
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      fetchRegistrations();
-      if (json.data?.deletedFromMembers) {
-        alert(`${reg.name} さんを削除しました。\n選手管理からも削除しました。`);
-      }
-    } catch (e) {
-      alert(e instanceof Error ? e.message : '削除に失敗しました');
-    }
+    setConfirmModal({
+      message: msg, okLabel: '削除', okColor: C.red,
+      onOk: async () => {
+        setConfirmModal(null);
+        try {
+          const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}`, {
+            method: 'DELETE',
+          });
+          const json = await res.json();
+          if (!json.success) throw new Error(json.error);
+          fetchRegistrations();
+          if (json.data?.deletedFromMembers) {
+            setAlertModal(`${reg.name} さんを削除しました。\n選手管理からも削除しました。`);
+          }
+        } catch (e) {
+          setAlertModal(e instanceof Error ? e.message : '削除に失敗しました');
+        }
+      },
+    });
   }
 
   // Inline edit: start editing
@@ -224,7 +244,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
       if (!json.success) throw new Error(json.error);
       fetchRegistrations();
     } catch (e) {
-      alert(e instanceof Error ? e.message : '更新に失敗しました');
+      setAlertModal(e instanceof Error ? e.message : '更新に失敗しました');
     } finally {
       setEditingCell(null);
     }
@@ -254,21 +274,27 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
       }
     }
 
-    if (!window.confirm(`未登録の ${untransferred.length} 名を選手管理に移行しますか？\n申込期間が終了している必要があります。`)) return;
-    try {
-      setTransferring(true);
-      const res = await fetch(`/api/tournaments/${tournamentId}/registrations/transfer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      fetchRegistrations();
-    } catch (e) {
-      setTransferError(e instanceof Error ? e.message : '移行に失敗しました');
-    } finally {
-      setTransferring(false);
-    }
+    setConfirmModal({
+      message: `未登録の ${untransferred.length} 名を選手管理に移行しますか？\n申込期間が終了している必要があります。`,
+      okLabel: '移行する',
+      onOk: async () => {
+        setConfirmModal(null);
+        try {
+          setTransferring(true);
+          const res = await fetch(`/api/tournaments/${tournamentId}/registrations/transfer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const json = await res.json();
+          if (!json.success) throw new Error(json.error);
+          fetchRegistrations();
+        } catch (e) {
+          setTransferError(e instanceof Error ? e.message : '移行に失敗しました');
+        } finally {
+          setTransferring(false);
+        }
+      },
+    });
   }
 
   // ===== Manual add functions =====
@@ -401,6 +427,20 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
     const dupCodes = [...codeCounts.entries()].filter(([, c]) => c > 1).map(([code]) => code);
     if (dupCodes.length > 0) {
       setManualError(`会員番号が重複しています: ${dupCodes.join(', ')}。重複を削除してから保存してください。`);
+      return;
+    }
+
+    // 重複チェック（既存の申込リストとの照合）
+    const existingActiveCodes = new Map(
+      registrations
+        .filter(r => r.status === 'active')
+        .map(r => [r.member_code, r.name])
+    );
+    const alreadyRegistered = validRows
+      .filter(r => existingActiveCodes.has(r.member_code.trim()))
+      .map(r => `${r.member_code.trim()}（${existingActiveCodes.get(r.member_code.trim())}）`);
+    if (alreadyRegistered.length > 0) {
+      setManualError(`既に申込済みの選手が含まれています: ${alreadyRegistered.join('、')}`);
       return;
     }
 
@@ -893,7 +933,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                                 if (!json.success) throw new Error(json.error);
                                 fetchRegistrations();
                               } catch (e) {
-                                alert(e instanceof Error ? e.message : '更新に失敗しました');
+                                setAlertModal(e instanceof Error ? e.message : '更新に失敗しました');
                               }
                             }}
                             style={{ width: 14, height: 14, accentColor: C.gold }} />
@@ -976,6 +1016,19 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
               })}
             </tbody>
           </table>
+      )}
+
+      {confirmModal && (
+        <ConfirmModal
+          message={confirmModal.message}
+          onOk={confirmModal.onOk}
+          onCancel={() => setConfirmModal(null)}
+          okLabel={confirmModal.okLabel}
+          okColor={confirmModal.okColor}
+        />
+      )}
+      {alertModal && (
+        <AlertModal message={alertModal} onClose={() => setAlertModal(null)} />
       )}
     </div>
   );

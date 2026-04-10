@@ -9,6 +9,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
 import type { Tournament, EventType, Association, ShootingRange } from '@/lib/types';
+import { ConfirmModal, AlertModal, PromptModal } from '@/components/ModalDialog';
 
 interface Props {
   tournamentId: number;
@@ -66,6 +67,11 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
   const [success, setSuccess] = useState<string | null>(null);
   const [qrCopied, setQrCopied] = useState(false);
   const [qrTab, setQrTab] = useState<'viewer' | 'admin' | 'apply' | 'invite'>('viewer');
+
+  // Modal state
+  const [confirmModal, setConfirmModal] = useState<{ message: string; onOk: () => void; okLabel?: string; okColor?: string } | null>(null);
+  const [alertModal, setAlertModal] = useState<string | null>(null);
+  const [promptModal, setPromptModal] = useState<{ message: string; onOk: (v: string) => void; placeholder?: string } | null>(null);
 
   // 招待QRコード
   const [inviteToken, setInviteToken] = useState<string | null>(null);
@@ -143,9 +149,17 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       return;
     }
     if (dateStatus === 'warn') {
-      const ok = window.confirm('1日目と2日目が連続していません。間違えていませんか？');
-      if (!ok) return;
+      setConfirmModal({
+        message: '1日目と2日目が連続していません。間違えていませんか？',
+        okLabel: 'このまま保存',
+        onOk: () => { setConfirmModal(null); executeSave(); },
+      });
+      return;
     }
+    executeSave();
+  }
+
+  async function executeSave() {
     try {
       setSaving(true);
       const res = await fetch(`/api/tournaments/${tournamentId}`, {
@@ -175,49 +189,65 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     }
   }
 
-  async function handleReset() {
-    const pw = window.prompt('確認のため「repros」と入力してください');
-    if (pw !== 'repros') {
-      if (pw !== null) alert('パスワードが違います');
-      return;
-    }
-    const confirmed = window.confirm('メンバーと点数データを全て削除します。この操作は取り消せません。本当に実行しますか？');
-    if (!confirmed) return;
-    setError(null);
-    setSuccess(null);
-    try {
-      setResetting(true);
-      const res = await fetch(`/api/tournaments/${tournamentId}/reset`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ saved_by: session?.user?.name ?? session?.user?.email ?? '' }),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      setSuccess('メンバー・点数データをリセットしました');
-      onUpdated();
-      setTimeout(() => setSuccess(null), 5000);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'リセットに失敗しました');
-    } finally {
-      setResetting(false);
-    }
+  function handleReset() {
+    setPromptModal({
+      message: '確認のため「repros」と入力してください',
+      placeholder: 'repros',
+      onOk: (pw) => {
+        setPromptModal(null);
+        if (pw !== 'repros') {
+          setAlertModal('パスワードが違います');
+          return;
+        }
+        setConfirmModal({
+          message: 'メンバーと点数データを全て削除します。この操作は取り消せません。本当に実行しますか？',
+          okLabel: 'リセット', okColor: C.red,
+          onOk: async () => {
+            setConfirmModal(null);
+            setError(null);
+            setSuccess(null);
+            try {
+              setResetting(true);
+              const res = await fetch(`/api/tournaments/${tournamentId}/reset`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ saved_by: session?.user?.name ?? session?.user?.email ?? '' }),
+              });
+              const json = await res.json();
+              if (!json.success) throw new Error(json.error);
+              setSuccess('メンバー・点数データをリセットしました');
+              onUpdated();
+              setTimeout(() => setSuccess(null), 5000);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : 'リセットに失敗しました');
+            } finally {
+              setResetting(false);
+            }
+          },
+        });
+      },
+    });
   }
 
-  async function handleDelete() {
-    const confirmed = window.confirm('この大会のすべてのデータが削除されますが良いですか？\nこの操作は取り消せません。');
-    if (!confirmed) return;
-    setError(null);
-    try {
-      setDeleting(true);
-      const res = await fetch(`/api/tournaments/${tournamentId}`, { method: 'DELETE' });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      router.push('/admin');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '削除に失敗しました');
-      setDeleting(false);
-    }
+  function handleDelete() {
+    setConfirmModal({
+      message: 'この大会のすべてのデータが削除されますが良いですか？\nこの操作は取り消せません。',
+      okLabel: '削除', okColor: C.red,
+      onOk: async () => {
+        setConfirmModal(null);
+        setError(null);
+        try {
+          setDeleting(true);
+          const res = await fetch(`/api/tournaments/${tournamentId}`, { method: 'DELETE' });
+          const json = await res.json();
+          if (!json.success) throw new Error(json.error);
+          router.push('/admin');
+        } catch (e) {
+          setError(e instanceof Error ? e.message : '削除に失敗しました');
+          setDeleting(false);
+        }
+      },
+    });
   }
 
 
@@ -576,6 +606,28 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
           </button>
         </div>
       </section>
+
+      {confirmModal && (
+        <ConfirmModal
+          message={confirmModal.message}
+          onOk={confirmModal.onOk}
+          onCancel={() => setConfirmModal(null)}
+          okLabel={confirmModal.okLabel}
+          okColor={confirmModal.okColor}
+        />
+      )}
+      {alertModal && (
+        <AlertModal message={alertModal} onClose={() => setAlertModal(null)} />
+      )}
+      {promptModal && (
+        <PromptModal
+          message={promptModal.message}
+          onOk={promptModal.onOk}
+          onCancel={() => setPromptModal(null)}
+          placeholder={promptModal.placeholder}
+          okLabel="確認"
+        />
+      )}
     </div>
   );
 }
