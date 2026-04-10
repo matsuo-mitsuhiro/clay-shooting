@@ -7,35 +7,50 @@ import type { ApiResponse } from '@/lib/types';
 type Params = { params: Promise<{ id: string; memberId: string }> };
 
 // DELETE /api/tournaments/[id]/members/[memberId]
+// body: { deleteScope?: 'day1' | 'day2' | 'both' }
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
     const { id, memberId } = await params;
     const tournamentId = Number(id);
     const memberIdNum = Number(memberId);
 
+    // bodyからdeleteScopeを取得（指定なしは'both'）
+    let deleteScope: 'day1' | 'day2' | 'both' = 'both';
+    try {
+      const body = await req.json();
+      if (body.deleteScope === 'day1' || body.deleteScope === 'day2') deleteScope = body.deleteScope;
+    } catch { /* bodyなしの場合はboth */ }
+
     // Get member info first
     const members = await sql`SELECT * FROM members WHERE id = ${memberIdNum} AND tournament_id = ${tournamentId}`;
     if (members.length === 0) {
       return NextResponse.json<ApiResponse>({ success: false, error: '選手が見つかりません' }, { status: 404 });
     }
-    const member = members[0] as { member_code: string | null; name: string };
+    const member = members[0] as { member_code: string | null; name: string; day: number };
 
-    // Check if scores exist
-    let hasScores = false;
-    if (member.member_code) {
-      const scores = await sql`SELECT id FROM scores WHERE tournament_id = ${tournamentId} AND member_code = ${member.member_code}`;
-      hasScores = scores.length > 0;
+    // deleteScopeに応じてmembersを削除
+    if (deleteScope === 'both') {
+      // 同じmember_codeの両日を削除
+      if (member.member_code) {
+        await sql`DELETE FROM members WHERE tournament_id = ${tournamentId} AND member_code = ${member.member_code}`;
+      } else {
+        await sql`DELETE FROM members WHERE id = ${memberIdNum} AND tournament_id = ${tournamentId}`;
+      }
+    } else {
+      const dayNum = deleteScope === 'day1' ? 1 : 2;
+      if (member.member_code) {
+        await sql`DELETE FROM members WHERE tournament_id = ${tournamentId} AND member_code = ${member.member_code} AND day = ${dayNum}`;
+      } else {
+        await sql`DELETE FROM members WHERE id = ${memberIdNum} AND tournament_id = ${tournamentId}`;
+      }
     }
 
-    // Delete member
-    await sql`DELETE FROM members WHERE id = ${memberIdNum} AND tournament_id = ${tournamentId}`;
-
-    // If scores exist, delete them too
-    if (hasScores && member.member_code) {
+    // scoresを削除
+    if (member.member_code) {
       await sql`DELETE FROM scores WHERE tournament_id = ${tournamentId} AND member_code = ${member.member_code}`;
     }
 
-    // 対応する申込をキャンセルにする
+    // 対応する申込をキャンセルにする（全パターンでキャンセル）
     let cancelledRegistration = false;
     if (member.member_code) {
       const cancelledRows = await sql`
@@ -56,6 +71,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     const jwtToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     const tRows = await sql`SELECT name FROM tournaments WHERE id = ${tournamentId}`;
     const tournamentName = tRows.length ? (tRows[0] as { name: string }).name : null;
+    const scopeLabel = deleteScope === 'day1' ? '(1日目)' : deleteScope === 'day2' ? '(2日目)' : '';
 
     await writeOperationLog({
       tournamentId,
@@ -63,10 +79,13 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       adminName: (jwtToken?.name as string) ?? null,
       adminAffiliation: (jwtToken?.affiliation as string) ?? null,
       action: 'member_delete',
-      detail: `${member.member_code ?? ''} ${member.name}`.trim(),
+      detail: `${member.member_code ?? ''} ${member.name}${scopeLabel}`.trim(),
     });
 
-    return NextResponse.json<ApiResponse<{ hadScores: boolean; cancelledRegistration: boolean }>>({ success: true, data: { hadScores: hasScores, cancelledRegistration } });
+    return NextResponse.json<ApiResponse<{ hadScores: boolean; cancelledRegistration: boolean; deletedName: string }>>({
+      success: true,
+      data: { hadScores: false, cancelledRegistration, deletedName: member.name },
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json<ApiResponse>({ success: false, error: '選手の削除に失敗しました' }, { status: 500 });

@@ -107,6 +107,10 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
   const [associationNames, setAssociationNames] = useState<string[]>([]);
   const [statusMap, setStatusMap] = useState<Record<string, ScoreStatus>>({});
 
+  // Delete modal state (両日参加者用)
+  const [deleteModal, setDeleteModal] = useState<{ member: Member; hasScores: boolean } | null>(null);
+  const [deleteScope, setDeleteScope] = useState<'day1' | 'day2' | 'both'>('day1');
+
   // Edit mode state
   const [editing, setEditing] = useState(false);
   const [editedMembers, setEditedMembers] = useState<EditableMember[]>([]);
@@ -303,26 +307,50 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       if (json.success) hasScores = json.data.hasScores;
     }
 
-    if (hasScores) {
-      const confirmed = window.confirm(`${m.name}の点数データも削除されます。削除しますか？`);
-      if (!confirmed) return;
-    } else {
-      const confirmed = window.confirm(`${m.name}を削除しますか？`);
-      if (!confirmed) return;
+    // 両日に同じmember_codeが存在するか判定
+    const isBothDayMember = m.member_code
+      ? savedMembers.some(sm => sm.member_code === m.member_code && sm.day !== m.day)
+      : false;
+
+    if (isBothDayMember) {
+      // 両日参加者 → モーダル表示
+      setDeleteScope(selectedDay === 1 ? 'day1' : 'day2');
+      setDeleteModal({ member: m, hasScores });
+      return;
     }
 
-    const res = await fetch(`/api/tournaments/${tournamentId}/members/${m.id}`, { method: 'DELETE' });
-    const json = await res.json();
-    if (json.success) {
-      await fetchMembers();
-      if (json.data?.cancelledRegistration) {
-        setSuccess(`${m.name}を削除しました。申込管理リストはキャンセルとして残ります。`);
+    // 片日のみ → 従来通りconfirm
+    const msg = hasScores
+      ? `${m.name}の点数データも削除されます。削除しますか？`
+      : `${m.name}を削除しますか？`;
+    if (!window.confirm(msg)) return;
+    await executeDelete(m.id, 'both');
+  }
+
+  async function executeDelete(memberId: number, scope: 'day1' | 'day2' | 'both') {
+    try {
+      setSaving(true);
+      const res = await fetch(`/api/tournaments/${tournamentId}/members/${memberId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleteScope: scope }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        await fetchMembers();
+        const msgs: string[] = [];
+        if (json.data?.deletedName) msgs.push(`${json.data.deletedName}を削除しました`);
+        if (json.data?.cancelledRegistration) msgs.push('申込管理リストはキャンセルとして残ります');
+        setSuccess(msgs.join('。') || '削除しました');
+        setTimeout(() => setSuccess(null), 5000);
       } else {
-        setSuccess(`${m.name}を削除しました`);
+        setError(json.error || '削除に失敗しました');
       }
-      setTimeout(() => setSuccess(null), 5000);
-    } else {
-      setError(json.error || '削除に失敗しました');
+    } catch {
+      setError('削除に失敗しました');
+    } finally {
+      setSaving(false);
+      setDeleteModal(null);
     }
   }
 
@@ -1066,6 +1094,66 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
             </div>
           )}
         </>
+      )}
+
+      {/* 両日参加者 削除モーダル */}
+      {deleteModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+        }} onClick={() => setDeleteModal(null)}>
+          <div style={{
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
+            padding: '24px 28px', maxWidth: 400, width: '90%',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>
+              {deleteModal.member.name}（{deleteModal.member.belong ?? '-'}）
+            </h3>
+            <p style={{ margin: '0 0 16px', fontSize: 15, color: C.text }}>
+              削除する日を選択してください。
+            </p>
+            {deleteModal.hasScores && (
+              <p style={{ margin: '0 0 12px', fontSize: 14, color: C.red }}>
+                ※ 点数データも削除されます
+              </p>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+              {(['day1', 'day2', 'both'] as const).map(scope => (
+                <label key={scope} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                  padding: '8px 12px', borderRadius: 6,
+                  background: deleteScope === scope ? `${C.gold}22` : 'transparent',
+                  border: `1px solid ${deleteScope === scope ? C.gold : C.border}`,
+                }}>
+                  <input
+                    type="radio" name="deleteScope" value={scope}
+                    checked={deleteScope === scope}
+                    onChange={() => setDeleteScope(scope)}
+                    style={{ accentColor: C.gold }}
+                  />
+                  <span style={{ fontSize: 15, color: C.text, fontWeight: deleteScope === scope ? 700 : 400 }}>
+                    {scope === 'day1' ? '1日目のみ削除' : scope === 'day2' ? '2日目のみ削除' : '両日削除'}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setDeleteModal(null)}
+                style={{ background: C.surface2, color: C.text, border: `1px solid ${C.border}`, borderRadius: 5, padding: '8px 20px', fontSize: 15, cursor: 'pointer' }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={() => executeDelete(deleteModal.member.id, deleteScope)}
+                disabled={saving}
+                style={{ background: C.red, color: '#fff', border: 'none', borderRadius: 5, padding: '8px 20px', fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+              >
+                {saving ? '削除中...' : '削除'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
