@@ -341,6 +341,10 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
         const msgs: string[] = [];
         if (json.data?.deletedName) msgs.push(`${json.data.deletedName}を削除しました`);
         if (json.data?.cancelledRegistration) msgs.push('申込管理リストはキャンセルとして残ります');
+        if (json.data?.updatedParticipation) {
+          const remainLabel = scope === 'day1' ? '2日目' : '1日目';
+          msgs.push(`申込の参加日を「${remainLabel}」に変更しました`);
+        }
         setSuccess(msgs.join('。') || '削除しました');
         setTimeout(() => setSuccess(null), 5000);
       } else {

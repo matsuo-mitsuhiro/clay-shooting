@@ -50,21 +50,48 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       await sql`DELETE FROM scores WHERE tournament_id = ${tournamentId} AND member_code = ${member.member_code}`;
     }
 
-    // 対応する申込をキャンセルにする（全パターンでキャンセル）
+    // 対応する申込を処理
     let cancelledRegistration = false;
+    let updatedParticipation = false;
     if (member.member_code) {
-      const cancelledRows = await sql`
-        UPDATE registrations
-        SET status = 'cancelled',
-            cancelled_at = NOW(),
-            cancelled_by = 'admin',
-            cancelled_by_name = '選手管理から削除'
+      // 現在のactive申込を取得
+      const regRows = await sql`
+        SELECT id, participation_day FROM registrations
         WHERE tournament_id = ${tournamentId}
           AND member_code = ${member.member_code}
           AND status = 'active'
-        RETURNING id
       `;
-      if (cancelledRows.length > 0) cancelledRegistration = true;
+
+      if (regRows.length > 0) {
+        const reg = regRows[0] as { id: number; participation_day: string };
+
+        if (deleteScope === 'both') {
+          // 両日削除 → キャンセル
+          await sql`
+            UPDATE registrations
+            SET status = 'cancelled', cancelled_at = NOW(), cancelled_by = 'admin', cancelled_by_name = '選手管理から削除'
+            WHERE id = ${reg.id}
+          `;
+          cancelledRegistration = true;
+        } else if (reg.participation_day === 'both') {
+          // 「両方」申込から片日だけ削除 → participation_dayを残りの日に変更
+          const remainingDay = deleteScope === 'day1' ? 'day2' : 'day1';
+          await sql`
+            UPDATE registrations
+            SET participation_day = ${remainingDay}
+            WHERE id = ${reg.id}
+          `;
+          updatedParticipation = true;
+        } else {
+          // 片日申込で該当日削除 → キャンセル
+          await sql`
+            UPDATE registrations
+            SET status = 'cancelled', cancelled_at = NOW(), cancelled_by = 'admin', cancelled_by_name = '選手管理から削除'
+            WHERE id = ${reg.id}
+          `;
+          cancelledRegistration = true;
+        }
+      }
     }
 
     // 操作ログ
@@ -82,9 +109,9 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       detail: `${member.member_code ?? ''} ${member.name}${scopeLabel}`.trim(),
     });
 
-    return NextResponse.json<ApiResponse<{ hadScores: boolean; cancelledRegistration: boolean; deletedName: string }>>({
+    return NextResponse.json<ApiResponse<{ hadScores: boolean; cancelledRegistration: boolean; updatedParticipation: boolean; deletedName: string }>>({
       success: true,
-      data: { hadScores: false, cancelledRegistration, deletedName: member.name },
+      data: { hadScores: false, cancelledRegistration, updatedParticipation, deletedName: member.name },
     });
   } catch (e) {
     console.error(e);
