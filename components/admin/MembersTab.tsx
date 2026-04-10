@@ -460,6 +460,13 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       .map(s => s.member!);
     const numGroups = Math.max(...reorderItems.map(s => s.group));
 
+    // 両日参加者を判定（反対の日にも同じmember_codeがいるか）
+    const otherDay = selectedDay === 1 ? 2 : 1;
+    const otherDayCodes = new Set(
+      savedMembers.filter(m => m.day === otherDay && m.member_code).map(m => m.member_code!)
+    );
+    const isBothDays = (m: Member) => !!m.member_code && otherDayCodes.has(m.member_code);
+
     // 選手を分類
     const hostJudges: Member[] = [];   // 主催協会・審判
     const hostNon: Member[] = [];      // 主催協会・非審判
@@ -514,10 +521,12 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       return null;
     }
 
-    // シャッフルしておく
-    const hj = shuffle(hostJudges);
-    const hn = shuffle(hostNon);
-    const oj = [...sortedOtherJudges];
+    // シャッフル後、両日参加者を先頭にソート
+    const bothFirst = <T extends Member>(arr: T[]) =>
+      shuffle(arr).sort((a, b) => (isBothDays(a) ? 0 : 1) - (isBothDays(b) ? 0 : 1));
+    const hj = bothFirst(hostJudges);
+    const hn = bothFirst(hostNon);
+    const oj = [...sortedOtherJudges].sort((a, b) => (isBothDays(a) ? 0 : 1) - (isBothDays(b) ? 0 : 1));
 
     // Step 1: 各組に主催協会を2名配置（射順1と射順4）
     // 理想: 両方審判、次善: 片方審判+片方非審判
@@ -572,8 +581,14 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       }
     }
 
-    // Step 4: 残りの選手をランダムに空き位置に配置
-    const remaining = shuffle([...hj, ...hn, ...oj, ...otherNon].filter(m => !used.has(m.id)));
+    // Step 4: 残りの選手を配置（両日参加者を前方の組に優先配置）
+    const remainingAll = shuffle([...hj, ...hn, ...oj, ...otherNon].filter(m => !used.has(m.id)));
+    // 両日参加者を先、片日のみを後にソート
+    const remaining = remainingAll.sort((a, b) => {
+      const aBoth = isBothDays(a) ? 0 : 1;
+      const bBoth = isBothDays(b) ? 0 : 1;
+      return aBoth - bBoth;
+    });
     let rIdx = 0;
     for (let g = 0; g < numGroups; g++) {
       for (let p = 0; p < POSITIONS; p++) {
