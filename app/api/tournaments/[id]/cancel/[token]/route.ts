@@ -36,7 +36,15 @@ export async function GET(_req: NextRequest, { params }: Params) {
       return NextResponse.json<ApiResponse>({ success: false, error: '申込が見つかりません' }, { status: 400 });
     }
 
-    return NextResponse.json<ApiResponse<Registration>>({ success: true, data: regRows[0] as Registration });
+    // 大会情報を取得
+    const tRows = await sql`
+      SELECT name, day1_date, day2_date, shooting_range FROM tournaments WHERE id = ${tid}
+    `;
+    const tournament = tRows.length
+      ? { name: tRows[0].name as string, day1_date: tRows[0].day1_date as string | null, day2_date: tRows[0].day2_date as string | null, shooting_range: tRows[0].shooting_range as string | null }
+      : null;
+
+    return NextResponse.json({ success: true, data: { registration: regRows[0] as Registration, tournament } });
   } catch (e) {
     console.error(e);
     return NextResponse.json<ApiResponse>({ success: false, error: 'データ取得に失敗しました' }, { status: 500 });

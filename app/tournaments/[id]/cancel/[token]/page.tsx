@@ -13,6 +13,7 @@ export default function CancelConfirmPage() {
 
   const [loading, setLoading] = useState(true);
   const [registration, setRegistration] = useState<Registration | null>(null);
+  const [tournamentInfo, setTournamentInfo] = useState<{ name: string; day1_date: string | null; day2_date: string | null; shooting_range: string | null } | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
@@ -23,8 +24,12 @@ export default function CancelConfirmPage() {
     fetch(`/api/tournaments/${id}/cancel/${token}`)
       .then(r => r.json())
       .then(j => {
-        if (j.success) setRegistration(j.data);
-        else setFetchError(j.error ?? 'URLが無効です');
+        if (j.success) {
+          setRegistration(j.data.registration);
+          setTournamentInfo(j.data.tournament ?? null);
+        } else {
+          setFetchError(j.error ?? 'URLが無効です');
+        }
       })
       .catch(() => setFetchError('データ取得に失敗しました'))
       .finally(() => setLoading(false));
@@ -97,6 +102,22 @@ export default function CancelConfirmPage() {
             background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '24px',
           }}>
             <h2 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>以下の申込をキャンセルします</h2>
+            {tournamentInfo && (
+              <dl style={{ margin: '0 0 16px', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 16px', fontSize: 15, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
+                <dt style={{ color: C.muted }}>大会名</dt>
+                <dd style={{ margin: 0, color: C.text, fontWeight: 700 }}>{tournamentInfo.name}</dd>
+                <dt style={{ color: C.muted }}>大会日</dt>
+                <dd style={{ margin: 0, color: C.text }}>
+                  {tournamentInfo.day1_date}{tournamentInfo.day2_date ? ` ・ ${tournamentInfo.day2_date}` : ''}
+                </dd>
+                {tournamentInfo.shooting_range && (
+                  <>
+                    <dt style={{ color: C.muted }}>射撃場</dt>
+                    <dd style={{ margin: 0, color: C.text }}>{tournamentInfo.shooting_range}</dd>
+                  </>
+                )}
+              </dl>
+            )}
             <dl style={{ margin: '0 0 20px', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 16px', fontSize: 15 }}>
               <dt style={{ color: C.muted }}>氏名</dt>
               <dd style={{ margin: 0, color: C.text, fontWeight: 700 }}>{registration.name}</dd>
