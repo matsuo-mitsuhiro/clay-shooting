@@ -122,7 +122,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
       const json = await res.json();
       if (!json.success || !json.data?.length) return '';
       const positions = (json.data as { day: number; group_number: number; position: number }[])
-        .map(m => `${m.day}日目 ${m.group_number}組${m.position}番`)
+        .map(m => `${m.day}日目 ${m.group_number}組 射順${m.position}`)
         .join('、');
       return positions;
     } catch { return ''; }

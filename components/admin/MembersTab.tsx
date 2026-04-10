@@ -19,6 +19,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { C } from '@/lib/colors';
 import type { Member, ClassType, ScoreStatus, Tournament } from '@/lib/types';
+import { PREFECTURES } from '@/lib/prefectures';
 import LoadingOverlay from '@/components/LoadingOverlay';
 
 interface Props {
@@ -444,6 +445,158 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
     }
   }
 
+  // ランダム組替
+  function handleRandomShuffle() {
+    if (!reorderItems.length) return;
+
+    // 主催協会名を取得
+    const organizerName = tournament?.organizer_cd
+      ? PREFECTURES.find(p => p.cd === tournament.organizer_cd)?.name ?? null
+      : null;
+
+    // 現在の選手一覧を取り出す（空きスロットは除外）
+    const allMembers = reorderItems
+      .filter(s => s.member !== null)
+      .map(s => s.member!);
+    const numGroups = Math.max(...reorderItems.map(s => s.group));
+
+    // 選手を分類
+    const hostJudges: Member[] = [];   // 主催協会・審判
+    const hostNon: Member[] = [];      // 主催協会・非審判
+    const otherJudges: Member[] = [];  // 他協会・審判
+    const otherNon: Member[] = [];     // 他協会・非審判
+
+    // シャッフル用ユーティリティ
+    function shuffle<T>(arr: T[]): T[] {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    allMembers.forEach(m => {
+      const isHost = organizerName && m.belong === organizerName;
+      if (isHost && m.is_judge) hostJudges.push(m);
+      else if (isHost) hostNon.push(m);
+      else if (m.is_judge) otherJudges.push(m);
+      else otherNon.push(m);
+    });
+
+    // 他協会の審判を参加人数の多い協会順にソート
+    const belongCounts: Record<string, number> = {};
+    allMembers.forEach(m => {
+      if (m.belong && m.belong !== organizerName) {
+        belongCounts[m.belong] = (belongCounts[m.belong] || 0) + 1;
+      }
+    });
+    const sortedOtherJudges = shuffle(otherJudges).sort((a, b) => {
+      return (belongCounts[b.belong ?? ''] || 0) - (belongCounts[a.belong ?? ''] || 0);
+    });
+
+    // 各グループに配置する選手を決定
+    // slots[g] = [射順1, 射順2, ..., 射順6] (0-indexed)
+    const groupSlots: (Member | null)[][] = Array.from({ length: numGroups }, () =>
+      Array(POSITIONS).fill(null)
+    );
+
+    // 使用済みフラグ
+    const used = new Set<number>();
+
+    function pickFrom(pool: Member[]): Member | null {
+      for (let i = 0; i < pool.length; i++) {
+        if (!used.has(pool[i].id)) {
+          used.add(pool[i].id);
+          return pool.splice(i, 1)[0];
+        }
+      }
+      return null;
+    }
+
+    // シャッフルしておく
+    const hj = shuffle(hostJudges);
+    const hn = shuffle(hostNon);
+    const oj = [...sortedOtherJudges];
+
+    // Step 1: 各組に主催協会を2名配置（射順1と射順4）
+    // 理想: 両方審判、次善: 片方審判+片方非審判
+    for (let g = 0; g < numGroups; g++) {
+      // 射順1（前半）: 主催審判を優先
+      const pos1 = pickFrom(hj) ?? pickFrom(hn);
+      if (pos1) groupSlots[g][0] = pos1;
+
+      // 射順4（後半）: 主催審判を優先
+      const pos4 = pickFrom(hj) ?? pickFrom(hn);
+      if (pos4) groupSlots[g][3] = pos4;
+    }
+
+    // Step 2: 審判不足の組を補充
+    // 各組に最低1名の審判が必要。主催審判が配置できなかった組に他協会審判を入れる
+    for (let g = 0; g < numGroups; g++) {
+      const hasJudge = groupSlots[g].some(m => m && m.is_judge);
+      if (!hasJudge) {
+        // 主催が非審判×2で配置されている場合、他協会の審判を空き位置に追加
+        // 前半（射順2,3）か後半（射順5,6）の空きに配置
+        // 前半に主催非審判がいて後半に主催非審判がいる場合 → 射順5に他協会審判
+        // 前半に主催非審判がいて後半が空の場合 → 射順4に他協会審判
+        const judge = pickFrom(oj);
+        if (judge) {
+          // 後半に主催がいる → 前半の空きに審判を入れる（射順2）
+          // 前半に主催がいる → 後半の空きに審判を入れる（射順5）
+          if (groupSlots[g][3]) {
+            // 後半に主催いる → 前半（射順2）に審判
+            if (!groupSlots[g][1]) groupSlots[g][1] = judge;
+            else if (!groupSlots[g][2]) groupSlots[g][2] = judge;
+          } else if (groupSlots[g][0]) {
+            // 前半に主催いる → 後半（射順5）に審判
+            if (!groupSlots[g][4]) groupSlots[g][4] = judge;
+            else if (!groupSlots[g][5]) groupSlots[g][5] = judge;
+          } else {
+            // 主催がいない → 射順1に審判
+            if (!groupSlots[g][0]) groupSlots[g][0] = judge;
+          }
+        }
+      }
+    }
+
+    // Step 3: まだ審判ゼロの組に対して、残りの他協会審判を配置
+    for (let g = 0; g < numGroups; g++) {
+      const hasJudge = groupSlots[g].some(m => m && m.is_judge);
+      if (!hasJudge) {
+        const judge = pickFrom(oj);
+        if (judge) {
+          const emptyIdx = groupSlots[g].findIndex(s => s === null);
+          if (emptyIdx !== -1) groupSlots[g][emptyIdx] = judge;
+        }
+      }
+    }
+
+    // Step 4: 残りの選手をランダムに空き位置に配置
+    const remaining = shuffle([...hj, ...hn, ...oj, ...otherNon].filter(m => !used.has(m.id)));
+    let rIdx = 0;
+    for (let g = 0; g < numGroups; g++) {
+      for (let p = 0; p < POSITIONS; p++) {
+        if (!groupSlots[g][p] && rIdx < remaining.length) {
+          groupSlots[g][p] = remaining[rIdx++];
+        }
+      }
+    }
+
+    // reorderItems に反映
+    const newItems: SlotItem[] = [];
+    for (let g = 0; g < numGroups; g++) {
+      for (let p = 0; p < POSITIONS; p++) {
+        newItems.push({
+          group: g + 1,
+          position: p + 1,
+          member: groupSlots[g][p],
+        });
+      }
+    }
+    setReorderItems(newItems);
+  }
+
   const dayMembers = savedMembers.filter(m => m.day === selectedDay);
   const groupsInDay = Array.from({ length: groupCount[selectedDay] }, (_, i) => i + 1);
 
@@ -684,7 +837,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                 <thead>
                   <tr style={{ background: C.surface2 }}>
                     {[
-                      { label: '番号', width: 50, sticky: true, left: 0 },
+                      { label: '射順', width: 50, sticky: true, left: 0 },
                       { label: '会員番号', width: 90 },
                       { label: '氏名', width: undefined, sticky: true, left: 50 },
                       { label: '所属協会', width: 140 },
@@ -835,7 +988,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
 
           {/* 選手組替 button */}
           {dayMembers.length > 0 && !editing && (
-            <div style={{ marginTop: 20, marginBottom: 4, display: 'flex', justifyContent: 'flex-start' }}>
+            <div style={{ marginTop: 20, marginBottom: 4, display: 'flex', justifyContent: 'flex-start', gap: 10 }}>
               <button
                 onClick={() => {
                   if (reorderMode) {
@@ -848,6 +1001,14 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
               >
                 {reorderMode ? '組替をキャンセル' : '選手組替'}
               </button>
+              {reorderMode && (
+                <button
+                  onClick={handleRandomShuffle}
+                  style={{ background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
+                >
+                  ランダム組替
+                </button>
+              )}
             </div>
           )}
 
@@ -873,7 +1034,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
                       <thead>
                         <tr style={{ background: C.surface2 }}>
-                          {['組', '番', '氏名', '所属協会', 'クラス'].map(h => (
+                          {['組', '射順', '氏名', '所属協会', 'クラス'].map(h => (
                             <th key={h} style={{ padding: '7px 10px', fontSize: 13, color: C.muted, fontWeight: 600, textAlign: 'left', borderBottom: `1px solid ${C.border}` }}>{h}</th>
                           ))}
                         </tr>
