@@ -8,8 +8,17 @@ type Params = { params: Promise<{ id: string }> };
 
 const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://clay-shooting.vercel.app';
 
+function formatJST(date: Date): string {
+  return date.toLocaleDateString('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).replace(/\//g, '/');
+}
+
 // POST /api/tournaments/[id]/apply/submit
-// body: { code, member_code, name, belong, class, participation_day, is_judge }
+// body: { code, name, belong, class, participation_day, is_judge }
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
@@ -19,14 +28,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     // code（新フロー）またはtoken（旧URLフロー）を受け付ける
     // 半角・全角スペースを除去してからトリム
     const tokenOrCode: string = (body.code ?? body.token ?? '').replace(/[\s\u3000]/g, '').trim();
-    const member_code: string = (body.member_code ?? '').trim();
     const name: string = (body.name ?? '').trim();
     const belong: string | null = body.belong?.trim() || null;
     const classVal: ClassType | null = body.class || null;
     const is_judge: boolean = body.is_judge === true;
     const participation_day: ParticipationDay = body.participation_day ?? 'day1';
 
-    if (!tokenOrCode || !member_code || !name) {
+    if (!tokenOrCode || !name) {
       return NextResponse.json<ApiResponse>({ success: false, error: '必須項目を入力してください' }, { status: 400 });
     }
 
@@ -48,6 +56,12 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
     if (tok.tournament_id !== tid) {
       return NextResponse.json<ApiResponse>({ success: false, error: '申込コードが無効です' }, { status: 400 });
+    }
+
+    // 会員番号: トークンに保存されたものを優先、なければbodyから
+    const member_code: string = (tok.member_code ?? body.member_code ?? '').trim();
+    if (!member_code) {
+      return NextResponse.json<ApiResponse>({ success: false, error: '会員番号が取得できませんでした' }, { status: 400 });
     }
 
     // 大会情報取得・申込期間チェック
@@ -105,6 +119,51 @@ export async function POST(req: NextRequest, { params }: Params) {
         VALUES (${tid}, 'duplicate_error', ${member_code}, ${tok.email}, '重複申込')
       `;
       return NextResponse.json<ApiResponse>({ success: false, error: '既に申込がされています。' }, { status: 400 });
+    }
+
+    // player_master 照合 → change_history 更新
+    const playerRows = await sql`SELECT * FROM player_master WHERE member_code = ${member_code}`;
+    if (playerRows.length > 0) {
+      const player = playerRows[0];
+      const today = formatJST(new Date());
+      const changes: string[] = [];
+
+      // 競技種目に応じてクラスフィールドを決定
+      const isSkeet = t.event_type === 'skeet';
+      const prevClass = isSkeet ? (player.skeet_class ?? null) : (player.trap_class ?? null);
+      const classPrefix = isSkeet ? 'Sクラス' : 'Tクラス';
+
+      if (classVal && prevClass !== classVal) {
+        changes.push(`${classPrefix} ${prevClass ?? '未設定'}→${classVal}`);
+      }
+      if (belong && (player.affiliation ?? null) !== belong) {
+        changes.push(`所属 ${player.affiliation ?? '未設定'}→${belong}`);
+      }
+
+      if (changes.length > 0) {
+        const entry = `${today} 申込時：${changes.join('、')}`;
+        const newHistory = player.change_history ? `${player.change_history}\n${entry}` : entry;
+
+        if (isSkeet) {
+          await sql`
+            UPDATE player_master SET
+              skeet_class    = ${classVal ?? player.skeet_class},
+              affiliation    = ${belong ?? player.affiliation},
+              change_history = ${newHistory},
+              updated_at     = NOW()
+            WHERE member_code = ${member_code}
+          `;
+        } else {
+          await sql`
+            UPDATE player_master SET
+              trap_class     = ${classVal ?? player.trap_class},
+              affiliation    = ${belong ?? player.affiliation},
+              change_history = ${newHistory},
+              updated_at     = NOW()
+            WHERE member_code = ${member_code}
+          `;
+        }
+      }
     }
 
     // 申込登録

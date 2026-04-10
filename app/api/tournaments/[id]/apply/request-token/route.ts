@@ -6,13 +6,14 @@ import type { ApiResponse } from '@/lib/types';
 type Params = { params: Promise<{ id: string }> };
 
 // POST /api/tournaments/[id]/apply/request-token
-// body: { email: string }
+// body: { email: string, member_code?: string }
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const tid = Number(id);
     const body = await req.json();
     const email: string = (body.email ?? '').trim().toLowerCase();
+    const memberCode: string | null = body.member_code?.trim() || null;
 
     if (!email) {
       return NextResponse.json<ApiResponse>({ success: false, error: 'メールアドレスを入力してください' }, { status: 400 });
@@ -42,8 +43,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await sql`
-      INSERT INTO registration_tokens (tournament_id, email, token, purpose, expires_at)
-      VALUES (${tid}, ${email}, ${code}, 'apply', ${expiresAt.toISOString()})
+      INSERT INTO registration_tokens (tournament_id, email, token, purpose, expires_at, member_code)
+      VALUES (${tid}, ${email}, ${code}, 'apply', ${expiresAt.toISOString()}, ${memberCode})
     `;
 
     await sendApplyCode(email, t.name, code);

@@ -118,7 +118,7 @@ export default function ViewerPage({ tournamentId }: Props) {
   }
 
   const belongs = Array.from(new Set(results.map(r => r.belong).filter(Boolean))).sort() as string[];
-  const existingClasses = (['AA', 'A', 'B', 'C'] as ClassType[]).filter(c => results.some(r => r.class === c));
+  const existingClasses = (['AAA', 'AA', 'A', 'B', 'C'] as ClassType[]).filter(c => results.some(r => r.class === c));
 
   const filtered = results.filter(r => {
     if (classFilter !== 'all' && r.class !== classFilter) return false;
@@ -644,10 +644,10 @@ const tdS: React.CSSProperties = {
 
 function classBadgeBg(c: ClassType | 'all'): string {
   if (c === 'all') return `${C.gold}22`;
-  return { AA: '#e74c3c33', A: `${C.gold}33`, B: '#3498db33', C: '#2ecc7133' }[c] ?? '';
+  return { AAA: '#9b59b633', AA: '#e74c3c33', A: `${C.gold}33`, B: '#3498db33', C: '#2ecc7133' }[c] ?? '';
 }
 
 function classBadgeColor(c: ClassType | 'all'): string {
   if (c === 'all') return C.gold;
-  return { AA: '#e74c3c', A: C.gold, B: '#3498db', C: '#2ecc71' }[c] ?? C.muted;
+  return { AAA: '#9b59b6', AA: '#e74c3c', A: C.gold, B: '#3498db', C: '#2ecc71' }[c] ?? C.muted;
 }

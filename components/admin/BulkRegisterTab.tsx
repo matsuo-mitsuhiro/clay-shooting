@@ -31,7 +31,8 @@ interface PlayerMaster {
   name: string;
   affiliation: string | null;
   is_judge: boolean;
-  class: string | null;
+  trap_class: string | null;
+  skeet_class: string | null;
 }
 
 const INIT_COUNT = 24;
@@ -150,7 +151,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
                 member_code: p.member_code,
                 name: p.name,
                 belong: p.affiliation ?? '',
-                class: (p.class ?? '') as ClassType | '',
+                class: (p.trap_class ?? '') as ClassType | '',
                 is_judge: p.is_judge,
                 searchStatus: 'found',
               });
@@ -173,7 +174,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
               member_code: p.member_code,
               name: p.name,
               belong: p.affiliation ?? '',
-              class: (p.class ?? '') as ClassType | '',
+              class: (p.trap_class ?? '') as ClassType | '',
               is_judge: p.is_judge,
               searchStatus: 'found',
             });
@@ -199,7 +200,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
                 member_code: p.member_code,
                 name: p.name,
                 belong: p.affiliation ?? '',
-                class: (p.class ?? '') as ClassType | '',
+                class: (p.trap_class ?? '') as ClassType | '',
                 is_judge: p.is_judge,
                 searchStatus: 'found',
               });
@@ -559,7 +560,7 @@ export default function BulkRegisterTab({ tournamentId, onSaved, initialRegistra
                       style={{ ...inputStyle, width: 56 }}
                     >
                       <option value="">-</option>
-                      {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
+                      {(['AAA', 'AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>

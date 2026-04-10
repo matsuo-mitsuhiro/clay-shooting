@@ -751,7 +751,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                                     style={{ ...selectStyle, width: 60 }}
                                   >
                                     <option value="">-</option>
-                                    {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
+                                    {(['AAA', 'AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
                                       <option key={c} value={c}>{c}</option>
                                     ))}
                                   </select>
@@ -896,8 +896,8 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
 }
 
 function classBadgeBg(c: ClassType): string {
-  return { AA: '#e74c3c33', A: `${C.gold}33`, B: '#3498db33', C: '#2ecc7133' }[c] ?? '';
+  return { AAA: '#9b59b633', AA: '#e74c3c33', A: `${C.gold}33`, B: '#3498db33', C: '#2ecc7133' }[c] ?? '';
 }
 function classBadgeColor(c: ClassType): string {
-  return { AA: '#e74c3c', A: C.gold, B: '#3498db', C: '#2ecc71' }[c] ?? C.muted;
+  return { AAA: '#9b59b6', AA: '#e74c3c', A: C.gold, B: '#3498db', C: '#2ecc71' }[c] ?? C.muted;
 }

@@ -7,7 +7,9 @@ export interface PlayerMaster {
   name: string;
   affiliation: string | null;
   is_judge: boolean;
-  class: string | null;
+  trap_class: string | null;
+  skeet_class: string | null;
+  change_history: string | null;
   updated_at: string | null;
 }
 
@@ -19,7 +21,7 @@ function normalizeSpaces(s: string): string {
 // GET /api/players?code=xxxxx       — 1件検索（自動補完用）
 // GET /api/players?q_name=松尾&q_belong=大阪 — 氏名+所属スペース正規化検索（一括登録用）
 // GET /api/players                  — 全件一覧（管理画面用）
-// GET /api/players?affiliation=大阪&class=A&is_judge=true  — フィルタ
+// GET /api/players?affiliation=大阪&trap_class=A&skeet_class=B&is_judge=true  — フィルタ
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -77,49 +79,92 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: rows as PlayerMaster[] });
     }
 
-    // フィルタ条件（neonはnullの型推論ができないため条件分岐で組み立て）
+    // フィルタ条件
     const affiliation = searchParams.get('affiliation');
-    const classFilter = searchParams.get('class');
+    const trapClass = searchParams.get('trap_class');
+    const skeetClass = searchParams.get('skeet_class');
     const isJudge = searchParams.get('is_judge');
     const q = searchParams.get('q');
     const kanjiQ = q ? normalizeKanji(q) : null;
     const qPat = q ? '%' + q + '%' : '';
     const kanjiPat = kanjiQ && kanjiQ !== q ? '%' + kanjiQ + '%' : '';
 
-    let rows;
-    if (affiliation && classFilter && isJudge !== null && q) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
-    } else if (affiliation && classFilter && isJudge !== null) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
-    } else if (affiliation && classFilter && q) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
-    } else if (affiliation && isJudge !== null && q) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
-    } else if (classFilter && isJudge !== null && q) {
-      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
-    } else if (affiliation && classFilter) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND class=${classFilter} ORDER BY member_code`;
-    } else if (affiliation && isJudge !== null) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
-    } else if (affiliation && q) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
-    } else if (classFilter && isJudge !== null) {
-      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
-    } else if (classFilter && q) {
-      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
-    } else if (isJudge !== null && q) {
-      rows = await sql`SELECT * FROM player_master WHERE is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
-    } else if (affiliation) {
-      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} ORDER BY member_code`;
-    } else if (classFilter) {
-      rows = await sql`SELECT * FROM player_master WHERE class=${classFilter} ORDER BY member_code`;
-    } else if (isJudge !== null) {
-      rows = await sql`SELECT * FROM player_master WHERE is_judge=${isJudge==='true'} ORDER BY member_code`;
-    } else if (q) {
-      rows = await sql`SELECT * FROM player_master WHERE (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
-    } else {
-      // フィルタ条件なしの場合は空配列を返す（初回ロード時の全件取得を防止）
+    // 条件をWHERE句フラグメントとして組み立て
+    const hasAffil = !!affiliation;
+    const hasTrapClass = !!trapClass;
+    const hasSkeetClass = !!skeetClass;
+    const hasJudge = isJudge !== null;
+    const hasQ = !!q;
+
+    // 条件なしの場合は空配列を返す
+    if (!hasAffil && !hasTrapClass && !hasSkeetClass && !hasJudge && !hasQ) {
       return NextResponse.json({ success: true, data: [] as PlayerMaster[] });
+    }
+
+    // neon tagged-template は条件分岐が必要なため、全組み合わせをフラグで制御
+    let rows;
+    if (hasAffil && hasTrapClass && hasSkeetClass && hasJudge && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND trap_class=${trapClass} AND skeet_class=${skeetClass} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasAffil && hasTrapClass && hasSkeetClass && hasJudge) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND trap_class=${trapClass} AND skeet_class=${skeetClass} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (hasAffil && hasTrapClass && hasSkeetClass && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND trap_class=${trapClass} AND skeet_class=${skeetClass} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasAffil && hasTrapClass && hasJudge && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND trap_class=${trapClass} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasAffil && hasSkeetClass && hasJudge && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND skeet_class=${skeetClass} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasTrapClass && hasSkeetClass && hasJudge && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE trap_class=${trapClass} AND skeet_class=${skeetClass} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasAffil && hasTrapClass && hasSkeetClass) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND trap_class=${trapClass} AND skeet_class=${skeetClass} ORDER BY member_code`;
+    } else if (hasAffil && hasTrapClass && hasJudge) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND trap_class=${trapClass} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (hasAffil && hasTrapClass && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND trap_class=${trapClass} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasAffil && hasSkeetClass && hasJudge) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND skeet_class=${skeetClass} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (hasAffil && hasSkeetClass && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND skeet_class=${skeetClass} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasAffil && hasJudge && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasTrapClass && hasSkeetClass && hasJudge) {
+      rows = await sql`SELECT * FROM player_master WHERE trap_class=${trapClass} AND skeet_class=${skeetClass} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (hasTrapClass && hasSkeetClass && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE trap_class=${trapClass} AND skeet_class=${skeetClass} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasTrapClass && hasJudge && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE trap_class=${trapClass} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasSkeetClass && hasJudge && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE skeet_class=${skeetClass} AND is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasAffil && hasTrapClass) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND trap_class=${trapClass} ORDER BY member_code`;
+    } else if (hasAffil && hasSkeetClass) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND skeet_class=${skeetClass} ORDER BY member_code`;
+    } else if (hasAffil && hasJudge) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (hasAffil && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasTrapClass && hasSkeetClass) {
+      rows = await sql`SELECT * FROM player_master WHERE trap_class=${trapClass} AND skeet_class=${skeetClass} ORDER BY member_code`;
+    } else if (hasTrapClass && hasJudge) {
+      rows = await sql`SELECT * FROM player_master WHERE trap_class=${trapClass} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (hasTrapClass && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE trap_class=${trapClass} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasSkeetClass && hasJudge) {
+      rows = await sql`SELECT * FROM player_master WHERE skeet_class=${skeetClass} AND is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else if (hasSkeetClass && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE skeet_class=${skeetClass} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasJudge && hasQ) {
+      rows = await sql`SELECT * FROM player_master WHERE is_judge=${isJudge==='true'} AND (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
+    } else if (hasAffil) {
+      rows = await sql`SELECT * FROM player_master WHERE affiliation=${affiliation} ORDER BY member_code`;
+    } else if (hasTrapClass) {
+      rows = await sql`SELECT * FROM player_master WHERE trap_class=${trapClass} ORDER BY member_code`;
+    } else if (hasSkeetClass) {
+      rows = await sql`SELECT * FROM player_master WHERE skeet_class=${skeetClass} ORDER BY member_code`;
+    } else if (hasJudge) {
+      rows = await sql`SELECT * FROM player_master WHERE is_judge=${isJudge==='true'} ORDER BY member_code`;
+    } else {
+      rows = await sql`SELECT * FROM player_master WHERE (member_code ILIKE ${qPat} OR name ILIKE ${qPat}${kanjiPat ? sql` OR name ILIKE ${kanjiPat}` : sql``}) ORDER BY member_code`;
     }
     return NextResponse.json({ success: true, data: rows as PlayerMaster[] });
   } catch (e) {
@@ -132,26 +177,28 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { member_code, name, affiliation, is_judge, class: cls } = body;
+    const { member_code, name, affiliation, is_judge, trap_class, skeet_class } = body;
     if (!member_code?.trim() || !name?.trim()) {
       return NextResponse.json({ success: false, error: '会員番号と氏名は必須です' }, { status: 400 });
     }
     const rows = await sql`
-      INSERT INTO player_master (member_code, name, affiliation, is_judge, class, updated_at)
+      INSERT INTO player_master (member_code, name, affiliation, is_judge, trap_class, skeet_class, updated_at)
       VALUES (
         ${member_code.trim()},
         ${name.trim()},
         ${affiliation ?? null},
         ${is_judge ?? false},
-        ${cls ?? null},
+        ${trap_class ?? null},
+        ${skeet_class ?? null},
         NOW()
       )
       ON CONFLICT (member_code) DO UPDATE SET
-        name       = EXCLUDED.name,
-        affiliation= EXCLUDED.affiliation,
-        is_judge   = EXCLUDED.is_judge,
-        class      = EXCLUDED.class,
-        updated_at = NOW()
+        name        = EXCLUDED.name,
+        affiliation = EXCLUDED.affiliation,
+        is_judge    = EXCLUDED.is_judge,
+        trap_class  = EXCLUDED.trap_class,
+        skeet_class = EXCLUDED.skeet_class,
+        updated_at  = NOW()
       RETURNING *
     `;
     return NextResponse.json({ success: true, data: rows[0] as PlayerMaster }, { status: 201 });

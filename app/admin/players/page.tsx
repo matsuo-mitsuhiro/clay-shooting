@@ -9,7 +9,7 @@ import type { PlayerMaster } from '@/app/api/players/route';
 import ContactButton from '@/components/ContactButton';
 import Footer from '@/components/Footer';
 
-const CLASSES = ['AA', 'A', 'B', 'C'];
+const CLASSES = ['AAA', 'AA', 'A', 'B', 'C'];
 
 const s = {
   page: { minHeight: '100vh', background: C.bg, color: C.text, padding: '24px', fontFamily: 'sans-serif' } as const,
@@ -25,23 +25,24 @@ const s = {
   select: { background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: '6px', color: C.text, padding: '8px 10px', fontSize: '13px' },
   countBadge: { background: C.surface2, border: `1px solid ${C.border}`, borderRadius: '20px', padding: '4px 12px', fontSize: '12px', color: C.muted, marginLeft: 'auto' },
   tableWrap: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', overflowX: 'auto' as const },
-  table: { width: '100%', borderCollapse: 'collapse' as const, minWidth: '700px' },
+  table: { width: '100%', borderCollapse: 'collapse' as const, minWidth: '780px' },
   th: { background: C.surface2, textAlign: 'left' as const, padding: '10px 12px', fontSize: '12px', color: C.muted, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' as const, position: 'sticky' as const, top: 0, zIndex: 2 },
   thRed: { background: C.surface2, textAlign: 'left' as const, padding: '10px 12px', fontSize: '12px', color: C.red, borderBottom: `1px solid ${C.border}`, position: 'sticky' as const, top: 0, zIndex: 2 },
   td: { padding: '10px 12px', borderBottom: `1px solid #1e2228`, verticalAlign: 'middle' as const },
   // モーダル
   overlay: { position: 'fixed' as const, inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-  modal: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '28px', width: '420px', maxWidth: '95vw' },
+  modal: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '28px', width: '440px', maxWidth: '95vw' },
   modalTitle: { fontSize: '16px', fontWeight: 700, marginBottom: '20px' },
   formLabel: { fontSize: '12px', color: C.muted, marginBottom: '4px', display: 'block' },
   formInput: { width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: '6px', color: C.text, padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const },
   formSelect: { width: '100%', background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: '6px', color: C.text, padding: '9px 12px', fontSize: '14px', boxSizing: 'border-box' as const },
   formRow: { marginBottom: '14px' },
   formRow2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' },
+  formRow3: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '14px' },
   modalFooter: { display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' },
 };
 
-const emptyForm = { member_code: '', name: '', affiliation: DEFAULT_AFFILIATION, is_judge: false, class: '' };
+const emptyForm = { member_code: '', name: '', affiliation: DEFAULT_AFFILIATION, is_judge: false, trap_class: '', skeet_class: '' };
 
 export default function PlayersPage() {
   const router = useRouter();
@@ -52,7 +53,8 @@ export default function PlayersPage() {
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState('');
   const [filterAffil, setFilterAffil] = useState('');
-  const [filterClass, setFilterClass] = useState('');
+  const [filterTrapClass, setFilterTrapClass] = useState('');
+  const [filterSkeetClass, setFilterSkeetClass] = useState('');
   const [filterJudge, setFilterJudge] = useState('');
   const [modal, setModal] = useState<'new' | 'edit' | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -70,12 +72,13 @@ export default function PlayersPage() {
       .catch(() => {});
   }, []);
 
-  const fetchPlayers = useCallback(async (searchQ?: string, affil?: string, cls?: string, judge?: string) => {
+  const fetchPlayers = useCallback(async (searchQ?: string, affil?: string, trapCls?: string, skeetCls?: string, judge?: string) => {
     setLoading(true);
     const params = new URLSearchParams();
     if (searchQ) params.set('q', searchQ);
     if (affil) params.set('affiliation', affil);
-    if (cls) params.set('class', cls);
+    if (trapCls) params.set('trap_class', trapCls);
+    if (skeetCls) params.set('skeet_class', skeetCls);
     if (judge) params.set('is_judge', judge);
     const res = await fetch(`/api/players?${params}`);
     const json = await res.json();
@@ -89,13 +92,13 @@ export default function PlayersPage() {
     initializedRef.current = true;
     if (!isSystem && session.user.affiliation) {
       setFilterAffil(session.user.affiliation);
-      fetchPlayers('', session.user.affiliation, '', '');
+      fetchPlayers('', session.user.affiliation, '', '', '');
     }
     // システム管理者は全件表示しない（検索ボタンで取得）
   }, [session, isSystem, fetchPlayers]);
 
   function handleSearch() {
-    fetchPlayers(q, filterAffil, filterClass, filterJudge);
+    fetchPlayers(q, filterAffil, filterTrapClass, filterSkeetClass, filterJudge);
   }
 
   function openNew() {
@@ -110,7 +113,8 @@ export default function PlayersPage() {
       name: p.name,
       affiliation: p.affiliation ?? DEFAULT_AFFILIATION,
       is_judge: p.is_judge,
-      class: p.class ?? '',
+      trap_class: p.trap_class ?? '',
+      skeet_class: p.skeet_class ?? '',
     });
     setModal('edit');
   }
@@ -122,17 +126,24 @@ export default function PlayersPage() {
         await fetch('/api/players', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...form, class: form.class || null }),
+          body: JSON.stringify({ ...form, trap_class: form.trap_class || null, skeet_class: form.skeet_class || null }),
         });
       } else {
         await fetch(`/api/players/${editingCode}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ new_member_code: form.member_code, name: form.name, affiliation: form.affiliation, is_judge: form.is_judge, class: form.class || null }),
+          body: JSON.stringify({
+            new_member_code: form.member_code,
+            name: form.name,
+            affiliation: form.affiliation,
+            is_judge: form.is_judge,
+            trap_class: form.trap_class || null,
+            skeet_class: form.skeet_class || null,
+          }),
         });
       }
       setModal(null);
-      fetchPlayers(q, filterAffil, filterClass, filterJudge);
+      fetchPlayers(q, filterAffil, filterTrapClass, filterSkeetClass, filterJudge);
     } finally {
       setSaving(false);
     }
@@ -142,7 +153,7 @@ export default function PlayersPage() {
     if (!deleteTarget) return;
     await fetch(`/api/players/${deleteTarget}`, { method: 'DELETE' });
     setDeleteTarget(null);
-    fetchPlayers(q, filterAffil, filterClass, filterJudge);
+    fetchPlayers(q, filterAffil, filterTrapClass, filterSkeetClass, filterJudge);
   }
 
   function formatDate(iso: string | null) {
@@ -181,8 +192,12 @@ export default function PlayersPage() {
           <option value="">所属協会：すべて</option>
           {associationNames.map(name => <option key={name} value={name}>{name}</option>)}
         </select>
-        <select style={s.select} value={filterClass} onChange={e => setFilterClass(e.target.value)}>
-          <option value="">クラス：すべて</option>
+        <select style={s.select} value={filterTrapClass} onChange={e => setFilterTrapClass(e.target.value)}>
+          <option value="">Tクラス：すべて</option>
+          {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select style={s.select} value={filterSkeetClass} onChange={e => setFilterSkeetClass(e.target.value)}>
+          <option value="">Sクラス：すべて</option>
           {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <select style={s.select} value={filterJudge} onChange={e => setFilterJudge(e.target.value)}>
@@ -215,7 +230,8 @@ export default function PlayersPage() {
                 <th style={s.th}>会員番号</th>
                 <th style={{ ...s.th, position: 'sticky' as const, left: 0, zIndex: 3, background: C.surface2 }}>氏名</th>
                 <th style={s.th}>所属協会</th>
-                <th style={s.th}>クラス</th>
+                <th style={s.th}>Tクラス</th>
+                <th style={s.th}>Sクラス</th>
                 <th style={s.th}>審判フラグ</th>
                 <th style={s.th}>最終更新</th>
                 <th style={s.thRed}>編集 / 削除</th>
@@ -223,14 +239,15 @@ export default function PlayersPage() {
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ ...s.td, textAlign: 'center', color: C.muted }}>該当する選手がいません</td></tr>
+                <tr><td colSpan={8} style={{ ...s.td, textAlign: 'center', color: C.muted }}>該当する選手がいません</td></tr>
               )}
               {filtered.map(p => (
                 <tr key={p.member_code} style={{ cursor: 'default' }} onMouseEnter={e => (e.currentTarget.style.background = '#1e2228')} onMouseLeave={e => (e.currentTarget.style.background = '')}>
                   <td style={s.td}>{p.member_code}</td>
                   <td style={{ ...s.td, position: 'sticky' as const, left: 0, zIndex: 1, background: C.surface }}>{p.name}</td>
                   <td style={s.td}>{p.affiliation ?? '—'}</td>
-                  <td style={s.td}>{p.class ?? '—'}</td>
+                  <td style={s.td}>{p.trap_class ?? '—'}</td>
+                  <td style={s.td}>{p.skeet_class ?? '—'}</td>
                   <td style={s.td}>{p.is_judge ? <span style={{ color: C.red }}>⚑</span> : '—'}</td>
                   <td style={{ ...s.td, color: C.muted, fontSize: '12px' }}>{formatDate(p.updated_at)}</td>
                   <td style={s.td}>
@@ -275,10 +292,17 @@ export default function PlayersPage() {
                 {associationNames.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
             </div>
-            <div style={s.formRow2}>
+            <div style={s.formRow3}>
               <div>
-                <label style={s.formLabel}>クラス</label>
-                <select style={s.formSelect} value={form.class} onChange={e => setForm(f => ({ ...f, class: e.target.value }))}>
+                <label style={s.formLabel}>トラップクラス</label>
+                <select style={s.formSelect} value={form.trap_class} onChange={e => setForm(f => ({ ...f, trap_class: e.target.value }))}>
+                  <option value="">（未設定）</option>
+                  {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={s.formLabel}>スキートクラス</label>
+                <select style={s.formSelect} value={form.skeet_class} onChange={e => setForm(f => ({ ...f, skeet_class: e.target.value }))}>
                   <option value="">（未設定）</option>
                   {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>

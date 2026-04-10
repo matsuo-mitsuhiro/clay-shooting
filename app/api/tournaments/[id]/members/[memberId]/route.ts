@@ -102,11 +102,21 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     // Also update player_master if member_code exists
     if (member.member_code && (body.class !== undefined || body.is_judge !== undefined)) {
       try {
-        await sql`
-          UPDATE player_master
-          SET class = ${newClass}, is_judge = ${newIsJudge}, updated_at = NOW()
-          WHERE member_code = ${member.member_code}
-        `;
+        const tRows = await sql`SELECT event_type FROM tournaments WHERE id = ${tournamentId}`;
+        const isSkeet = tRows.length > 0 && tRows[0].event_type === 'skeet';
+        if (isSkeet) {
+          await sql`
+            UPDATE player_master
+            SET skeet_class = ${newClass}, is_judge = ${newIsJudge}, updated_at = NOW()
+            WHERE member_code = ${member.member_code}
+          `;
+        } else {
+          await sql`
+            UPDATE player_master
+            SET trap_class = ${newClass}, is_judge = ${newIsJudge}, updated_at = NOW()
+            WHERE member_code = ${member.member_code}
+          `;
+        }
       } catch {
         // player_master update failure is non-critical
       }

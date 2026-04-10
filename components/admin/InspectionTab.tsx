@@ -24,7 +24,7 @@ const CLASS_DIVISION_OPTIONS: { value: string; label: string }[] = [
   { value: 'divided', label: 'クラス分けあり' },
 ];
 
-const ALL_CLASSES: ClassType[] = ['AA', 'A', 'B', 'C'];
+const ALL_CLASSES: ClassType[] = ['AAA', 'AA', 'A', 'B', 'C'];
 
 export default function InspectionTab({ tournamentId, tournament, onUpdated }: Props) {
   const [form, setForm] = useState({

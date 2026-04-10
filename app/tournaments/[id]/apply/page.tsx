@@ -29,8 +29,9 @@ export default function ApplyPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [associationNames, setAssociationNames] = useState<string[]>([]);
 
-  // ステップ1: メール入力
+  // ステップ1: メール・会員番号入力
   const [email, setEmail] = useState('');
+  const [memberCode, setMemberCode] = useState('');
   const [codeSending, setCodeSending] = useState(false);
   const [codeSendError, setCodeSendError] = useState<string | null>(null);
   const [codeSent, setCodeSent] = useState(false);
@@ -41,7 +42,6 @@ export default function ApplyPage() {
 
   // ステップ2: 申込フォーム
   const [code, setCode] = useState('');
-  const [memberCode, setMemberCode] = useState('');
   const [name, setName] = useState('');
   const [belong, setBelong] = useState('');
   const [classVal, setClassVal] = useState<ClassType | ''>('');
@@ -103,15 +103,36 @@ export default function ApplyPage() {
       setCodeSendError('メールアドレスを入力してください');
       return;
     }
+    if (!memberCode.trim()) {
+      setCodeSendError('会員番号を入力してください');
+      return;
+    }
     try {
       setCodeSending(true);
       const res = await fetch(`/api/tournaments/${id}/apply/request-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), member_code: memberCode.trim() }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
+
+      // 会員番号からplayer_masterを検索して自動補完
+      try {
+        const playerRes = await fetch(`/api/players?code=${encodeURIComponent(memberCode.trim())}`);
+        const playerJson = await playerRes.json();
+        if (playerJson.success && playerJson.data) {
+          const p = playerJson.data;
+          if (p.name) setName(p.name);
+          if (p.affiliation) setBelong(p.affiliation);
+          const isSkeet = t?.event_type === 'skeet';
+          const cls = isSkeet ? p.skeet_class : p.trap_class;
+          if (cls) setClassVal(cls as ClassType);
+        }
+      } catch {
+        // 自動補完に失敗しても申込は続行できる
+      }
+
       setCodeSent(true);
     } catch (e) {
       setCodeSendError(e instanceof Error ? e.message : '送信に失敗しました');
@@ -127,8 +148,8 @@ export default function ApplyPage() {
       setSubmitError('申込コードを6桁で入力してください');
       return;
     }
-    if (!memberCode.trim() || !name.trim()) {
-      setSubmitError('会員番号と氏名は必須です');
+    if (!name.trim()) {
+      setSubmitError('氏名は必須です');
       return;
     }
     if (!belong) {
@@ -146,7 +167,6 @@ export default function ApplyPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: code.trim(),
-          member_code: memberCode.trim(),
           name: name.trim(),
           belong: belong || null,
           class: classVal || null,
@@ -336,7 +356,7 @@ export default function ApplyPage() {
           </div>
         ) : isWithinPeriod ? (
           <>
-            {/* ステップ1: メール入力・コード送信 */}
+            {/* ステップ1: メール・会員番号入力・コード送信 */}
             <section style={{
               background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
               padding: '20px', marginBottom: 16,
@@ -351,6 +371,22 @@ export default function ApplyPage() {
               )}
 
               <form onSubmit={handleSendCode}>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={labelStyle}>
+                    会員番号 <span style={{ color: C.red }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={memberCode}
+                    onChange={e => setMemberCode(e.target.value)}
+                    placeholder="例: 12345678"
+                    style={inputStyle}
+                    autoComplete="off"
+                    disabled={codeSent}
+                    inputMode="numeric"
+                  />
+                </div>
+
                 <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle}>
                     メールアドレス <span style={{ color: C.red }}>*</span>
@@ -435,18 +471,6 @@ export default function ApplyPage() {
                     </div>
 
                     <div>
-                      <label style={labelStyle}>会員番号 <span style={{ color: C.red }}>*</span></label>
-                      <input
-                        type="text"
-                        value={memberCode}
-                        onChange={e => setMemberCode(e.target.value)}
-                        placeholder="例: 12345678"
-                        style={inputStyle}
-                        autoComplete="off"
-                      />
-                    </div>
-
-                    <div>
                       <label style={labelStyle}>氏名 <span style={{ color: C.red }}>*</span></label>
                       <input
                         type="text"
@@ -479,10 +503,10 @@ export default function ApplyPage() {
                           <select
                             value={classVal}
                             onChange={e => setClassVal(e.target.value as ClassType | '')}
-                            style={{ ...inputStyle, width: 120 }}
+                            style={{ ...inputStyle, width: 140 }}
                           >
                             <option value="">— 選択 —</option>
-                            {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
+                            {(['AAA', 'AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
                               <option key={c} value={c}>{c}クラス</option>
                             ))}
                           </select>

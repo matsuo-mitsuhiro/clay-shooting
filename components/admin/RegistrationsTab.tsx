@@ -37,7 +37,8 @@ interface PlayerMaster {
   name: string;
   affiliation: string | null;
   is_judge: boolean;
-  class: string | null;
+  trap_class: string | null;
+  skeet_class: string | null;
 }
 
 function normalizeSpaces(s: string): string {
@@ -313,9 +314,10 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
             const normInput = normalizeKanji(normalizeSpaces(name));
             const normDB = normalizeKanji(normalizeSpaces(p.name));
             if (normDB.includes(normInput) || normInput.includes(normDB)) {
+              const pClass = tournament.event_type === 'skeet' ? p.skeet_class : p.trap_class;
               newRows.push({
                 ...row, member_code: p.member_code, name: p.name,
-                belong: p.affiliation ?? '', class: (p.class ?? '') as ClassType | '',
+                belong: p.affiliation ?? '', class: (pClass ?? '') as ClassType | '',
                 is_judge: p.is_judge, participation_day: row.participation_day, searchStatus: 'found',
               });
             } else {
@@ -329,9 +331,10 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
           const json = await res.json();
           if (json.success && json.data) {
             const p: PlayerMaster = json.data;
+            const pClass = tournament.event_type === 'skeet' ? p.skeet_class : p.trap_class;
             newRows.push({
               ...row, member_code: p.member_code, name: p.name,
-              belong: p.affiliation ?? '', class: (p.class ?? '') as ClassType | '',
+              belong: p.affiliation ?? '', class: (pClass ?? '') as ClassType | '',
               is_judge: p.is_judge, participation_day: row.participation_day, searchStatus: 'found',
             });
           } else {
@@ -347,10 +350,11 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
             const players: PlayerMaster[] = json.data;
             for (let i = 0; i < players.length; i++) {
               const p = players[i];
+              const pClass = tournament.event_type === 'skeet' ? p.skeet_class : p.trap_class;
               newRows.push({
                 id: i === 0 ? row.id : idCounterRef.current++,
                 member_code: p.member_code, name: p.name,
-                belong: p.affiliation ?? '', class: (p.class ?? '') as ClassType | '',
+                belong: p.affiliation ?? '', class: (pClass ?? '') as ClassType | '',
                 is_judge: p.is_judge, participation_day: row.participation_day, searchStatus: 'found',
               });
             }
@@ -442,7 +446,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   const untransferredCount = activeRegs.filter(r => !r.transferred_at).length;
 
   // Filter data
-  const existingClasses = (['AA', 'A', 'B', 'C'] as ClassType[]).filter(c => registrations.some(r => r.class === c));
+  const existingClasses = (['AAA', 'AA', 'A', 'B', 'C'] as ClassType[]).filter(c => registrations.some(r => r.class === c));
   const existingBelongs = [...new Set(registrations.map(r => r.belong).filter((b): b is string => !!b))].sort();
   const filteredRegistrations = registrations.filter(r => {
     if (filterClass !== 'all' && r.class !== filterClass) return false;
@@ -600,7 +604,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                         onChange={e => updateManualRow(row.id, 'class', e.target.value as ClassType | '')}
                         style={{ ...inputStyle, width: 56 }}>
                         <option value="">-</option>
-                        {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => <option key={c} value={c}>{c}</option>)}
+                        {(['AAA', 'AA', 'A', 'B', 'C'] as ClassType[]).map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </td>
                     <td style={{ padding: '3px 6px', textAlign: 'center' }}>
@@ -860,7 +864,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                           autoFocus
                           style={{ ...inputStyle, width: 56 }}>
                           <option value="">-</option>
-                          {(['AA', 'A', 'B', 'C'] as ClassType[]).map(c => <option key={c} value={c}>{c}</option>)}
+                          {(['AAA', 'AA', 'A', 'B', 'C'] as ClassType[]).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                       ) : (
                         <span onClick={() => !isCancelled && !isTransferred && startEdit(reg.id, 'class', reg.class ?? '')}

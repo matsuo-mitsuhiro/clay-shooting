@@ -2,24 +2,61 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import type { PlayerMaster } from '../route';
 
+function formatJST(date: Date): string {
+  return date.toLocaleDateString('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).replace(/\//g, '/');
+}
+
 // PUT /api/players/[code] — 更新
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
   try {
     const { code } = await params;
     const body = await req.json();
-    const { name, affiliation, is_judge, class: cls, new_member_code } = body;
+    const { name, affiliation, is_judge, trap_class, skeet_class, new_member_code } = body;
     if (!name?.trim()) {
       return NextResponse.json({ success: false, error: '氏名は必須です' }, { status: 400 });
     }
     const newCode = new_member_code?.trim() || code;
+
+    // 既存データを取得してchange_historyの差分を計算
+    const existing = await sql`SELECT * FROM player_master WHERE member_code = ${code}`;
+    if (existing.length === 0) {
+      return NextResponse.json({ success: false, error: '選手が見つかりません' }, { status: 404 });
+    }
+    const prev = existing[0];
+    const changes: string[] = [];
+    const today = formatJST(new Date());
+
+    if ((trap_class ?? null) !== (prev.trap_class ?? null)) {
+      changes.push(`Tクラス ${prev.trap_class ?? '未設定'}→${trap_class ?? '未設定'}`);
+    }
+    if ((skeet_class ?? null) !== (prev.skeet_class ?? null)) {
+      changes.push(`Sクラス ${prev.skeet_class ?? '未設定'}→${skeet_class ?? '未設定'}`);
+    }
+    if ((affiliation?.trim() || null) !== (prev.affiliation ?? null)) {
+      changes.push(`所属 ${prev.affiliation ?? '未設定'}→${affiliation?.trim() || '未設定'}`);
+    }
+
+    let newHistory = prev.change_history ?? null;
+    if (changes.length > 0) {
+      const entry = `${today} システム管理者：${changes.join('、')}`;
+      newHistory = newHistory ? `${newHistory}\n${entry}` : entry;
+    }
+
     const rows = await sql`
       UPDATE player_master SET
-        member_code = ${newCode},
-        name        = ${name.trim()},
-        affiliation = ${affiliation ?? null},
-        is_judge    = ${is_judge ?? false},
-        class       = ${cls ?? null},
-        updated_at  = NOW()
+        member_code    = ${newCode},
+        name           = ${name.trim()},
+        affiliation    = ${affiliation ?? null},
+        is_judge       = ${is_judge ?? false},
+        trap_class     = ${trap_class ?? null},
+        skeet_class    = ${skeet_class ?? null},
+        change_history = ${newHistory},
+        updated_at     = NOW()
       WHERE member_code = ${code}
       RETURNING *
     `;
@@ -38,13 +75,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ co
   try {
     const { code } = await params;
     const body = await req.json();
-    const { is_judge, class: cls } = body;
+    const { is_judge, trap_class, skeet_class } = body;
     // レコードが存在する場合のみ更新（新規作成はしない）
     const rows = await sql`
       UPDATE player_master SET
-        is_judge   = ${is_judge ?? false},
-        class      = ${cls ?? null},
-        updated_at = NOW()
+        is_judge    = ${is_judge ?? false},
+        trap_class  = ${trap_class ?? null},
+        skeet_class = ${skeet_class ?? null},
+        updated_at  = NOW()
       WHERE member_code = ${code}
       RETURNING *
     `;

@@ -3,7 +3,7 @@
 // ============================================================
 
 export type EventType = 'trap' | 'skeet';
-export type ClassType = 'AA' | 'A' | 'B' | 'C';
+export type ClassType = 'AAA' | 'AA' | 'A' | 'B' | 'C';
 
 // ---------- Tournament ----------
 export interface Tournament {

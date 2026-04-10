@@ -74,20 +74,36 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     // 選手マスターに自動登録・更新（手動登録時）
     if (member_code) {
+      const isSkeet = eventType === 'skeet';
       const existing = await sql`SELECT member_code FROM player_master WHERE member_code = ${member_code}`;
       if (existing.length === 0) {
         // 新規登録
-        await sql`
-          INSERT INTO player_master (member_code, name, affiliation, class, is_judge, updated_at)
-          VALUES (${member_code}, ${name}, ${belong}, ${classVal}, ${is_judge}, NOW())
-        `;
+        if (isSkeet) {
+          await sql`
+            INSERT INTO player_master (member_code, name, affiliation, skeet_class, is_judge, updated_at)
+            VALUES (${member_code}, ${name}, ${belong}, ${classVal}, ${is_judge}, NOW())
+          `;
+        } else {
+          await sql`
+            INSERT INTO player_master (member_code, name, affiliation, trap_class, is_judge, updated_at)
+            VALUES (${member_code}, ${name}, ${belong}, ${classVal}, ${is_judge}, NOW())
+          `;
+        }
       } else {
         // 既存選手の情報を更新
-        await sql`
-          UPDATE player_master
-          SET name = ${name}, affiliation = ${belong}, class = ${classVal}, is_judge = ${is_judge}, updated_at = NOW()
-          WHERE member_code = ${member_code}
-        `;
+        if (isSkeet) {
+          await sql`
+            UPDATE player_master
+            SET name = ${name}, affiliation = ${belong}, skeet_class = ${classVal}, is_judge = ${is_judge}, updated_at = NOW()
+            WHERE member_code = ${member_code}
+          `;
+        } else {
+          await sql`
+            UPDATE player_master
+            SET name = ${name}, affiliation = ${belong}, trap_class = ${classVal}, is_judge = ${is_judge}, updated_at = NOW()
+            WHERE member_code = ${member_code}
+          `;
+        }
       }
     }
 
