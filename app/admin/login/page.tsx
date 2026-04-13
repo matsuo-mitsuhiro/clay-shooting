@@ -90,7 +90,7 @@ function AdminLoginContent() {
           管理者ログイン
         </h1>
         <p style={{ margin: '0 0 32px', fontSize: 13, color: C.muted }}>
-          クレー射撃大会 成績管理システム
+          クレー射撃の大会運営管理システム
         </p>
 
         {/* 運営管理者：会員番号＋パスワード */}

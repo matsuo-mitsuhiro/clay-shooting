@@ -64,7 +64,7 @@ export default function FaqPage() {
         <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <h1 style={{ margin: '0 0 4px', fontSize: 22, color: C.gold, fontWeight: 700 }}>よくある質問（Q&A）</h1>
-            <p style={{ margin: 0, fontSize: 13, color: C.muted }}>クレー射撃 成績管理システム</p>
+            <p style={{ margin: 0, fontSize: 13, color: C.muted }}>クレー射撃の大会運営管理システム</p>
           </div>
           <ContactButton />
         </div>

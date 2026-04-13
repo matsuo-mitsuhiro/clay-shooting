@@ -388,7 +388,7 @@ export default function AdminPage() {
         gap: 8,
       }}>
         <h1 style={{ margin: 0, fontSize: isMobile ? 16 : 22, fontWeight: 700, color: C.gold, flex: 1, minWidth: 0 }}>
-          {isMobile ? 'クレー射撃 管理' : 'クレー射撃 成績管理システム'}
+          {isMobile ? 'クレー射撃 管理' : 'クレー射撃の大会運営管理システム'}
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <ContactButton />

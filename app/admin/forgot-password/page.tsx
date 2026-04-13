@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
     <div style={{ minHeight: '100vh', background: '#0f0f1a', color: '#fff', fontFamily: 'Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
         <h1 style={{ color: C.gold, fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
-          クレー射撃 成績管理システム
+          クレー射撃の大会運営管理システム
         </h1>
         <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 32 }}>パスワードをお忘れの方</p>
 
