@@ -95,7 +95,7 @@ function SupportContent() {
       <LoadingOverlay show={submitting} message="送信中..." />
       <div style={{ width: '100%', maxWidth: 520 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <h1 style={{ margin: '0 0 6px', fontSize: 22, color: C.gold, fontWeight: 700 }}>クレー射撃の大会運営管理システム</h1>
+          <h1 style={{ margin: '0 0 6px', fontSize: 22, color: C.gold, fontWeight: 700 }}>クレー射撃大会運営システム</h1>
           <p style={{ margin: 0, fontSize: 13, color: C.muted }}>お問い合わせフォーム</p>
         </div>
 

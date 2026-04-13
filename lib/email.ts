@@ -14,9 +14,9 @@ function getTransporter() {
 
 export async function sendRegistrationComplete(to: string, name: string) {
   await getTransporter().sendMail({
-    from: `"クレー射撃の大会運営管理システム" <${process.env.GMAIL_USER}>`,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
-    subject: '【クレー射撃の大会運営管理システム】運営管理者登録完了',
+    subject: '【クレー射撃大会運営システム】運営管理者登録完了',
     html: `
       <p>${name} 様</p>
       <p>運営管理者として登録が完了しました。</p>
@@ -24,7 +24,7 @@ export async function sendRegistrationComplete(to: string, name: string) {
       <p><a href="${BASE_URL}/admin/login">${BASE_URL}/admin/login</a></p>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
-      <p>クレー射撃の大会運営管理システム</p>
+      <p>クレー射撃大会運営システム</p>
     `,
   });
 }
@@ -32,27 +32,27 @@ export async function sendRegistrationComplete(to: string, name: string) {
 export async function sendSupportInvitation(to: string, token: string) {
   const url = `${BASE_URL}/support?token=${token}`;
   await getTransporter().sendMail({
-    from: `"クレー射撃の大会運営管理システム" <${process.env.GMAIL_USER}>`,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
-    subject: '【クレー射撃の大会運営管理システム】お問い合わせフォームのご案内',
+    subject: '【クレー射撃大会運営システム】お問い合わせフォームのご案内',
     html: `
-      <p>この度は、クレー射撃の大会運営管理システムをご利用いただきありがとうございます。</p>
+      <p>この度は、クレー射撃大会運営システムをご利用いただきありがとうございます。</p>
       <p>以下のURLから 「１時間」 以内に質問フォームへアクセスしてください。</p>
       <p><a href="${url}">${url}</a></p>
       <p>※このURLは1名・1回のみ有効です。</p>
       <p>※このリンクに心当たりがない場合は、このメールを無視してください。</p>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
-      <p>クレー射撃の大会運営管理システム</p>
+      <p>クレー射撃大会運営システム</p>
     `,
   });
 }
 
 export async function sendQuestionConfirmation(to: string, name: string, body: string) {
   await getTransporter().sendMail({
-    from: `"クレー射撃の大会運営管理システム" <${process.env.GMAIL_USER}>`,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
-    subject: '【クレー射撃の大会運営管理システム】質問を受け付けました',
+    subject: '【クレー射撃大会運営システム】質問を受け付けました',
     html: `
       <p>${name} 様</p>
       <p>以下の質問を受け付けました。回答をお待ちください。</p>
@@ -61,7 +61,7 @@ export async function sendQuestionConfirmation(to: string, name: string, body: s
       <hr>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
-      <p>クレー射撃の大会運営管理システム</p>
+      <p>クレー射撃大会運営システム</p>
     `,
   });
 }
@@ -71,9 +71,9 @@ export async function sendQuestionNotification(
   email: string, body: string
 ) {
   await getTransporter().sendMail({
-    from: `"クレー射撃の大会運営管理システム" <${process.env.GMAIL_USER}>`,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to: 'matsuo@repros.co.jp',
-    subject: '【クレー射撃の大会運営管理システム】新しい質問が届きました',
+    subject: '【クレー射撃大会運営システム】新しい質問が届きました',
     html: `
       <p>新しい質問が届きました。</p>
       <hr>
@@ -86,7 +86,7 @@ export async function sendQuestionNotification(
       <hr>
       <p><a href="${BASE_URL}/admin/support">管理画面で回答する →</a></p>
       <br>
-      <p>クレー射撃の大会運営管理システム</p>
+      <p>クレー射撃大会運営システム</p>
     `,
   });
 }
@@ -95,9 +95,9 @@ export async function sendAnswerNotification(
   to: string, name: string, questionBody: string, answerBody: string
 ) {
   await getTransporter().sendMail({
-    from: `"クレー射撃の大会運営管理システム" <${process.env.GMAIL_USER}>`,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
-    subject: '【クレー射撃の大会運営管理システム】質問への回答',
+    subject: '【クレー射撃大会運営システム】質問への回答',
     html: `
       <p>${name} 様</p>
       <p>ご質問への回答をお送りします。</p>
@@ -110,7 +110,7 @@ export async function sendAnswerNotification(
       <hr>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
-      <p>クレー射撃の大会運営管理システム</p>
+      <p>クレー射撃大会運営システム</p>
     `,
   });
 }
@@ -121,7 +121,7 @@ export async function sendAnswerNotification(
 
 export async function sendApplyCode(to: string, tournamentName: string, code: string): Promise<void> {
   await getTransporter().sendMail({
-    from: `"クレー射撃の大会運営管理システム" <${process.env.GMAIL_USER}>`,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: `「${tournamentName}」申込コードのご案内`,
     html: `
@@ -132,7 +132,7 @@ export async function sendApplyCode(to: string, tournamentName: string, code: st
       <p>※このリンクに心当たりがない場合は、このメールを無視してください。</p>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
-      <p>クレー射撃の大会運営管理システム</p>
+      <p>クレー射撃大会運営システム</p>
     `,
   });
 }
@@ -176,7 +176,7 @@ export async function sendApplyConfirmation(
   ].filter(Boolean);
 
   await getTransporter().sendMail({
-    from: `"クレー射撃の大会運営管理システム" <${process.env.GMAIL_USER}>`,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: `「${tournament.name}」申込完了のお知らせ`,
     html: `
@@ -190,14 +190,14 @@ export async function sendApplyConfirmation(
       <p><a href="${cancelUrl}">${cancelUrl}</a></p>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
-      <p>クレー射撃の大会運営管理システム</p>
+      <p>クレー射撃大会運営システム</p>
     `,
   });
 }
 
 export async function sendCancelToken(to: string, tournamentName: string, cancelUrl: string): Promise<void> {
   await getTransporter().sendMail({
-    from: `"クレー射撃の大会運営管理システム" <${process.env.GMAIL_USER}>`,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: `「${tournamentName}」キャンセル手続きのご案内`,
     html: `
@@ -209,7 +209,7 @@ export async function sendCancelToken(to: string, tournamentName: string, cancel
       <p>※このリンクに心当たりがない場合は、このメールを無視してください。</p>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
-      <p>クレー射撃の大会運営管理システム</p>
+      <p>クレー射撃大会運営システム</p>
     `,
   });
 }
@@ -217,9 +217,9 @@ export async function sendCancelToken(to: string, tournamentName: string, cancel
 export async function sendPasswordReset(to: string, name: string, token: string) {
   const url = `${BASE_URL}/admin/reset-password/${token}`;
   await getTransporter().sendMail({
-    from: `"クレー射撃の大会運営管理システム" <${process.env.GMAIL_USER}>`,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
-    subject: '【クレー射撃の大会運営管理システム】パスワードリセット',
+    subject: '【クレー射撃大会運営システム】パスワードリセット',
     html: `
       <p>${name} 様</p>
       <p>パスワードリセットのリクエストを受け付けました。</p>
@@ -228,7 +228,7 @@ export async function sendPasswordReset(to: string, name: string, token: string)
       <p>このリクエストに心当たりがない場合は、このメールを無視してください。</p>
       <br>
       <p>※このメールアドレス（jpn.clayshooting@gmail.com）は送信専用の為、受取できません。</p>
-      <p>クレー射撃の大会運営管理システム</p>
+      <p>クレー射撃大会運営システム</p>
     `,
   });
 }

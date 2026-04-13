@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "クレー射撃の大会運営管理システム",
-  description: "クレー射撃の大会運営を管理するシステム",
+  title: "クレー射撃大会運営システム",
+  description: "クレー射撃大会の運営システム",
 };
 
 export default function RootLayout({
