@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import type { Tournament, ParticipationDay, ClassType, SquadMember } from '@/lib/types';
@@ -50,6 +50,15 @@ export default function ApplyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
+  const [registrationId, setRegistrationId] = useState<number | null>(null);
+
+  // 連続申込
+  const [otherTournaments, setOtherTournaments] = useState<(Tournament & { day1_count: number; day2_count: number })[]>([]);
+  const [continuousTarget, setContinuousTarget] = useState<(Tournament & { day1_count: number; day2_count: number }) | null>(null);
+  const [continuousDay, setContinuousDay] = useState<ParticipationDay>('day1');
+  const [continuousSubmitting, setContinuousSubmitting] = useState(false);
+  const [continuousError, setContinuousError] = useState<string | null>(null);
+  const [continuousCompleted, setContinuousCompleted] = useState(false);
 
   useEffect(() => {
     fetch(`/api/tournaments/${id}/apply-info`)
@@ -82,6 +91,80 @@ export default function ApplyPage() {
       })
       .catch(() => {});
   }, []);
+
+  // 申込完了後に他の申込可能な大会を取得
+  const fetchOtherTournaments = useCallback(async (excludeIds: number[]) => {
+    try {
+      const res = await fetch('/api/tournaments');
+      const json = await res.json();
+      if (!json.success) return;
+      const now = Date.now();
+      const available = (json.data as Tournament[])
+        .filter(tt =>
+          !excludeIds.includes(tt.id) &&
+          tt.apply_start_at && tt.apply_end_at &&
+          now >= new Date(tt.apply_start_at).getTime() &&
+          now <= new Date(tt.apply_end_at).getTime() + 5 * 60 * 1000
+        )
+        .sort((a, b) => {
+          const da = a.day1_date ? new Date(a.day1_date).getTime() : Infinity;
+          const db = b.day1_date ? new Date(b.day1_date).getTime() : Infinity;
+          return da - db;
+        });
+
+      // 各大会の申込数を取得
+      const withCounts = await Promise.all(
+        available.map(async (tt) => {
+          try {
+            const infoRes = await fetch(`/api/tournaments/${tt.id}/apply-info`);
+            const infoJson = await infoRes.json();
+            if (infoJson.success) {
+              return { ...tt, day1_count: infoJson.data.day1_count, day2_count: infoJson.data.day2_count };
+            }
+          } catch { /* ignore */ }
+          return { ...tt, day1_count: 0, day2_count: 0 };
+        })
+      );
+      setOtherTournaments(withCounts);
+    } catch { /* ignore */ }
+  }, []);
+
+  // 連続申込の送信
+  async function handleContinuousSubmit() {
+    if (!continuousTarget || !registrationId) return;
+    setContinuousError(null);
+    setContinuousSubmitting(true);
+    try {
+      const ct = continuousTarget;
+      const is2DayCt = !!ct.day2_date;
+      const res = await fetch(`/api/tournaments/${ct.id}/apply/continuous`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          member_code: memberCode.trim(),
+          email: email.trim().toLowerCase(),
+          name: name.trim(),
+          belong: belong || null,
+          class: classVal || null,
+          is_judge: isJudge,
+          participation_day: is2DayCt ? continuousDay : 'day1',
+          prev_registration_id: registrationId,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setRegistrationId(json.data.id);
+      setContinuousCompleted(true);
+      // 完了後に他の大会リストを再取得（今申込んだ大会も除外）
+      const appliedIds = [Number(id), ...otherTournaments.filter(tt => tt.id !== ct.id).map(() => 0), ct.id];
+      // 既に申込済みの大会IDsを収集してリスト更新
+      setOtherTournaments(prev => prev.filter(tt => tt.id !== ct.id));
+    } catch (e) {
+      setContinuousError(e instanceof Error ? e.message : '申込に失敗しました');
+    } finally {
+      setContinuousSubmitting(false);
+    }
+  }
 
   const is2Day = !!(applyInfo?.tournament.day2_date);
   const t = applyInfo?.tournament;
@@ -180,7 +263,10 @@ export default function ApplyPage() {
       const infoRes = await fetch(`/api/tournaments/${id}/apply-info`);
       const infoJson = await infoRes.json();
       if (infoJson.success) setApplyInfo(infoJson.data);
+      setRegistrationId(json.data.id);
       setCompleted(true);
+      // 他の申込可能な大会を取得
+      fetchOtherTournaments([Number(id)]);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : '申込に失敗しました');
     } finally {
@@ -340,20 +426,269 @@ export default function ApplyPage() {
 
         {/* 申込フォーム */}
         {completed ? (
-          <div style={{
-            background: `${C.green}22`, border: `1px solid ${C.green}`, borderRadius: 8,
-            padding: '32px 20px', textAlign: 'center',
-          }}>
-            <p style={{ color: C.green, fontSize: 22, fontWeight: 700, margin: '0 0 12px' }}>
-              申込が完了しました
-            </p>
-            <p style={{ color: C.text, fontSize: 15, margin: '0 0 8px' }}>
-              「{t.name}」への申込が完了しました。
-            </p>
-            <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
-              申込完了のメールをお送りしました。ご確認ください。
-            </p>
-          </div>
+          <>
+            <div style={{
+              background: `${C.green}22`, border: `1px solid ${C.green}`, borderRadius: 8,
+              padding: '32px 20px', textAlign: 'center',
+            }}>
+              <p style={{ color: C.green, fontSize: 22, fontWeight: 700, margin: '0 0 12px' }}>
+                申込が完了しました
+              </p>
+              <p style={{ color: C.text, fontSize: 15, margin: '0 0 8px' }}>
+                「{t.name}」への申込が完了しました。
+              </p>
+              <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
+                申込完了のメールをお送りしました。ご確認ください。
+              </p>
+            </div>
+
+            {/* 連続申込：確認・申込画面 */}
+            {continuousTarget && !continuousCompleted && (
+              <section style={{
+                background: C.surface, border: `1px solid ${C.gold}66`, borderRadius: 8,
+                padding: '20px', marginTop: 20,
+              }}>
+                <h2 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>
+                  続けて申込む：{continuousTarget.name}
+                </h2>
+
+                {continuousError && (
+                  <div style={{
+                    background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
+                    borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 14,
+                  }}>{continuousError}</div>
+                )}
+
+                {/* 大会情報 */}
+                <dl style={{ margin: '0 0 16px', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 16px', fontSize: 15 }}>
+                  {continuousTarget.venue && (
+                    <>
+                      <dt style={{ color: C.muted }}>会場</dt>
+                      <dd style={{ margin: 0, color: C.text }}>{continuousTarget.venue}</dd>
+                    </>
+                  )}
+                  {continuousTarget.day1_date && (
+                    <>
+                      <dt style={{ color: C.muted }}>開催日</dt>
+                      <dd style={{ margin: 0, color: C.text }}>
+                        {fmtDate(continuousTarget.day1_date)}
+                        {continuousTarget.day2_date ? ` / ${fmtDate(continuousTarget.day2_date)}` : ''}
+                      </dd>
+                    </>
+                  )}
+                  <dt style={{ color: C.muted }}>種目</dt>
+                  <dd style={{ margin: 0, color: C.text }}>{eventLabel(continuousTarget.event_type)}</dd>
+                </dl>
+
+                {/* 申込者情報（変更不可） */}
+                <div style={{
+                  background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6,
+                  padding: '12px 16px', marginBottom: 16,
+                }}>
+                  <p style={{ color: C.muted, fontSize: 13, margin: '0 0 8px' }}>申込者情報</p>
+                  <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 16px', fontSize: 15 }}>
+                    <dt style={{ color: C.muted }}>会員番号</dt>
+                    <dd style={{ margin: 0, color: C.text }}>{memberCode}</dd>
+                    <dt style={{ color: C.muted }}>氏名</dt>
+                    <dd style={{ margin: 0, color: C.text }}>{name}</dd>
+                    <dt style={{ color: C.muted }}>所属協会</dt>
+                    <dd style={{ margin: 0, color: C.text }}>{belong || '—'}</dd>
+                    <dt style={{ color: C.muted }}>クラス</dt>
+                    <dd style={{ margin: 0, color: C.text }}>{classVal ? `${classVal}クラス` : '—'}</dd>
+                    <dt style={{ color: C.muted }}>審判資格</dt>
+                    <dd style={{ margin: 0, color: C.text }}>{isJudge ? 'あり' : 'なし'}</dd>
+                  </dl>
+                </div>
+
+                {/* 参加日程（2日制の場合のみ） */}
+                {continuousTarget.day2_date && (
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 14, color: C.muted, marginBottom: 6 }}>
+                      参加日程 <span style={{ color: C.red }}>*</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: 16 }}>
+                      {([['day1', '1日目'], ['day2', '2日目'], ['both', '両方']] as [ParticipationDay, string][]).map(([val, label]) => (
+                        <label key={val} style={{
+                          display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                          color: continuousDay === val ? C.gold : C.muted, fontSize: 15,
+                        }}>
+                          <input
+                            type="radio"
+                            name="continuous_day"
+                            value={val}
+                            checked={continuousDay === val}
+                            onChange={() => setContinuousDay(val)}
+                            style={{ accentColor: C.gold }}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button
+                    onClick={() => { setContinuousTarget(null); setContinuousError(null); }}
+                    style={{
+                      background: 'transparent', color: C.muted,
+                      border: `1px solid ${C.border}`, borderRadius: 5,
+                      padding: '12px 20px', fontSize: 15, cursor: 'pointer', flex: 1,
+                    }}
+                  >
+                    戻る
+                  </button>
+                  <button
+                    onClick={handleContinuousSubmit}
+                    disabled={continuousSubmitting}
+                    style={{
+                      background: C.gold, color: '#000', border: 'none', borderRadius: 5,
+                      padding: '12px 20px', fontSize: 16, fontWeight: 700,
+                      cursor: continuousSubmitting ? 'not-allowed' : 'pointer',
+                      opacity: continuousSubmitting ? 0.7 : 1, flex: 2,
+                    }}
+                  >
+                    {continuousSubmitting ? '申込中...' : '申込を確定する'}
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* 連続申込完了メッセージ */}
+            {continuousCompleted && continuousTarget && (
+              <div style={{
+                background: `${C.green}22`, border: `1px solid ${C.green}`, borderRadius: 8,
+                padding: '20px', textAlign: 'center', marginTop: 20,
+              }}>
+                <p style={{ color: C.green, fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>
+                  「{continuousTarget.name}」の申込も完了しました
+                </p>
+                <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
+                  確認メールをお送りしました。
+                </p>
+              </div>
+            )}
+
+            {/* 他の大会一覧 */}
+            {otherTournaments.length > 0 && !continuousTarget && (
+              <section style={{
+                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+                padding: '20px', marginTop: 20,
+              }}>
+                <h2 style={{ margin: '0 0 4px', fontSize: 17, color: C.gold }}>
+                  他の大会にも申込みますか？
+                </h2>
+                <p style={{ margin: '0 0 16px', fontSize: 13, color: C.muted }}>
+                  申込者情報はそのまま引き継がれます
+                </p>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {otherTournaments.map(tt => {
+                    const ttMax = tt.max_participants;
+                    const ttDay1Rem = ttMax ? ttMax - tt.day1_count : null;
+                    return (
+                      <button
+                        key={tt.id}
+                        onClick={() => {
+                          setContinuousTarget(tt);
+                          setContinuousDay('day1');
+                          setContinuousError(null);
+                          setContinuousCompleted(false);
+                        }}
+                        style={{
+                          background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6,
+                          padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
+                          transition: 'border-color 0.2s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = C.gold)}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <span style={{ color: C.text, fontSize: 16, fontWeight: 600 }}>{tt.name}</span>
+                          <span style={{
+                            background: tt.event_type === 'trap' ? '#2a7a9a33' : '#9a2a7a33',
+                            color: tt.event_type === 'trap' ? '#4ac0e0' : '#e04ac0',
+                            fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 600,
+                          }}>
+                            {eventLabel(tt.event_type)}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: C.muted }}>
+                          {tt.day1_date && fmtDate(tt.day1_date)}
+                          {tt.day2_date && ` / ${fmtDate(tt.day2_date)}`}
+                          {tt.venue && ` ・ ${tt.venue}`}
+                          {ttDay1Rem !== null && (
+                            <span style={{ marginLeft: 8, color: ttDay1Rem > 0 ? C.green : C.red }}>
+                              残{ttDay1Rem}名
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* 連続申込完了後：さらに他の大会を表示 */}
+            {continuousCompleted && otherTournaments.length > 0 && (
+              <section style={{
+                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+                padding: '20px', marginTop: 20,
+              }}>
+                <h2 style={{ margin: '0 0 4px', fontSize: 17, color: C.gold }}>
+                  さらに他の大会に申込みますか？
+                </h2>
+                <p style={{ margin: '0 0 16px', fontSize: 13, color: C.muted }}>
+                  申込者情報はそのまま引き継がれます
+                </p>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {otherTournaments.map(tt => {
+                    const ttMax = tt.max_participants;
+                    const ttDay1Rem = ttMax ? ttMax - tt.day1_count : null;
+                    return (
+                      <button
+                        key={tt.id}
+                        onClick={() => {
+                          setContinuousTarget(tt);
+                          setContinuousDay('day1');
+                          setContinuousError(null);
+                          setContinuousCompleted(false);
+                        }}
+                        style={{
+                          background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6,
+                          padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
+                          transition: 'border-color 0.2s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = C.gold)}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <span style={{ color: C.text, fontSize: 16, fontWeight: 600 }}>{tt.name}</span>
+                          <span style={{
+                            background: tt.event_type === 'trap' ? '#2a7a9a33' : '#9a2a7a33',
+                            color: tt.event_type === 'trap' ? '#4ac0e0' : '#e04ac0',
+                            fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 600,
+                          }}>
+                            {eventLabel(tt.event_type)}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: C.muted }}>
+                          {tt.day1_date && fmtDate(tt.day1_date)}
+                          {tt.day2_date && ` / ${fmtDate(tt.day2_date)}`}
+                          {tt.venue && ` ・ ${tt.venue}`}
+                          {ttDay1Rem !== null && (
+                            <span style={{ marginLeft: 8, color: ttDay1Rem > 0 ? C.green : C.red }}>
+                              残{ttDay1Rem}名
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </>
         ) : isWithinPeriod ? (
           <>
             {/* ステップ1: メール・会員番号入力・コード送信 */}
