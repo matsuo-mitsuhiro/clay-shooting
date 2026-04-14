@@ -200,7 +200,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
           return;
         }
         setConfirmModal({
-          message: 'メンバーと点数データを全て削除します。この操作は取り消せません。本当に実行しますか？',
+          message: 'メンバー・点数・申込データを全て削除します。この操作は取り消せません。本当に実行しますか？',
           okLabel: 'リセット', okColor: C.red,
           onOk: async () => {
             setConfirmModal(null);
@@ -215,7 +215,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               });
               const json = await res.json();
               if (!json.success) throw new Error(json.error);
-              setSuccess('メンバー・点数データをリセットしました');
+              setSuccess('メンバー・点数・申込データをリセットしました');
               onUpdated();
               setTimeout(() => setSuccess(null), 5000);
             } catch (e) {
@@ -562,7 +562,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
           <div>
-            <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>メンバー・点数をリセット</p>
+            <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>メンバー・点数・申込をリセット</p>
             <p style={{ margin: 0, fontSize: 14, color: C.muted }}>大会情報・QRコードは保持されます</p>
           </div>
           <button

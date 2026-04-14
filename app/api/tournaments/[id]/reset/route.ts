@@ -8,7 +8,7 @@ import type { ApiResponse } from '@/lib/types';
 type Params = { params: Promise<{ id: string }> };
 
 // POST /api/tournaments/[id]/reset
-// メンバー・点数を全削除（大会情報・QRは保持）
+// メンバー・点数・申込を全削除（大会情報・QRは保持）
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
@@ -24,9 +24,12 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json<ApiResponse>({ success: false, error: '大会が見つかりません' }, { status: 404 });
     }
 
-    // メンバー・点数を削除（QR・大会情報は保持）
+    // メンバー・点数・申込を削除（QR・大会情報は保持）
     await sql`DELETE FROM members WHERE tournament_id = ${tournamentId}`;
     await sql`DELETE FROM scores  WHERE tournament_id = ${tournamentId}`;
+    await sql`DELETE FROM registration_tokens WHERE tournament_id = ${tournamentId}`;
+    await sql`DELETE FROM registration_logs  WHERE tournament_id = ${tournamentId}`;
+    await sql`DELETE FROM registrations WHERE tournament_id = ${tournamentId}`;
 
     // リセット実行者・日時を記録
     await sql`
