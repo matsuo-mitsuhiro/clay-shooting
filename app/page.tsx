@@ -10,6 +10,7 @@ export default function Home() {
   const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listTab, setListTab] = useState<'current' | 'past'>('current');
 
   useEffect(() => {
     fetch('/api/tournaments').then(r => r.json()).then(j => {
@@ -29,23 +30,57 @@ export default function Home() {
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const eventLabel = (t: string) => t === 'trap' ? 'トラップ' : t === 'skeet' ? 'スキート' : t;
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const lastDate = (t: Tournament) => t.day2_date ?? t.day1_date ?? '';
+
+  const currentTournaments = tournaments
+    .filter(t => !lastDate(t) || lastDate(t) >= todayStr)
+    .sort((a, b) => (lastDate(a) < lastDate(b) ? -1 : lastDate(a) > lastDate(b) ? 1 : 0));
+
+  const pastTournaments = tournaments
+    .filter(t => lastDate(t) && lastDate(t) < todayStr)
+    .sort((a, b) => (lastDate(a) > lastDate(b) ? -1 : lastDate(a) < lastDate(b) ? 1 : 0));
+
+  const displayTournaments = listTab === 'current' ? currentTournaments : pastTournaments;
+
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text }}>
       <header style={{ borderBottom: `1px solid ${C.goldDark}`, padding: '24px 24px 16px', textAlign: 'center' }}>
         <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, letterSpacing: '0.15em', color: C.gold }}>クレー射撃大会</h1>
-        <p style={{ margin: '6px 0 0', fontSize: 16, letterSpacing: '0.3em', color: C.gold }}>成 績 管 理 シ ス テ ム</p>
+        <p style={{ margin: '6px 0 0', fontSize: 16, letterSpacing: '0.3em', color: C.gold }}>運 営 シ ス テ ム</p>
       </header>
       <main style={{ maxWidth: 800, margin: '0 auto', padding: '32px 16px' }}>
-        <h2 style={{ fontSize: 22, color: C.gold, marginBottom: 20 }}>大会一覧</h2>
+        {/* タブ切替 */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+          {(['current', 'past'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setListTab(tab)}
+              style={{
+                background: listTab === tab ? C.gold : 'transparent',
+                color: listTab === tab ? '#000' : C.muted,
+                border: `1px solid ${listTab === tab ? C.gold : C.border}`,
+                borderRadius: 6,
+                padding: '6px 16px',
+                fontSize: 15,
+                fontWeight: listTab === tab ? 700 : 400,
+                cursor: 'pointer',
+              }}
+            >
+              {tab === 'current' ? '大会一覧' : '過去の大会'}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <p style={{ color: C.muted, textAlign: 'center' }}>読み込み中...</p>
-        ) : tournaments.length === 0 ? (
+        ) : displayTournaments.length === 0 ? (
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '40px 24px', textAlign: 'center', color: C.muted }}>
-            大会が登録されていません
+            {listTab === 'current' ? '大会が登録されていません' : '過去の大会はありません'}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {tournaments.map(t => {
+            {displayTournaments.map(t => {
               const sc = (t as Tournament & { score_count?: number }).score_count ?? 0;
               const hasSquad = !!t.squad_published_at;
               const hasScores = sc > 0;
