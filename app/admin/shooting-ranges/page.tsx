@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { C } from '@/lib/colors';
 import type { ShootingRange } from '@/lib/types';
 import Footer from '@/components/Footer';
+import { ErrorModal } from '@/components/ModalDialog';
 
 interface GroupedRanges {
   [prefecture: string]: ShootingRange[];
@@ -143,10 +144,7 @@ export default function ShootingRangesPage() {
 
       <main style={{ maxWidth: 800, margin: '0 auto', padding: '24px 16px' }}>
         {error && (
-          <div style={{
-            background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-            borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 14,
-          }}>{error}</div>
+          <ErrorModal message={error} onClose={() => setError(null)} />
         )}
 
         {/* 追加フォーム */}

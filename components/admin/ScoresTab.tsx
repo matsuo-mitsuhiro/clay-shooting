@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { C } from '@/lib/colors';
+import { ErrorModal } from '@/components/ModalDialog';
 import type { Member, Score, ScoreStatus, Tournament } from '@/lib/types';
 
 interface Props {
@@ -437,12 +438,7 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
       </div>
 
       {/* Error / Success */}
-      {error && (
-        <div style={{
-          background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 15,
-        }}>{error}</div>
-      )}
+      <ErrorModal message={error} onClose={() => setError(null)} />
       {success && (
         <div style={{
           background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,

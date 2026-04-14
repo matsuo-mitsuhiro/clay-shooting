@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import Footer from '@/components/Footer';
+import { ErrorModal } from '@/components/ModalDialog';
 
 function AdminLoginContent() {
   const { data: session, status } = useSession();
@@ -131,12 +132,7 @@ function AdminLoginContent() {
             </div>
 
             {error && (
-              <div style={{
-                background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-                borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 14, fontWeight: 600,
-              }}>
-                ⚠ {error}
-              </div>
+              <ErrorModal message={error} onClose={() => setError(null)} />
             )}
 
             <button

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import Footer from '@/components/Footer';
+import { ErrorModal } from '@/components/ModalDialog';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -65,7 +66,7 @@ export default function ForgotPasswordPage() {
               required
               style={{ background: '#1a1a2e', border: '1px solid #444', borderRadius: 5, color: '#fff', padding: '10px 12px', fontSize: 15, width: '100%', boxSizing: 'border-box', marginBottom: 16 }}
             />
-            {error && <p style={{ color: C.red, fontSize: 13, marginBottom: 12 }}>{error}</p>}
+            {error && <ErrorModal message={error} onClose={() => setError(null)} />}
             <button type="submit" disabled={sending} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '11px', fontSize: 15, fontWeight: 700, cursor: sending ? 'not-allowed' : 'pointer', width: '100%', marginBottom: 12, opacity: sending ? 0.7 : 1 }}>
               {sending ? '送信中...' : 'リセットメールを送信'}
             </button>

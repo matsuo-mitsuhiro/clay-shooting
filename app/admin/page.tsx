@@ -10,6 +10,7 @@ import { C } from '@/lib/colors';
 import type { Tournament, EventType, Association, ShootingRange } from '@/lib/types';
 import ContactButton from '@/components/ContactButton';
 import Footer from '@/components/Footer';
+import { ErrorModal } from '@/components/ModalDialog';
 
 export default function AdminPage() {
   const { data: session } = useSession();
@@ -581,14 +582,9 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Error */}
+        {/* Error Modal */}
         {error && (
-          <div style={{
-            background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-            borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 16,
-          }}>
-            {error}
-          </div>
+          <ErrorModal message={error} onClose={() => setError(null)} />
         )}
 
         {/* Create Form */}
@@ -725,12 +721,7 @@ export default function AdminPage() {
             </div>
 
             {copyError && (
-              <div style={{
-                background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-                borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 15,
-              }}>
-                {copyError}
-              </div>
+              <ErrorModal message={copyError} onClose={() => setCopyError(null)} />
             )}
 
             <form onSubmit={handleCopyCreate}>

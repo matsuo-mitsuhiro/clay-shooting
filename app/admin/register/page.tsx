@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import Footer from '@/components/Footer';
+import { ErrorModal } from '@/components/ModalDialog';
 
 const inputStyle: React.CSSProperties = {
   background: '#1a1a2e',
@@ -137,21 +138,12 @@ function RegisterContent() {
             <p style={{ fontSize: 12, color: '#888', marginBottom: 20 }}>8〜32文字、英字と数字を各1文字以上含む</p>
 
             {error && (
-              <div style={{ marginBottom: 16 }}>
-                <p style={{ color: C.red, fontSize: 14, marginBottom: 8 }}>{error}</p>
-                {error.includes('既に登録されています') && (
-                  <div style={{ background: '#1a1a2e', border: '1px solid #444', borderRadius: 6, padding: '10px 14px', fontSize: 13 }}>
-                    <p style={{ color: '#aaa', marginBottom: 6 }}>
-                      パスワードをお忘れの場合は、ログイン画面からリセットしてください。<br />
-                      または、登録済みのアカウントを別の管理者に依頼して削除してください。
-                    </p>
-                    <a href="/admin/login" style={{ color: '#4a9eff', textDecoration: 'underline', fontSize: 13 }}>
-                      運営管理者ログイン画面はこちら →<br />
-                      https://clay-shooting.vercel.app/admin/login
-                    </a>
-                  </div>
-                )}
-              </div>
+              <ErrorModal
+                message={error.includes('既に登録されています')
+                  ? `${error}\n\nパスワードをお忘れの場合は、ログイン画面からリセットしてください。\nまたは、登録済みのアカウントを別の管理者に依頼して削除してください。`
+                  : error}
+                onClose={() => setError(null)}
+              />
             )}
 
             <button type="submit" disabled={saving} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '12px', fontSize: 16, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', width: '100%', opacity: saving ? 0.7 : 1 }}>

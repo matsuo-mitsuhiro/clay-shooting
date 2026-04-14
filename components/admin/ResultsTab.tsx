@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { C } from '@/lib/colors';
+import { ErrorModal } from '@/components/ModalDialog';
 import type { Result, Tournament, ClassType } from '@/lib/types';
 
 interface Props {
@@ -258,11 +259,7 @@ export default function ResultsTab({ tournamentId }: Props) {
             </div>
 
             {/* エラー */}
-            {rankError && (
-              <div style={{ background: '#e74c3c22', border: '1px solid #e74c3c', color: '#e74c3c', borderRadius: 6, padding: '8px 12px', marginTop: 12, fontSize: 13 }}>
-                ⚠ {rankError}
-              </div>
-            )}
+            <ErrorModal message={rankError} onClose={() => setRankError(null)} />
 
             {/* ボタン */}
             <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
@@ -345,12 +342,7 @@ export default function ResultsTab({ tournamentId }: Props) {
       </div>
 
       {/* Error */}
-      {error && (
-        <div style={{
-          background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 15,
-        }}>{error}</div>
-      )}
+      <ErrorModal message={error} onClose={() => setError(null)} />
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: C.muted }}>読み込み中...</div>

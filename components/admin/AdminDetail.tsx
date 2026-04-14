@@ -17,6 +17,7 @@ import dynamic from 'next/dynamic';
 const ReportTab = dynamic(() => import('./ReportTab'), { ssr: false });
 import RegistrationsTab from './RegistrationsTab';
 import Footer from '@/components/Footer';
+import { ErrorModal } from '@/components/ModalDialog';
 
 type TabType = 'members' | 'scores' | 'results' | 'inspection' | 'report' | 'settings' | 'apply-settings' | 'history' | 'registrations';
 
@@ -538,7 +539,7 @@ function ContactModal({ onClose }: { onClose: () => void }) {
                 style={{ background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, padding: '10px 14px', fontSize: 15, width: '100%', boxSizing: 'border-box' }}
               />
             </div>
-            {error && <div style={{ background: '#e74c3c22', border: '1px solid #e74c3c', color: '#e74c3c', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 13 }}>⚠ {error}</div>}
+            <ErrorModal message={error || null} onClose={() => setError('')} />
             <div style={{ background: `${C.gold}11`, border: `1px solid ${C.gold}33`, borderRadius: 6, padding: '10px 14px', marginBottom: 16 }}>
               <p style={{ margin: 0, fontSize: 12, color: C.muted, lineHeight: 1.7 }}>
                 ※ メール内のURLは「１時間」以内・1回のみ有効です。<br />

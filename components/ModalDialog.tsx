@@ -92,6 +92,38 @@ export function AlertModal({
   );
 }
 
+/** エラーモーダル（背景クリックで閉じない） */
+export function ErrorModal({
+  message,
+  onClose,
+  okLabel = 'OK',
+}: {
+  message: string | null;
+  onClose: () => void;
+  okLabel?: string;
+}) {
+  if (!message) return null;
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Enter') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div style={overlayStyle}>
+      <div style={{ ...panelStyle, borderColor: '#c0392b' }} onClick={e => e.stopPropagation()}>
+        <p style={{
+          margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: '#e74c3c',
+        }}>エラー</p>
+        <p style={{ ...msgStyle, color: '#f0f2f8' }}>{message}</p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} autoFocus style={okBtnStyle('#c0392b')}>{okLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** プロンプトモーダル（テキスト入力 + OK / キャンセル） */
 export function PromptModal({
   message,

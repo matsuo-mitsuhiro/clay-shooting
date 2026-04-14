@@ -6,7 +6,7 @@ import { C } from '@/lib/colors';
 import { normalizeKanji } from '@/lib/kanji-normalize';
 import type { Registration, ParticipationDay, ClassType, Tournament } from '@/lib/types';
 import LoadingOverlay from '@/components/LoadingOverlay';
-import { ConfirmModal, AlertModal } from '@/components/ModalDialog';
+import { ConfirmModal, AlertModal, ErrorModal } from '@/components/ModalDialog';
 
 interface Props {
   tournamentId: number;
@@ -531,12 +531,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
         </h3>
 
         {/* Manual error/success */}
-        {manualError && (
-          <div style={{
-            background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-            borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 14,
-          }}>{manualError}</div>
-        )}
+        <ErrorModal message={manualError} onClose={() => setManualError(null)} />
         {manualSuccess && (
           <div style={{
             background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,
@@ -783,12 +778,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
         </button>
       </div>
 
-      {transferError && (
-        <div style={{
-          background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '8px 12px', marginBottom: 14, fontSize: 14,
-        }}>{transferError}</div>
-      )}
+      <ErrorModal message={transferError} onClose={() => setTransferError(null)} />
 
       <div style={{ marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>申込管理リスト</span>

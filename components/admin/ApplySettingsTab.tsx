@@ -6,6 +6,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
+import { ErrorModal } from '@/components/ModalDialog';
 import type { Tournament, Association } from '@/lib/types';
 
 interface Props {
@@ -349,13 +350,9 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
 
   return (
     <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
-      {/* Error / Success */}
+      {/* Error Modal */}
       {applyError && (
-        <div style={{
-          background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '8px 12px', marginBottom: 16, fontSize: 15,
-          whiteSpace: 'pre-line',
-        }}>{applyError}</div>
+        <ErrorModal message={applyError} onClose={() => setApplyError(null)} />
       )}
       {success && (
         <div style={{

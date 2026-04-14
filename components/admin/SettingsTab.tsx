@@ -9,7 +9,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
 import type { Tournament, EventType, Association, ShootingRange } from '@/lib/types';
-import { ConfirmModal, AlertModal, PromptModal } from '@/components/ModalDialog';
+import { ConfirmModal, AlertModal, PromptModal, ErrorModal } from '@/components/ModalDialog';
 
 interface Props {
   tournamentId: number;
@@ -296,13 +296,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
   return (
     <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
       {/* Error / Success */}
-      {error && (
-        <div style={{
-          background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '8px 12px', marginBottom: 16, fontSize: 15,
-          whiteSpace: 'pre-line',
-        }}>{error}</div>
-      )}
+      <ErrorModal message={error} onClose={() => setError(null)} />
       {success && (
         <div style={{
           background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,

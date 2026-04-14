@@ -21,7 +21,7 @@ import { C } from '@/lib/colors';
 import type { Member, ClassType, ScoreStatus, Tournament } from '@/lib/types';
 import { PREFECTURES } from '@/lib/prefectures';
 import LoadingOverlay from '@/components/LoadingOverlay';
-import { ConfirmModal } from '@/components/ModalDialog';
+import { ConfirmModal, ErrorModal } from '@/components/ModalDialog';
 
 interface Props {
   tournamentId: number;
@@ -745,12 +745,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       )}
 
       {/* Error / Success */}
-      {error && (
-        <div style={{
-          background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 15,
-        }}>{error}</div>
-      )}
+      <ErrorModal message={error} onClose={() => setError(null)} />
       {success && (
         <div style={{
           background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,

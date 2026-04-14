@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { C } from '@/lib/colors';
 import type { ViewerLog } from '@/lib/types';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import { ErrorModal } from '@/components/ModalDialog';
 
 interface Props {
   tournamentId: number;
@@ -69,12 +70,7 @@ export default function ViewerHistoryTab({ tournamentId }: Props) {
         閲覧履歴
       </h2>
 
-      {error && (
-        <div style={{
-          background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '8px 12px', marginBottom: 12,
-        }}>{error}</div>
-      )}
+      <ErrorModal message={error} onClose={() => setError(null)} />
 
       {data && (
         <>

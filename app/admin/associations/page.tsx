@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { C } from '@/lib/colors';
 import type { Association, ShootingRange } from '@/lib/types';
 import Footer from '@/components/Footer';
+import { ErrorModal } from '@/components/ModalDialog';
 
 interface AssociationWithRanges extends Association {
   shooting_range_ids: number[];
@@ -199,10 +200,7 @@ export default function AssociationsPage() {
   const editForm = (
     <>
       {error && (
-        <div style={{
-          background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c',
-          borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 14,
-        }}>{error}</div>
+        <ErrorModal message={error} onClose={() => setError(null)} />
       )}
       {success && (
         <div style={{

@@ -6,7 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
 import { C } from '@/lib/colors';
 import type { Tournament } from '@/lib/types';
-import { AlertModal } from '@/components/ModalDialog';
+import { AlertModal, ErrorModal } from '@/components/ModalDialog';
 
 interface Props {
   tournamentId: number;
@@ -672,7 +672,7 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
         </div>
 
         {/* エラー / 成功メッセージ */}
-        {error && <div style={{ color: C.red, fontSize: 14, marginBottom: 12 }}>⚠ {error}</div>}
+        <ErrorModal message={error} onClose={() => setError(null)} />
         {success && <div style={{ color: '#2ecc71', fontSize: 14, marginBottom: 12 }}>保存しました</div>}
 
         {/* ボタン行 */}

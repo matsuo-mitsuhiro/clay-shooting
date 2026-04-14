@@ -8,6 +8,7 @@ import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import ContactButton from '@/components/ContactButton';
 import Footer from '@/components/Footer';
+import { ErrorModal } from '@/components/ModalDialog';
 
 interface TournamentAdmin {
   id: number;
@@ -235,7 +236,7 @@ export default function AdminsPage() {
 
       <main style={{ maxWidth: 960, margin: '0 auto', padding: '28px 16px' }}>
         <div style={{ pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const }}>
-        {error && <div style={{ background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c', borderRadius: 6, padding: '10px 14px', marginBottom: 16 }}>{error}</div>}
+        {error && <ErrorModal message={error} onClose={() => setError(null)} />}
 
         {/* 上部ボタン行 */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>

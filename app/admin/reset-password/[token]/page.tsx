@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import Footer from '@/components/Footer';
+import { ErrorModal } from '@/components/ModalDialog';
 
 export default function ResetPasswordPage({ params }: { params: Promise<{ token: string }> }) {
   const router = useRouter();
@@ -99,7 +100,7 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ token:
               </div>
             </div>
             <p style={{ fontSize: 12, color: '#888', marginBottom: 20 }}>8〜32文字、英字と数字を各1文字以上含む</p>
-            {error && <p style={{ color: C.red, fontSize: 13, marginBottom: 12 }}>{error}</p>}
+            {error && <ErrorModal message={error} onClose={() => setError(null)} />}
             <button type="submit" disabled={saving} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '11px', fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', width: '100%', opacity: saving ? 0.7 : 1 }}>
               {saving ? '変更中...' : 'パスワードを変更する'}
             </button>
