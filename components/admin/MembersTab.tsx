@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { C } from '@/lib/colors';
-import type { Member, ClassType, ScoreStatus, Tournament } from '@/lib/types';
+import type { Member, ClassType, ScoreStatus, Tournament, Result } from '@/lib/types';
 import { PREFECTURES } from '@/lib/prefectures';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import { ConfirmModal, ErrorModal } from '@/components/ModalDialog';
@@ -653,6 +653,133 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
     setReorderItems(newItems);
   }
 
+  // 前日の成績順組替（2日目専用）
+  async function handlePreviousDayRankShuffle() {
+    if (!reorderItems.length || selectedDay !== 2) return;
+
+    try {
+      setSaving(true);
+
+      // 1日目の成績を取得
+      const [resultsRes, regsRes] = await Promise.all([
+        fetch(`/api/tournaments/${tournamentId}/results`),
+        fetch(`/api/tournaments/${tournamentId}/registrations`),
+      ]);
+      const resultsJson = await resultsRes.json();
+      const regsJson = await regsRes.json();
+
+      if (!resultsJson.success) throw new Error('成績の取得に失敗しました');
+
+      const results: Result[] = resultsJson.data?.results ?? [];
+      const registrations: { member_code: string; applied_at: string }[] =
+        regsJson.success ? regsJson.data ?? [] : [];
+
+      // 2日目の選手一覧
+      const day2Members = reorderItems
+        .filter(s => s.member !== null)
+        .map(s => s.member!);
+
+      // 1日目の member_code 一覧（day1 に参加した選手）
+      const day1Codes = new Set(
+        savedMembers.filter(m => m.day === 1 && m.member_code).map(m => m.member_code!)
+      );
+
+      // 成績マップ（member_code → Result）
+      const resultMap = new Map<string, Result>();
+      for (const r of results) {
+        resultMap.set(r.member_code, r);
+      }
+
+      // 分類
+      const block1Ranked: { member: Member; rank: number }[] = [];     // ① rank あり
+      const block2NoRank: { member: Member; result: Result }[] = [];   // ② rank NULL + 点数あり
+      const block3NoScore: Member[] = [];                              // ③ 点数なし
+      const block4Day2Only: { member: Member; appliedAt: string }[] = []; // ④ 2日目のみ
+
+      for (const m of day2Members) {
+        if (!m.member_code || !day1Codes.has(m.member_code)) {
+          // 1日目に不参加 → ブロック④
+          const reg = registrations.find(r => r.member_code === m.member_code);
+          block4Day2Only.push({ member: m, appliedAt: reg?.applied_at ?? '9999' });
+          continue;
+        }
+
+        const result = resultMap.get(m.member_code);
+        if (!result) {
+          // 成績データなし → ブロック③
+          block3NoScore.push(m);
+          continue;
+        }
+
+        const hasScore = result.r1 != null || result.r2 != null || result.r3 != null || result.r4 != null;
+
+        if (result.rank != null) {
+          // ブロック①: 順位あり
+          block1Ranked.push({ member: m, rank: Number(result.rank) });
+        } else if (hasScore) {
+          // ブロック②: 失格・棄権で点数あり
+          block2NoRank.push({ member: m, result });
+        } else {
+          // ブロック③: 点数なし
+          block3NoScore.push(m);
+        }
+      }
+
+      // ① rank 昇順
+      block1Ranked.sort((a, b) => a.rank - b.rank);
+
+      // ② day1_total DESC → カウントバック（R4→R3→R2→R1 DESC）→ CB ASC → FR DESC
+      block2NoRank.sort((a, b) => {
+        const ra = a.result, rb = b.result;
+        const d1a = Number(ra.day1_total) || 0, d1b = Number(rb.day1_total) || 0;
+        if (d1a !== d1b) return d1b - d1a;
+        // カウントバック（1日目のラウンド: R4→R3→R2→R1）
+        for (const key of ['r4', 'r3', 'r2', 'r1'] as const) {
+          const va = Number(ra[key]) || 0, vb = Number(rb[key]) || 0;
+          if (va !== vb) return vb - va;
+        }
+        // CB ASC
+        const cba = ra.cb != null ? Number(ra.cb) : 999;
+        const cbb = rb.cb != null ? Number(rb.cb) : 999;
+        if (cba !== cbb) return cba - cbb;
+        // FR DESC
+        const fra = Number(ra.fr) || 0, frb = Number(rb.fr) || 0;
+        if (fra !== frb) return frb - fra;
+        return 0;
+      });
+
+      // ④ applied_at 昇順
+      block4Day2Only.sort((a, b) => a.appliedAt.localeCompare(b.appliedAt));
+
+      // 統合した並び順
+      const sortedMembers: Member[] = [
+        ...block1Ranked.map(b => b.member),
+        ...block2NoRank.map(b => b.member),
+        ...block3NoScore,
+        ...block4Day2Only.map(b => b.member),
+      ];
+
+      // グループに配置（6名ずつ）
+      const numGroups = Math.ceil(sortedMembers.length / POSITIONS);
+      const newItems: SlotItem[] = [];
+      for (let g = 0; g < numGroups; g++) {
+        for (let p = 0; p < POSITIONS; p++) {
+          const idx = g * POSITIONS + p;
+          newItems.push({
+            group: g + 1,
+            position: p + 1,
+            member: idx < sortedMembers.length ? sortedMembers[idx] : null,
+          });
+        }
+      }
+      setReorderItems(newItems);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '成績順組替に失敗しました');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const dayMembers = savedMembers.filter(m => m.day === selectedDay);
   const groupsInDay = Array.from({ length: groupCount[selectedDay] }, (_, i) => i + 1);
 
@@ -1058,6 +1185,15 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                   style={{ background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
                 >
                   ランダム組替
+                </button>
+              )}
+              {reorderMode && selectedDay === 2 && (
+                <button
+                  onClick={handlePreviousDayRankShuffle}
+                  disabled={saving}
+                  style={{ background: '#2980b9', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: saving ? 0.7 : 1 }}
+                >
+                  {saving ? '処理中...' : '前日の成績順組替'}
                 </button>
               )}
             </div>
