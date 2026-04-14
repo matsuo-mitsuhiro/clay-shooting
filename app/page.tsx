@@ -84,20 +84,35 @@ export default function Home() {
               const sc = (t as Tournament & { score_count?: number }).score_count ?? 0;
               const hasSquad = !!t.squad_published_at;
               const hasScores = sc > 0;
-              const btnLabel = hasScores ? '成績' : hasSquad ? '射順' : '概要';
-              const btnHref = hasScores
-                ? `/viewer/${t.id}`
-                : hasSquad
-                  ? `/tournaments/${t.id}/apply#squad`
-                  : `/tournaments/${t.id}/apply`;
-              const btnBg = hasScores ? '#e74c3c' : hasSquad ? '#2980b9' : C.gold;
-              const btnColor = hasScores ? '#fff' : hasSquad ? '#fff' : '#000';
 
               const now = Date.now();
               const hasApply = !!(t.apply_start_at && t.apply_end_at);
               const applyOpen = hasApply &&
                 now >= new Date(t.apply_start_at!).getTime() &&
                 now <= new Date(t.apply_end_at!).getTime() + 5 * 60 * 1000;
+
+              // ボタンラベル・リンク・色の決定
+              let btnLabel: string;
+              let btnHref: string;
+              let btnBg: string;
+              let btnColor: string;
+
+              if (hasScores) {
+                btnLabel = '成績';
+                btnHref = `/viewer/${t.id}`;
+                btnBg = '#e74c3c';
+                btnColor = '#fff';
+              } else if (hasSquad) {
+                btnLabel = applyOpen ? '射順・申込' : '射順';
+                btnHref = `/tournaments/${t.id}/apply#squad`;
+                btnBg = '#2980b9';
+                btnColor = '#fff';
+              } else {
+                btnLabel = applyOpen ? '概要・申込' : '概要';
+                btnHref = `/tournaments/${t.id}/apply`;
+                btnBg = C.gold;
+                btnColor = '#000';
+              }
 
               return (
               <div key={t.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -113,32 +128,18 @@ export default function Home() {
                     </div>
                   </div>
                 </Link>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  {applyOpen && (
-                    <Link
-                      href={`/tournaments/${t.id}/apply`}
-                      style={{
-                        background: C.gold, color: '#000',
-                        borderRadius: 6, padding: '7px 16px',
-                        fontSize: 14, fontWeight: 700,
-                        textDecoration: 'none', whiteSpace: 'nowrap',
-                      }}
-                    >
-                      申込
-                    </Link>
-                  )}
-                  <Link
-                    href={btnHref}
-                    style={{
-                      background: btnBg, color: btnColor,
-                      borderRadius: 6, padding: '7px 16px',
-                      fontSize: 14, fontWeight: 700,
-                      textDecoration: 'none', whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {btnLabel}
-                  </Link>
-                </div>
+                <Link
+                  href={btnHref}
+                  style={{
+                    background: btnBg, color: btnColor,
+                    borderRadius: 6, padding: '7px 16px',
+                    fontSize: 14, fontWeight: 700,
+                    textDecoration: 'none', whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  {btnLabel}
+                </Link>
               </div>
               );
             })}
