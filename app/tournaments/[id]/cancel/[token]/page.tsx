@@ -13,7 +13,7 @@ export default function CancelConfirmPage() {
 
   const [loading, setLoading] = useState(true);
   const [registration, setRegistration] = useState<Registration | null>(null);
-  const [tournamentInfo, setTournamentInfo] = useState<{ name: string; day1_date: string | null; day2_date: string | null; shooting_range: string | null } | null>(null);
+  const [tournamentInfo, setTournamentInfo] = useState<{ name: string; day1_date: string | null; day2_date: string | null; venue: string | null } | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
@@ -110,10 +110,10 @@ export default function CancelConfirmPage() {
                 <dd style={{ margin: 0, color: C.text }}>
                   {tournamentInfo.day1_date}{tournamentInfo.day2_date ? ` ・ ${tournamentInfo.day2_date}` : ''}
                 </dd>
-                {tournamentInfo.shooting_range && (
+                {tournamentInfo.venue && (
                   <>
                     <dt style={{ color: C.muted }}>射撃場</dt>
-                    <dd style={{ margin: 0, color: C.text }}>{tournamentInfo.shooting_range}</dd>
+                    <dd style={{ margin: 0, color: C.text }}>{tournamentInfo.venue}</dd>
                   </>
                 )}
               </dl>
