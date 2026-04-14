@@ -28,7 +28,7 @@ export default function Home() {
   }
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
-  const eventLabel = (t: string) => t === 'trap' ? 'トラップ' : t === 'skeet' ? 'スキート' : t;
+  const eventLabel = (t: string) => t === 'trap' ? 'トラップ' : t === 'skeet' ? 'スキート' : t === 'double_trap' ? 'ダブルトラップ' : t;
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const lastDate = (t: Tournament) => t.day2_date ?? t.day1_date ?? '';
@@ -93,6 +93,12 @@ export default function Home() {
               const btnBg = hasScores ? '#e74c3c' : hasSquad ? '#2980b9' : C.gold;
               const btnColor = hasScores ? '#fff' : hasSquad ? '#fff' : '#000';
 
+              const now = Date.now();
+              const hasApply = !!(t.apply_start_at && t.apply_end_at);
+              const applyOpen = hasApply &&
+                now >= new Date(t.apply_start_at!).getTime() &&
+                now <= new Date(t.apply_end_at!).getTime() + 5 * 60 * 1000;
+
               return (
               <div key={t.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Link href={btnHref} style={{ textDecoration: 'none', flex: 1 }}>
@@ -103,22 +109,36 @@ export default function Home() {
                     </div>
                     <div style={{ fontSize: 15, color: '#ffffff', display: 'flex', gap: 16 }}>
                       {t.venue && <span>📍 {t.venue}</span>}
-                      {t.day1_date && <span>📅 {fmtDate(t.day1_date)}</span>}
+                      {t.day1_date && <span>📅 {fmtDate(t.day1_date)}{t.day2_date ? ` / ${fmtDate(t.day2_date)}` : ''}</span>}
                     </div>
                   </div>
                 </Link>
-                <Link
-                  href={btnHref}
-                  style={{
-                    background: btnBg, color: btnColor,
-                    borderRadius: 6, padding: '7px 16px',
-                    fontSize: 14, fontWeight: 700,
-                    textDecoration: 'none', whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
-                  {btnLabel}
-                </Link>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  {applyOpen && (
+                    <Link
+                      href={`/tournaments/${t.id}/apply`}
+                      style={{
+                        background: C.gold, color: '#000',
+                        borderRadius: 6, padding: '7px 16px',
+                        fontSize: 14, fontWeight: 700,
+                        textDecoration: 'none', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      申込
+                    </Link>
+                  )}
+                  <Link
+                    href={btnHref}
+                    style={{
+                      background: btnBg, color: btnColor,
+                      borderRadius: 6, padding: '7px 16px',
+                      fontSize: 14, fontWeight: 700,
+                      textDecoration: 'none', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {btnLabel}
+                  </Link>
+                </div>
               </div>
               );
             })}
