@@ -386,26 +386,30 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 </div>
               )}
             </div>
-            <div>
-              <label style={labelStyle}>1日目セット番号</label>
-              <input
-                type="text"
-                value={form.day1_set}
-                onChange={e => setForm(f => ({ ...f, day1_set: e.target.value }))}
-                placeholder="例: 1番セット"
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>2日目セット番号</label>
-              <input
-                type="text"
-                value={form.day2_set}
-                onChange={e => setForm(f => ({ ...f, day2_set: e.target.value }))}
-                placeholder="例: 1番セット"
-                style={inputStyle}
-              />
-            </div>
+            {form.event_type !== 'skeet' && (
+              <>
+                <div>
+                  <label style={labelStyle}>1日目セット番号</label>
+                  <input
+                    type="text"
+                    value={form.day1_set}
+                    onChange={e => setForm(f => ({ ...f, day1_set: e.target.value }))}
+                    placeholder="例: 1番セット"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>2日目セット番号</label>
+                  <input
+                    type="text"
+                    value={form.day2_set}
+                    onChange={e => setForm(f => ({ ...f, day2_set: e.target.value }))}
+                    placeholder="例: 1番セット"
+                    style={inputStyle}
+                  />
+                </div>
+              </>
+            )}
           </div>
           <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <button
