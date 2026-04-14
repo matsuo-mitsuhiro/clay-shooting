@@ -33,7 +33,8 @@ export default function ViewerPage({ tournamentId }: Props) {
   const [origin, setOrigin] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const anyModalOpen = showQrModal || filterOpen;
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const anyModalOpen = showQrModal || filterOpen || showLoginModal;
 
   // プルリフレッシュ後もログイン状態を維持（sessionStorageで保存）
   useEffect(() => {
@@ -159,24 +160,6 @@ export default function ViewerPage({ tournamentId }: Props) {
     return `${dt.getFullYear()}年${dt.getMonth() + 1}月${dt.getDate()}日`;
   };
 
-  // ログイン前はログインフォームを表示
-  if (!loggedIn) {
-    return (
-      <ViewerLoginForm
-        tournamentId={tournamentId}
-        tournamentName={tournament?.name ?? ''}
-        tournamentDay1Date={tournament?.day1_date}
-        tournamentDay2Date={tournament?.day2_date}
-        onLoginSuccess={(name, belong) => {
-          sessionStorage.setItem(`viewer_session_${tournamentId}`, JSON.stringify({ name, belong }));
-          setLoginName(name);
-          setLoginBelong(belong);
-          setLoggedIn(true);
-        }}
-      />
-    );
-  }
-
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
       <LoadingOverlay show={loading} message="読み込み中..." />
@@ -255,6 +238,43 @@ export default function ViewerPage({ tournamentId }: Props) {
                 }}
               >
                 閲覧QRコード
+              </button>
+            )}
+            {!loggedIn ? (
+              <button
+                onClick={() => setShowLoginModal(true)}
+                style={{
+                  background: C.surface2,
+                  color: C.text,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 6,
+                  padding: '7px 14px',
+                  fontSize: 15,
+                  cursor: 'pointer',
+                }}
+              >
+                ログイン
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem(`viewer_session_${tournamentId}`);
+                  setLoggedIn(false);
+                  setLoginName('');
+                  setLoginBelong('');
+                  setHighlightedCode(null);
+                }}
+                style={{
+                  background: `${C.gold}22`,
+                  color: C.gold,
+                  border: `1px solid ${C.gold}`,
+                  borderRadius: 6,
+                  padding: '7px 14px',
+                  fontSize: 15,
+                  cursor: 'pointer',
+                }}
+              >
+                {loginName} ✓
               </button>
             )}
             <button
@@ -618,6 +638,47 @@ export default function ViewerPage({ tournamentId }: Props) {
                 閉じる
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setShowLoginModal(false)}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: 400 }}>
+            <ViewerLoginForm
+              tournamentId={tournamentId}
+              tournamentName={tournament?.name ?? ''}
+              tournamentDay1Date={tournament?.day1_date}
+              tournamentDay2Date={tournament?.day2_date}
+              onLoginSuccess={(name, belong) => {
+                sessionStorage.setItem(`viewer_session_${tournamentId}`, JSON.stringify({ name, belong }));
+                setLoginName(name);
+                setLoginBelong(belong);
+                setLoggedIn(true);
+                setShowLoginModal(false);
+              }}
+              compact
+            />
+            <button
+              onClick={() => setShowLoginModal(false)}
+              style={{
+                display: 'block', width: '100%', marginTop: 8,
+                background: 'transparent', color: C.muted,
+                border: `1px solid ${C.border}`, borderRadius: 6,
+                padding: '10px', fontSize: 15, cursor: 'pointer',
+              }}
+            >
+              閉じる
+            </button>
           </div>
         </div>
       )}

@@ -945,7 +945,7 @@ export default function ApplyPage() {
           const groups = [...new Set(dayMembers.map(m => m.group_number))].sort((a, b) => a - b);
 
           return (
-            <section style={{
+            <section id="squad" style={{
               background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
               padding: '20px', marginTop: 20,
             }}>

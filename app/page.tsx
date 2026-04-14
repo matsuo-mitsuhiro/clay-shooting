@@ -45,9 +45,22 @@ export default function Home() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {tournaments.map(t => (
-              <Link key={t.id} href={`/viewer/${t.id}`} style={{ textDecoration: 'none' }}>
-                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+            {tournaments.map(t => {
+              const sc = (t as Tournament & { score_count?: number }).score_count ?? 0;
+              const hasSquad = !!t.squad_published_at;
+              const hasScores = sc > 0;
+              const btnLabel = hasScores ? '成績' : hasSquad ? '射順' : '概要';
+              const btnHref = hasScores
+                ? `/viewer/${t.id}`
+                : hasSquad
+                  ? `/tournaments/${t.id}/apply#squad`
+                  : `/tournaments/${t.id}/apply`;
+              const btnBg = hasScores ? '#e74c3c' : hasSquad ? '#2980b9' : C.gold;
+              const btnColor = hasScores ? '#fff' : hasSquad ? '#fff' : '#000';
+
+              return (
+              <div key={t.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Link href={btnHref} style={{ textDecoration: 'none', flex: 1 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                       <span style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{t.name}</span>
@@ -58,10 +71,22 @@ export default function Home() {
                       {t.day1_date && <span>📅 {fmtDate(t.day1_date)}</span>}
                     </div>
                   </div>
-                  <span style={{ color: C.gold, fontSize: 22 }}>→</span>
-                </div>
-              </Link>
-            ))}
+                </Link>
+                <Link
+                  href={btnHref}
+                  style={{
+                    background: btnBg, color: btnColor,
+                    borderRadius: 6, padding: '7px 16px',
+                    fontSize: 14, fontWeight: 700,
+                    textDecoration: 'none', whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  {btnLabel}
+                </Link>
+              </div>
+              );
+            })}
           </div>
         )}
       </main>

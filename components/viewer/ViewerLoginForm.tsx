@@ -11,12 +11,13 @@ interface Props {
   tournamentDay1Date?: string | null;
   tournamentDay2Date?: string | null;
   onLoginSuccess: (name: string, belong: string) => void;
+  compact?: boolean;  // モーダル内表示用（外枠なし）
 }
 
 const LS_KEY = 'viewer_login_info';
 
 export default function ViewerLoginForm({
-  tournamentId, tournamentName, tournamentDay1Date, tournamentDay2Date, onLoginSuccess,
+  tournamentId, tournamentName, tournamentDay1Date, tournamentDay2Date, onLoginSuccess, compact,
 }: Props) {
   const [affiliations, setAffiliations] = useState<string[]>([]);
   const [belong, setBelong] = useState('');
@@ -119,43 +120,35 @@ export default function ViewerLoginForm({
     outline: 'none',
   };
 
-  return (
-    <div style={{
-      minHeight: '100vh', background: C.bg, color: C.text,
-      display: 'flex', flexDirection: 'column',
-      fontFamily: 'Arial, sans-serif',
-    }}>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <LoadingOverlay show={loading} message="確認中..." />
-
-      <div style={{
-        background: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: 12,
-        padding: '36px 32px',
-        width: '100%',
-        maxWidth: 440,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-      }}>
-        <h1 style={{ margin: '0 0 4px', fontSize: 22, color: C.gold, fontWeight: 700 }}>
-          成績確認
+  const formContent = (
+    <>
+        <h1 style={{ margin: '0 0 4px', fontSize: compact ? 18 : 22, color: C.gold, fontWeight: 700 }}>
+          {compact ? '自分の成績をハイライト' : '成績確認'}
         </h1>
-        <p style={{ margin: '0 0 2px', fontSize: 14, color: C.muted }}>
-          {tournamentName}
+        {!compact && (
+          <>
+            <p style={{ margin: '0 0 2px', fontSize: 14, color: C.muted }}>
+              {tournamentName}
+            </p>
+            {dateLabel && (
+              <p style={{ margin: '0 0 24px', fontSize: 13, color: C.muted }}>
+                {dateLabel}
+              </p>
+            )}
+            {!dateLabel && <div style={{ marginBottom: 24 }} />}
+          </>
+        )}
+
+        <p style={{ margin: compact ? '0 0 16px' : '0 0 8px', fontSize: compact ? 13 : 15, color: compact ? C.muted : C.text }}>
+          {compact
+            ? '所属協会と氏名を入力すると、自分の行がハイライト表示されます。'
+            : '大会に参加している選手（自分）の所属協会と氏名を登録して成績を確認してください。'}
         </p>
-        {dateLabel && (
-          <p style={{ margin: '0 0 24px', fontSize: 13, color: C.muted }}>
-            {dateLabel}
+        {!compact && (
+          <p style={{ margin: '0 0 20px', fontSize: 13, color: C.muted }}>
+            大会に参加していない選手の氏名では成績を確認できません。
           </p>
         )}
-        {!dateLabel && <div style={{ marginBottom: 24 }} />}
-
-        <p style={{ margin: '0 0 8px', fontSize: 15, color: C.text }}>
-          大会に参加している選手（自分）の所属協会と氏名を登録して成績を確認してください。
-        </p>
-        <p style={{ margin: '0 0 20px', fontSize: 13, color: C.muted }}>
-          大会に参加していない選手の氏名では成績を確認できません。
-        </p>
 
         {/* 所属協会（必須） */}
         <div style={{ marginBottom: 20 }}>
@@ -228,8 +221,44 @@ export default function ViewerLoginForm({
             opacity: loading ? 0.7 : 1,
           }}
         >
-          成績を確認する →
+          {compact ? 'ハイライト設定' : '成績を確認する →'}
         </button>
+    </>
+  );
+
+  if (compact) {
+    return (
+      <div style={{
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 12,
+        padding: '24px 20px',
+      }}>
+        <LoadingOverlay show={loading} message="確認中..." />
+        {formContent}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh', background: C.bg, color: C.text,
+      display: 'flex', flexDirection: 'column',
+      fontFamily: 'Arial, sans-serif',
+    }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <LoadingOverlay show={loading} message="確認中..." />
+
+      <div style={{
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 12,
+        padding: '36px 32px',
+        width: '100%',
+        maxWidth: 440,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      }}>
+        {formContent}
       </div>
       </div>
       <Footer />

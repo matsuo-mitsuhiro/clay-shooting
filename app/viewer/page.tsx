@@ -101,42 +101,70 @@ export default function ViewerListPage() {
                 className="flex items-center justify-between rounded-xl px-5 py-4 border"
                 style={{ background: C.surface, borderColor: C.border }}
               >
-                <Link
-                  href={`/viewer/${t.id}`}
-                  className="flex flex-col gap-1 flex-1 transition-all hover:scale-[1.01]"
-                  style={{ textDecoration: 'none' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-base" style={{ color: C.text }}>{t.name}</span>
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                      style={{ background: C.gold, color: '#000' }}
-                    >
-                      {eventLabel(t.event_type)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs" style={{ color: '#ffffff' }}>
-                    {t.venue && <span>📍 {t.venue}</span>}
-                    {t.day1_date && (
-                      <span>📅 {fmtDate(t.day1_date)}{t.day2_date ? ` / ${fmtDate(t.day2_date)}` : ''}</span>
-                    )}
-                  </div>
-                </Link>
-                <div className="flex items-center gap-3">
-                  {applyOpen && (
-                    <button
-                      onClick={() => router.push(`/tournaments/${t.id}/apply`)}
-                      style={{
-                        background: C.gold, color: '#000', border: 'none',
-                        borderRadius: 6, padding: '7px 16px', fontSize: 14, fontWeight: 700,
-                        cursor: 'pointer', whiteSpace: 'nowrap',
-                      }}
-                    >
-                      申込
-                    </button>
-                  )}
-                  <Link href={`/viewer/${t.id}`} style={{ color: C.gold, fontSize: 20, textDecoration: 'none' }}>→</Link>
-                </div>
+                {(() => {
+                  const sc = (t as Tournament & { score_count?: number }).score_count ?? 0;
+                  const hasSquad = !!t.squad_published_at;
+                  const hasScores = sc > 0;
+                  const btnLabel = hasScores ? '成績' : hasSquad ? '射順' : '概要';
+                  const btnHref = hasScores
+                    ? `/viewer/${t.id}`
+                    : hasSquad
+                      ? `/tournaments/${t.id}/apply#squad`
+                      : `/tournaments/${t.id}/apply`;
+                  const btnBg = hasScores ? '#e74c3c' : hasSquad ? '#2980b9' : C.gold;
+                  const btnColor = hasScores ? '#fff' : hasSquad ? '#fff' : '#000';
+
+                  return (
+                    <>
+                      <Link
+                        href={btnHref}
+                        className="flex flex-col gap-1 flex-1 transition-all hover:scale-[1.01]"
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-base" style={{ color: C.text }}>{t.name}</span>
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                            style={{ background: C.gold, color: '#000' }}
+                          >
+                            {eventLabel(t.event_type)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs" style={{ color: '#ffffff' }}>
+                          {t.venue && <span>📍 {t.venue}</span>}
+                          {t.day1_date && (
+                            <span>📅 {fmtDate(t.day1_date)}{t.day2_date ? ` / ${fmtDate(t.day2_date)}` : ''}</span>
+                          )}
+                        </div>
+                      </Link>
+                      <div className="flex items-center gap-3">
+                        {applyOpen && (
+                          <button
+                            onClick={() => router.push(`/tournaments/${t.id}/apply`)}
+                            style={{
+                              background: C.gold, color: '#000', border: 'none',
+                              borderRadius: 6, padding: '7px 16px', fontSize: 14, fontWeight: 700,
+                              cursor: 'pointer', whiteSpace: 'nowrap',
+                            }}
+                          >
+                            申込
+                          </button>
+                        )}
+                        <Link
+                          href={btnHref}
+                          style={{
+                            background: btnBg, color: btnColor,
+                            borderRadius: 6, padding: '7px 16px',
+                            fontSize: 14, fontWeight: 700,
+                            textDecoration: 'none', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {btnLabel}
+                        </Link>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             );
           })}
