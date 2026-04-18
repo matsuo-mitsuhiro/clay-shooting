@@ -105,7 +105,7 @@ function RegisterContent() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ background: '#1a1a2e', border: `1px solid #333`, borderRadius: 10, padding: 28 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ fontSize: 13, color: '#aaa', display: 'block', marginBottom: 6 }}>会員番号 <span style={{ color: C.red }}>*</span></label>
                 <input value={memberCode} onChange={e => setMemberCode(e.target.value)} required style={inputStyle} placeholder="例: 12345" />
@@ -119,7 +119,7 @@ function RegisterContent() {
               <label style={{ fontSize: 13, color: '#aaa', display: 'block', marginBottom: 6 }}>メールアドレス <span style={{ color: C.red }}>*</span></label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 8 }}>
               <div>
                 <label style={{ fontSize: 13, color: '#aaa', display: 'block', marginBottom: 6 }}>パスワード <span style={{ color: C.red }}>*</span></label>
                 <div style={{ position: 'relative' }}>
