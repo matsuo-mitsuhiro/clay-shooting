@@ -117,6 +117,7 @@ export interface Member {
   belong: string | null;
   class: ClassType | null;
   is_judge: boolean;
+  is_non_prize: boolean;
   created_at: string;
 }
 
@@ -179,6 +180,7 @@ export interface Result {
   belong: string | null;
   class: ClassType | null;
   is_judge: boolean;
+  is_non_prize: boolean;
   group1: number;
   position: number;
   group2: number | null;
@@ -312,6 +314,7 @@ export type OperationAction =
   | 'registration_delete'
   | 'registration_edit'
   | 'registration_restore'
+  | 'score_save'
   | 'member_delete'
   | 'login'
   | 'inspection_save'

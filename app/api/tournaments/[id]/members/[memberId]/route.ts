@@ -133,17 +133,27 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json<ApiResponse>({ success: false, error: '選手が見つかりません' }, { status: 404 });
     }
 
-    const member = members[0] as { member_code: string | null; belong: string | null; class: string | null; is_judge: boolean };
+    const member = members[0] as { member_code: string | null; belong: string | null; class: string | null; is_judge: boolean; is_non_prize: boolean };
 
     const newBelong = body.belong !== undefined ? body.belong : member.belong;
     const newClass = body.class !== undefined ? body.class : member.class;
     const newIsJudge = body.is_judge !== undefined ? body.is_judge : member.is_judge;
+    const newIsNonPrize = body.is_non_prize !== undefined ? body.is_non_prize : member.is_non_prize;
 
     await sql`
       UPDATE members
-      SET belong = ${newBelong}, class = ${newClass}, is_judge = ${newIsJudge}
+      SET belong = ${newBelong}, class = ${newClass}, is_judge = ${newIsJudge}, is_non_prize = ${newIsNonPrize}
       WHERE id = ${memberIdNum} AND tournament_id = ${tournamentId}
     `;
+
+    // 賞典外フラグは同一 member_code の他日にも同期（両方参加者対策）
+    if (body.is_non_prize !== undefined && member.member_code) {
+      await sql`
+        UPDATE members
+        SET is_non_prize = ${newIsNonPrize}
+        WHERE tournament_id = ${tournamentId} AND member_code = ${member.member_code}
+      `;
+    }
 
     // Also update player_master if member_code exists
     if (member.member_code && (body.class !== undefined || body.is_judge !== undefined)) {

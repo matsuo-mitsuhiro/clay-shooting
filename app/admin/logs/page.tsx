@@ -19,6 +19,7 @@ const ACTION_LABELS: Record<OperationAction, string> = {
   registration_delete: '申込削除',
   registration_edit: '申込編集',
   registration_restore: '未移行に戻す',
+  score_save: '点数登録',
   member_delete: '選手を削除',
   login: 'ログイン',
   inspection_save: '記録審査を保存',

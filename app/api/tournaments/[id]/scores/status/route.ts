@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
+import { writeOperationLog } from '@/lib/operation-log';
 import type { ApiResponse, ScoreStatus } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string }> };
+
+function statusLabel(s: ScoreStatus): string {
+  if (s === 'disqualified') return '失格';
+  if (s === 'withdrawn') return '棄権';
+  return '有効';
+}
 
 // PATCH /api/tournaments/[id]/scores/status — 成績ステータスを更新
 export async function PATCH(req: NextRequest, { params }: Params) {
@@ -38,6 +45,30 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         UPDATE scores SET status = ${body.status}, updated_at = NOW()
         WHERE tournament_id = ${tid} AND member_code = ${body.member_code}
       `;
+    }
+
+    // 操作ログ記録
+    try {
+      const memberRows = await sql`
+        SELECT name, group_number FROM members
+        WHERE tournament_id = ${tid} AND member_code = ${body.member_code}
+        ORDER BY day ASC LIMIT 1
+      `;
+      if (memberRows.length > 0) {
+        const m = memberRows[0] as { name: string; group_number: number };
+        const tRows = await sql`SELECT name FROM tournaments WHERE id = ${tid}`;
+        const tournamentName = tRows.length ? (tRows[0] as { name: string }).name : null;
+        await writeOperationLog({
+          tournamentId: tid,
+          tournamentName,
+          adminName: (jwtToken.name as string) ?? null,
+          adminAffiliation: (jwtToken.affiliation as string) ?? null,
+          action: 'score_save',
+          detail: `${m.group_number}組ステータス：${m.name} ${statusLabel(body.status)}`,
+        });
+      }
+    } catch (e) {
+      console.error('score_save log failed:', e);
     }
 
     return NextResponse.json<ApiResponse>({ success: true });

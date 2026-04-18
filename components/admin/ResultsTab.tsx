@@ -469,7 +469,49 @@ export default function ResultsTab({ tournamentId }: Props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map(r => {
+                    {(() => {
+                      const colCount = 10 + (has2ndDay ? 5 : 0) + 2 + (hasCB ? 1 : 0) + (hasFR ? 1 : 0);
+                      const rows: React.ReactNode[] = [];
+                      let prevNonPrize = false;
+                      filtered.forEach((r, idx) => {
+                        if (r.is_non_prize && !prevNonPrize && idx > 0) {
+                          rows.push(
+                            <tr key="__non_prize_sep__" style={{ background: `${C.surface2}88` }}>
+                              <td colSpan={colCount} style={{
+                                padding: '8px 12px',
+                                textAlign: 'center',
+                                fontWeight: 700,
+                                color: C.muted,
+                                borderTop: `2px solid ${C.border}`,
+                                borderBottom: `1px solid ${C.border}`,
+                                letterSpacing: '0.1em',
+                              }}>
+                                ── 賞典外 ──
+                              </td>
+                            </tr>
+                          );
+                        }
+                        prevNonPrize = r.is_non_prize;
+                        rows.push(renderResultRow(r));
+                      });
+                      return rows;
+                    })()}
+                  </tbody>
+                </table>
+          )}
+
+          {highlightedCode && (
+            <p style={{ fontSize: 14, color: C.muted, marginTop: 8, textAlign: 'center' }}>
+              行をクリックしてハイライトを解除できます
+            </p>
+          )}
+        </>
+      )}
+      </div>
+    </div>
+  );
+
+  function renderResultRow(r: Result): React.ReactNode {
                       const isHighlighted = highlightedCode === r.member_code;
                       const isDQ = r.status === 'disqualified' || r.status === 'withdrawn';
 
@@ -553,21 +595,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                           )}
                         </tr>
                       );
-                    })}
-                  </tbody>
-                </table>
-          )}
-
-          {highlightedCode && (
-            <p style={{ fontSize: 14, color: C.muted, marginTop: 8, textAlign: 'center' }}>
-              行をクリックしてハイライトを解除できます
-            </p>
-          )}
-        </>
-      )}
-      </div>
-    </div>
-  );
+  }
 }
 
 const thS: React.CSSProperties = {
