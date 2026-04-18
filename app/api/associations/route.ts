@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const sql = getDb();
     const rows = await sql`
-      SELECT cd, name, cancellation_notice, notes, president_name
+      SELECT cd, name, formal_name, cancellation_notice, notes, president_name
       FROM associations
       ORDER BY CASE WHEN cd = 99 THEN 999 ELSE cd END
     `;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { toShortName } from '@/lib/affiliation';
 import type { PlayerMaster } from '../route';
 
 function formatJST(date: Date): string {
@@ -21,6 +22,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ code
       return NextResponse.json({ success: false, error: '氏名は必須です' }, { status: 400 });
     }
     const newCode = new_member_code?.trim() || code;
+    const normalizedAffiliation = affiliation ? (toShortName(affiliation) || null) : null;
 
     // 既存データを取得してchange_historyの差分を計算
     const existing = await sql`SELECT * FROM player_master WHERE member_code = ${code}`;
@@ -37,8 +39,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ code
     if ((skeet_class ?? null) !== (prev.skeet_class ?? null)) {
       changes.push(`Sクラス ${prev.skeet_class ?? '未設定'}→${skeet_class ?? '未設定'}`);
     }
-    if ((affiliation?.trim() || null) !== (prev.affiliation ?? null)) {
-      changes.push(`所属 ${prev.affiliation ?? '未設定'}→${affiliation?.trim() || '未設定'}`);
+    if ((normalizedAffiliation ?? null) !== (prev.affiliation ?? null)) {
+      changes.push(`所属 ${prev.affiliation ?? '未設定'}→${normalizedAffiliation ?? '未設定'}`);
     }
 
     let newHistory = prev.change_history ?? null;
@@ -51,7 +53,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ code
       UPDATE player_master SET
         member_code    = ${newCode},
         name           = ${name.trim()},
-        affiliation    = ${affiliation ?? null},
+        affiliation    = ${normalizedAffiliation},
         is_judge       = ${is_judge ?? false},
         trap_class     = ${trap_class ?? null},
         skeet_class    = ${skeet_class ?? null},

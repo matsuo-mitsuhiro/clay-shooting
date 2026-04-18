@@ -140,7 +140,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     let association: Record<string, unknown> | null = null;
     if (tournament.organizer_cd) {
       const aRows = await sql`
-        SELECT cd, name, president_name FROM associations WHERE cd = ${tournament.organizer_cd}
+        SELECT cd, name, formal_name, president_name FROM associations WHERE cd = ${tournament.organizer_cd}
       `;
       if (aRows.length) association = aRows[0] as Record<string, unknown>;
     }

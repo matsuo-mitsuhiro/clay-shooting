@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
 import { writeOperationLog } from '@/lib/operation-log';
+import { toShortName } from '@/lib/affiliation';
 import type { ApiResponse, Registration, ClassType, ParticipationDay } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string }> };
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     const source: string = body.source ?? 'manual';
     const member_code: string = (body.member_code ?? '').trim();
     const name: string = (body.name ?? '').trim();
-    const belong: string | null = body.belong?.trim() || null;
+    const belong: string | null = body.belong ? (toShortName(body.belong) || null) : null;
     const classVal: ClassType | null = body.class || null;
     const is_judge: boolean = body.is_judge === true;
     const participation_day: ParticipationDay = body.participation_day ?? 'day1';

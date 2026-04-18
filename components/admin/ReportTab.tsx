@@ -45,7 +45,7 @@ interface ReportData {
   } | null;
   incentives: IncentiveRow[];
   incentivesAreAuto: boolean;
-  association: { cd: number; name: string; president_name: string | null } | null;
+  association: { cd: number; name: string; formal_name: string | null; president_name: string | null } | null;
   trapCounts: ClassCounts;
   skeetCounts: ClassCounts;
   fiscalYear: number | null;
@@ -360,7 +360,7 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
             </div>
             <div>
               <label style={labelStyle}>主催</label>
-              <input style={readOnlyStyle} value={data.association ? `${data.association.name} クレー射撃協会` : ''} readOnly />
+              <input style={readOnlyStyle} value={data.association?.formal_name ?? ''} readOnly />
             </div>
             <div>
               <label style={labelStyle}>会長名</label>

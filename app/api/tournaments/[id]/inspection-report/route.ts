@@ -88,7 +88,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     const [tournamentRows, resultRows, assocRows] = await Promise.all([
       sql`SELECT * FROM tournaments WHERE id = ${tournamentId}`,
       sql`SELECT * FROM v_results WHERE tournament_id = ${tournamentId} ORDER BY rank NULLS LAST, total DESC, name`,
-      sql`SELECT cd, name FROM associations`,
+      sql`SELECT cd, name, formal_name FROM associations`,
     ]);
 
     if (!tournamentRows.length) {
@@ -109,9 +109,10 @@ export async function GET(req: NextRequest, { params }: Params) {
       results = results.slice(0, 72);
     }
 
-    // 主催協会名の取得
-    const assocMap = new Map(assocRows.map(r => [Number(r.cd), r.name as string]));
-    const organizerName = tournament.organizer_cd ? (assocMap.get(tournament.organizer_cd) ?? '') : '';
+    // 主催協会名の取得（正式名称を優先、なければ短縮名でフォールバック）
+    const assocMap = new Map(assocRows.map(r => [Number(r.cd), { name: r.name as string, formal_name: r.formal_name as string | null }]));
+    const assoc = tournament.organizer_cd ? assocMap.get(tournament.organizer_cd) : null;
+    const organizerName = assoc ? (assoc.formal_name ?? assoc.name) : '';
 
     // --- テンプレートをZIPとして読み込み（XML構造を完全保持）---
     const zip = await JSZip.loadAsync(TEMPLATE_BASE64, { base64: true });

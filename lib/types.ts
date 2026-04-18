@@ -264,6 +264,7 @@ export interface RegistrationToken {
 export interface Association {
   cd: number;
   name: string;
+  formal_name: string | null;
   cancellation_notice: string | null;
   notes: string | null;
   president_name: string | null;

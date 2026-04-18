@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
 import { writeOperationLog } from '@/lib/operation-log';
+import { toShortName } from '@/lib/affiliation';
 import type { ApiResponse } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string; memberId: string }> };
@@ -135,7 +136,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const member = members[0] as { member_code: string | null; belong: string | null; class: string | null; is_judge: boolean; is_non_prize: boolean };
 
-    const newBelong = body.belong !== undefined ? body.belong : member.belong;
+    const newBelong = body.belong !== undefined
+      ? (body.belong ? (toShortName(body.belong) || null) : null)
+      : member.belong;
     const newClass = body.class !== undefined ? body.class : member.class;
     const newIsJudge = body.is_judge !== undefined ? body.is_judge : member.is_judge;
     const newIsNonPrize = body.is_non_prize !== undefined ? body.is_non_prize : member.is_non_prize;

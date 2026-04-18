@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { normalizeKanji } from '@/lib/kanji-normalize';
+import { toShortName } from '@/lib/affiliation';
 
 export interface PlayerMaster {
   member_code: string;
@@ -181,12 +182,13 @@ export async function POST(req: NextRequest) {
     if (!member_code?.trim() || !name?.trim()) {
       return NextResponse.json({ success: false, error: '会員番号と氏名は必須です' }, { status: 400 });
     }
+    const normalizedAffiliation = affiliation ? (toShortName(affiliation) || null) : null;
     const rows = await sql`
       INSERT INTO player_master (member_code, name, affiliation, is_judge, trap_class, skeet_class, updated_at)
       VALUES (
         ${member_code.trim()},
         ${name.trim()},
-        ${affiliation ?? null},
+        ${normalizedAffiliation},
         ${is_judge ?? false},
         ${trap_class ?? null},
         ${skeet_class ?? null},

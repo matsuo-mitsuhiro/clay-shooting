@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { toShortName } from '@/lib/affiliation';
 import type { Member, MemberInput, ApiResponse } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string }> };
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest, { params }: Params) {
             ${m.position},
             ${m.member_code ?? null},
             ${m.name.trim()},
-            ${m.belong ?? null},
+            ${m.belong ? (toShortName(m.belong) || null) : null},
             ${m.class ?? null},
             ${m.is_judge ?? false}
           )

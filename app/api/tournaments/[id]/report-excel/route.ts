@@ -204,8 +204,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const tName = String(t.name ?? '');
     xml = setCellInXml(xml, 'C7', tName);
 
-    // N7: Prefecture name
-    const assocName = association ? String(association.name ?? '') : '';
+    // N7: 主催協会（正式名称。未設定なら短縮名でフォールバック）
+    const assocName = association
+      ? String(association.formal_name ?? association.name ?? '')
+      : '';
     xml = setCellInXml(xml, 'N7', assocName);
 
     // D8: Opening date (D8:M8 merged)

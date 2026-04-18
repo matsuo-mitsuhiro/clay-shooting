@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
 import { writeOperationLog } from '@/lib/operation-log';
+import { toShortName } from '@/lib/affiliation';
 import type { ApiResponse, ParticipationDay } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string; regId: string }> };
@@ -136,6 +137,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const isTransferred = !!cur.transferred_at;
     const newPday: ParticipationDay | undefined = body.participation_day;
+
+    // 所属名を短縮形に正規化（「大阪府クレー射撃協会」→「大阪」）
+    if (body.belong !== undefined) {
+      body.belong = body.belong ? (toShortName(body.belong) || null) : null;
+    }
 
     // 参加日変更のバリデーション（移行済のみ）
     if (newPday !== undefined && newPday !== cur.participation_day && isTransferred) {

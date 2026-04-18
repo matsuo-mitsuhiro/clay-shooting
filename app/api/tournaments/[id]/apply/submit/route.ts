@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { randomBytes } from 'crypto';
 import { sendApplyConfirmation } from '@/lib/email';
+import { toShortName } from '@/lib/affiliation';
 import type { ApiResponse, Registration, ParticipationDay, ClassType } from '@/lib/types';
 
 type Params = { params: Promise<{ id: string }> };
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     // 半角・全角スペースを除去してからトリム
     const tokenOrCode: string = (body.code ?? body.token ?? '').replace(/[\s\u3000]/g, '').trim();
     const name: string = (body.name ?? '').trim();
-    const belong: string | null = body.belong?.trim() || null;
+    const belong: string | null = body.belong ? (toShortName(body.belong) || null) : null;
     const classVal: ClassType | null = body.class || null;
     const is_judge: boolean = body.is_judge === true;
     const participation_day: ParticipationDay = body.participation_day ?? 'day1';

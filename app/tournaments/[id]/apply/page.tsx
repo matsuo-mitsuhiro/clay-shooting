@@ -17,6 +17,7 @@ interface ApplyInfoData {
   tournament: Tournament;
   day1_count: number;
   day2_count: number;
+  organizer_formal_name: string | null;
 }
 
 export default function ApplyPage() {
@@ -333,6 +334,12 @@ export default function ApplyPage() {
         }}>
           <h1 style={{ margin: '0 0 12px', fontSize: 20, color: C.gold }}>{t.name}</h1>
           <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 16px', fontSize: 15 }}>
+            {applyInfo?.organizer_formal_name && (
+              <>
+                <dt style={{ color: C.muted }}>主催</dt>
+                <dd style={{ margin: 0, color: C.text }}>{applyInfo.organizer_formal_name}</dd>
+              </>
+            )}
             {t.venue && (
               <>
                 <dt style={{ color: C.muted }}>会場</dt>
