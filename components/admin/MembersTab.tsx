@@ -86,9 +86,19 @@ interface UnregisteredEntry {
 // Edit mode: data snapshot per member
 interface EditableMember {
   id: number;
+  member_code: string | null;
   belong: string | null;
   class: ClassType | null;
   is_judge: boolean;
+}
+
+interface MemberChange {
+  id: number;
+  member_code: string | null;
+  belong: string | null;
+  class: ClassType | null;
+  is_judge: boolean;
+  memberCodeChanged: boolean;
 }
 
 export default function MembersTab({ tournamentId, tournament, onNavigateToApplySettings }: Props) {
@@ -119,6 +129,9 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
   const [editing, setEditing] = useState(false);
   const [editedMembers, setEditedMembers] = useState<EditableMember[]>([]);
   const [snapshotMembers, setSnapshotMembers] = useState<EditableMember[]>([]);
+
+  // 会員番号変更で選手マスター未登録コードがあった場合の確認モーダル
+  const [memberCodeWarn, setMemberCodeWarn] = useState<{ unknown: string[]; pendingChanges: MemberChange[] } | null>(null);
 
   useEffect(() => {
     fetch('/api/associations')
@@ -191,6 +204,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
   function enterEditMode() {
     const snapshot: EditableMember[] = savedMembers.map(m => ({
       id: m.id,
+      member_code: m.member_code,
       belong: m.belong,
       class: m.class,
       is_judge: m.is_judge,
@@ -208,7 +222,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       prev.map(m => {
         const snap = snapshotMembers.find(s => s.id === m.id);
         if (!snap) return m;
-        return { ...m, belong: snap.belong, class: snap.class, is_judge: snap.is_judge };
+        return { ...m, member_code: snap.member_code, belong: snap.belong, class: snap.class, is_judge: snap.is_judge };
       })
     );
     setEditing(false);
@@ -217,7 +231,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
     setError(null);
   }
 
-  function updateEditedMember(memberId: number, field: 'belong' | 'class' | 'is_judge', value: string | boolean | null) {
+  function updateEditedMember(memberId: number, field: 'member_code' | 'belong' | 'class' | 'is_judge', value: string | boolean | null) {
     setEditedMembers(prev =>
       prev.map(em => em.id === memberId ? { ...em, [field]: value } : em)
     );
@@ -229,13 +243,48 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
 
   async function saveEditMode() {
     setError(null);
-    // Find changed rows
-    const changes: Array<{ id: number; belong: string | null; class: ClassType | null; is_judge: boolean }> = [];
+    // Find changed rows — 同一 member_code の両日分の重複変更は1件にまとめる
+    const normalizeCode = (s: string | null) => {
+      if (!s) return null;
+      const trimmed = s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).trim();
+      return trimmed || null;
+    };
+
+    // 会員番号変更の検証: 半角数字のみ
     for (const edited of editedMembers) {
       const snap = snapshotMembers.find(s => s.id === edited.id);
       if (!snap) continue;
-      if (edited.belong !== snap.belong || edited.class !== snap.class || edited.is_judge !== snap.is_judge) {
-        changes.push({ id: edited.id, belong: edited.belong, class: edited.class, is_judge: edited.is_judge });
+      const newCode = normalizeCode(edited.member_code);
+      if (newCode && !/^\d+$/.test(newCode)) {
+        setError(`会員番号は半角数字のみで入力してください（ID=${edited.id}）`);
+        return;
+      }
+    }
+
+    const changes: MemberChange[] = [];
+    const seenCodePairs = new Set<string>(); // 両日分の同一コード変更の重複を除外
+    for (const edited of editedMembers) {
+      const snap = snapshotMembers.find(s => s.id === edited.id);
+      if (!snap) continue;
+      const newCode = normalizeCode(edited.member_code);
+      const oldCode = snap.member_code;
+      const codeChanged = newCode !== oldCode;
+
+      // 会員番号変更は同一oldCodeで両日分ある場合、1回だけ処理する（APIが両日分を一括更新）
+      if (codeChanged && oldCode) {
+        const key = `code:${oldCode}`;
+        if (seenCodePairs.has(key)) {
+          // 他プロパティの変更があれば別行として処理する必要がある
+          if (edited.belong !== snap.belong || edited.class !== snap.class || edited.is_judge !== snap.is_judge) {
+            changes.push({ id: edited.id, member_code: newCode, belong: edited.belong, class: edited.class, is_judge: edited.is_judge, memberCodeChanged: false });
+          }
+          continue;
+        }
+        seenCodePairs.add(key);
+      }
+
+      if (codeChanged || edited.belong !== snap.belong || edited.class !== snap.class || edited.is_judge !== snap.is_judge) {
+        changes.push({ id: edited.id, member_code: newCode, belong: edited.belong, class: edited.class, is_judge: edited.is_judge, memberCodeChanged: codeChanged });
       }
     }
 
@@ -246,6 +295,28 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       return;
     }
 
+    // 会員番号変更があれば選手マスターに存在するか事前チェック
+    const codeChanges = changes.filter(c => c.memberCodeChanged && c.member_code);
+    const unknownCodes: string[] = [];
+    for (const c of codeChanges) {
+      try {
+        const res = await fetch(`/api/players?code=${encodeURIComponent(c.member_code!)}`);
+        const json = await res.json();
+        if (!json.success) unknownCodes.push(c.member_code!);
+      } catch {
+        unknownCodes.push(c.member_code!);
+      }
+    }
+
+    if (unknownCodes.length > 0) {
+      setMemberCodeWarn({ unknown: Array.from(new Set(unknownCodes)), pendingChanges: changes });
+      return;
+    }
+
+    await applyMemberChanges(changes);
+  }
+
+  async function applyMemberChanges(changes: MemberChange[]) {
     try {
       setSaving(true);
       const errors: string[] = [];
@@ -253,6 +324,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
         const body: Record<string, unknown> = {};
         const snap = snapshotMembers.find(s => s.id === c.id);
         if (snap) {
+          if (c.memberCodeChanged) body.member_code = c.member_code;
           if (c.belong !== snap.belong) body.belong = c.belong;
           if (c.class !== snap.class) body.class = c.class;
           if (c.is_judge !== snap.is_judge) body.is_judge = c.is_judge;
@@ -276,7 +348,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       setEditing(false);
       setEditedMembers([]);
       setSnapshotMembers([]);
-      // Re-fetch to get fresh data
+      setMemberCodeWarn(null);
       await fetchMembers();
     } catch (e) {
       setError(e instanceof Error ? e.message : '保存に失敗しました');
@@ -1052,7 +1124,24 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                           <td style={{ padding: '6px 10px', color: C.muted, fontSize: 15, position: 'sticky', left: 0, zIndex: 1, background: !member ? `${C.gold}0a` : C.surface }}>{p}</td>
                           {member ? (
                             <>
-                              <td style={{ padding: '6px 10px', fontSize: 15, color: C.text }}>{member.member_code ?? '-'}</td>
+                              <td style={{ padding: '4px 6px', fontSize: 15, color: C.text }}>
+                                {editing ? (
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={member.member_code ?? ''}
+                                    onChange={e => updateEditedMember(member.id, 'member_code', e.target.value || null)}
+                                    placeholder="会員番号"
+                                    style={{
+                                      ...selectStyle,
+                                      width: 80,
+                                      fontFamily: 'monospace',
+                                    }}
+                                  />
+                                ) : (
+                                  member.member_code ?? '-'
+                                )}
+                              </td>
                               <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, fontWeight: 500, position: 'sticky', left: 50, zIndex: 1, background: C.surface }}>
                                 {member.name}
                               </td>
@@ -1307,6 +1396,16 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
           onCancel={() => setSimpleConfirm(null)}
           okLabel="削除"
           okColor={C.red}
+        />
+      )}
+
+      {memberCodeWarn && (
+        <ConfirmModal
+          message={`次の会員番号は選手マスターに未登録です：\n${memberCodeWarn.unknown.join('、')}\n\nこのまま保存しますか？`}
+          onOk={() => applyMemberChanges(memberCodeWarn.pendingChanges)}
+          onCancel={() => setMemberCodeWarn(null)}
+          okLabel="このまま保存"
+          okColor={C.gold}
         />
       )}
     </div>

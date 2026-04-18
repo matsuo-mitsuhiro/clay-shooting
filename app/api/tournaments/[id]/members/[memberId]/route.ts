@@ -143,6 +143,60 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const newIsJudge = body.is_judge !== undefined ? body.is_judge : member.is_judge;
     const newIsNonPrize = body.is_non_prize !== undefined ? body.is_non_prize : member.is_non_prize;
 
+    // 会員番号の変更（scores / registrations / 同一会員の両日分 members をまとめて同期）
+    if (body.member_code !== undefined) {
+      const raw = String(body.member_code ?? '').trim();
+      const newCode = raw
+        .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+        .trim() || null;
+
+      if (newCode && !/^\d+$/.test(newCode)) {
+        return NextResponse.json<ApiResponse>({ success: false, error: '会員番号は半角数字のみで入力してください' }, { status: 400 });
+      }
+
+      const oldCode = member.member_code;
+      if (newCode !== oldCode) {
+        // 同一大会内の重複チェック（別の選手が既に使っている場合は拒否）
+        if (newCode) {
+          const dup = await sql`
+            SELECT id FROM members
+            WHERE tournament_id = ${tournamentId}
+              AND member_code = ${newCode}
+              AND (${oldCode}::text IS NULL OR member_code != ${oldCode})
+            LIMIT 1
+          `;
+          if (dup.length > 0) {
+            return NextResponse.json<ApiResponse>({ success: false, error: `会員番号 ${newCode} は同一大会内で既に使用されています` }, { status: 409 });
+          }
+        }
+
+        if (oldCode) {
+          // 両日分の members を一括更新
+          await sql`
+            UPDATE members SET member_code = ${newCode}
+            WHERE tournament_id = ${tournamentId} AND member_code = ${oldCode}
+          `;
+          // scores も同期（点数の紐付けを維持）
+          await sql`
+            UPDATE scores SET member_code = ${newCode}
+            WHERE tournament_id = ${tournamentId} AND member_code = ${oldCode}
+          `;
+          // registrations も同期
+          await sql`
+            UPDATE registrations SET member_code = ${newCode}
+            WHERE tournament_id = ${tournamentId} AND member_code = ${oldCode}
+          `;
+        } else {
+          // 旧コードが NULL の場合は当該行のみ更新
+          await sql`
+            UPDATE members SET member_code = ${newCode}
+            WHERE id = ${memberIdNum} AND tournament_id = ${tournamentId}
+          `;
+        }
+        member.member_code = newCode;
+      }
+    }
+
     await sql`
       UPDATE members
       SET belong = ${newBelong}, class = ${newClass}, is_judge = ${newIsJudge}, is_non_prize = ${newIsNonPrize}

@@ -310,6 +310,10 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         padding: '20px', marginBottom: 20,
       }}>
         <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>大会情報</h3>
+        <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>
+          大会ID: <span style={{ color: C.text, fontFamily: 'monospace' }}>{tournamentId}</span>
+          <span style={{ marginLeft: 8, opacity: 0.6 }}>（編集不可）</span>
+        </div>
         <form onSubmit={handleSave}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div>
