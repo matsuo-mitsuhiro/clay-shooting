@@ -227,6 +227,20 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
       return;
     }
 
+    // 登録済の場合は 1日目↔2日目 の直接変更を禁止（クライアント側でも事前チェック）
+    if (field === 'participation_day' && reg.transferred_at) {
+      const from = reg.participation_day;
+      const to = newVal as ParticipationDay;
+      const allowed =
+        (from === 'both' && (to === 'day1' || to === 'day2')) ||
+        ((from === 'day1' || from === 'day2') && to === 'both');
+      if (!allowed) {
+        setAlertModal('登録済の申込では 1日目↔2日目 の直接変更はできません。キャンセルして再登録してください。');
+        setEditingCell(null);
+        return;
+      }
+    }
+
     try {
       const body: Record<string, unknown> = {};
       if (field === 'belong') body.belong = newVal || null;
@@ -234,6 +248,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
       else if (field === 'is_judge') body.is_judge = newVal === 'true';
       else if (field === 'name') body.name = newVal;
       else if (field === 'member_code') body.member_code = newVal;
+      else if (field === 'participation_day') body.participation_day = newVal;
 
       const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}`, {
         method: 'PATCH',
@@ -862,8 +877,8 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                           autoFocus
                           style={{ ...inputStyle, width: 120 }} />
                       ) : (
-                        <span onClick={() => !isCancelled && !isTransferred && startEdit(reg.id, 'name', reg.name)}
-                          style={{ cursor: (!isCancelled && !isTransferred) ? 'pointer' : 'default' }}>
+                        <span onClick={() => !isCancelled && startEdit(reg.id, 'name', reg.name)}
+                          style={{ cursor: !isCancelled ? 'pointer' : 'default' }}>
                           {reg.name}
                         </span>
                       )}
@@ -881,8 +896,8 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                           {associationNames.map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
                       ) : (
-                        <span onClick={() => !isCancelled && !isTransferred && startEdit(reg.id, 'belong', reg.belong ?? '')}
-                          style={{ cursor: (!isCancelled && !isTransferred) ? 'pointer' : 'default' }}>
+                        <span onClick={() => !isCancelled && startEdit(reg.id, 'belong', reg.belong ?? '')}
+                          style={{ cursor: !isCancelled ? 'pointer' : 'default' }}>
                           {reg.belong || '---'}
                         </span>
                       )}
@@ -900,8 +915,8 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                           {(['AAA', 'AA', 'A', 'B', 'C'] as ClassType[]).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                       ) : (
-                        <span onClick={() => !isCancelled && !isTransferred && startEdit(reg.id, 'class', reg.class ?? '')}
-                          style={{ cursor: (!isCancelled && !isTransferred) ? 'pointer' : 'default' }}>
+                        <span onClick={() => !isCancelled && startEdit(reg.id, 'class', reg.class ?? '')}
+                          style={{ cursor: !isCancelled ? 'pointer' : 'default' }}>
                           {reg.class ?? '---'}
                         </span>
                       )}
@@ -909,7 +924,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
 
                     {/* 審判 (editable) */}
                     <td style={{ padding: '7px 10px', fontSize: 13, textAlign: 'center' }}>
-                      {!isCancelled && !isTransferred ? (
+                      {!isCancelled ? (
                         <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <input type="checkbox" checked={reg.is_judge}
                             onChange={async () => {
@@ -935,9 +950,24 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                       )}
                     </td>
 
-                    {/* 参加 */}
+                    {/* 参加 (editable — 2日制のみ) */}
                     <td style={{ padding: '7px 10px', fontSize: 13, color: C.text }}>
-                      {dayLabel(reg.participation_day)}
+                      {editingCell?.regId === reg.id && editingCell?.field === 'participation_day' ? (
+                        <select value={editValue}
+                          onChange={e => { setEditValue(e.target.value); }}
+                          onBlur={() => saveEdit(reg)}
+                          autoFocus
+                          style={{ ...inputStyle, width: 80 }}>
+                          <option value="day1">1日目</option>
+                          <option value="day2">2日目</option>
+                          <option value="both">両方</option>
+                        </select>
+                      ) : (
+                        <span onClick={() => !isCancelled && is2Day && startEdit(reg.id, 'participation_day', reg.participation_day)}
+                          style={{ cursor: (!isCancelled && is2Day) ? 'pointer' : 'default' }}>
+                          {dayLabel(reg.participation_day)}
+                        </span>
+                      )}
                     </td>
 
                     {/* 申込日時 */}

@@ -17,6 +17,7 @@ const ACTION_LABELS: Record<OperationAction, string> = {
   registration_transfer: '選手管理に移行',
   registration_cancel: '申込キャンセル',
   registration_delete: '申込削除',
+  registration_edit: '申込編集',
   registration_restore: '未移行に戻す',
   member_delete: '選手を削除',
   login: 'ログイン',

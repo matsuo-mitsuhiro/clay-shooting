@@ -310,6 +310,7 @@ export type OperationAction =
   | 'registration_transfer'
   | 'registration_cancel'
   | 'registration_delete'
+  | 'registration_edit'
   | 'registration_restore'
   | 'member_delete'
   | 'login'
