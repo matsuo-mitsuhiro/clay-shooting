@@ -6,7 +6,7 @@ export const C = {
   gold: '#e8a020',
   goldDark: '#c07010',
   blue2: '#2a7a9a',
-  red: '#c0392b',
+  red: '#ff4d4d',
   green: '#27ae60',
   text: '#f0f2f8',
   muted: '#a8b4cc',

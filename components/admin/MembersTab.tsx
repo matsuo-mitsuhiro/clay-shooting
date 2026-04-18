@@ -90,6 +90,7 @@ interface EditableMember {
   belong: string | null;
   class: ClassType | null;
   is_judge: boolean;
+  is_non_prize: boolean;
 }
 
 interface MemberChange {
@@ -98,6 +99,7 @@ interface MemberChange {
   belong: string | null;
   class: ClassType | null;
   is_judge: boolean;
+  is_non_prize: boolean;
   memberCodeChanged: boolean;
 }
 
@@ -208,6 +210,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       belong: m.belong,
       class: m.class,
       is_judge: m.is_judge,
+      is_non_prize: m.is_non_prize,
     }));
     setSnapshotMembers(snapshot);
     setEditedMembers(snapshot.map(s => ({ ...s })));
@@ -222,7 +225,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       prev.map(m => {
         const snap = snapshotMembers.find(s => s.id === m.id);
         if (!snap) return m;
-        return { ...m, member_code: snap.member_code, belong: snap.belong, class: snap.class, is_judge: snap.is_judge };
+        return { ...m, member_code: snap.member_code, belong: snap.belong, class: snap.class, is_judge: snap.is_judge, is_non_prize: snap.is_non_prize };
       })
     );
     setEditing(false);
@@ -231,7 +234,28 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
     setError(null);
   }
 
-  function updateEditedMember(memberId: number, field: 'member_code' | 'belong' | 'class' | 'is_judge', value: string | boolean | null) {
+  function updateEditedMember(memberId: number, field: 'member_code' | 'belong' | 'class' | 'is_judge' | 'is_non_prize', value: string | boolean | null) {
+    // 賞典外フラグは同一 member_code の両日分に同期
+    if (field === 'is_non_prize') {
+      const target = editedMembers.find(em => em.id === memberId);
+      const code = target?.member_code ?? null;
+      setEditedMembers(prev =>
+        prev.map(em => {
+          if (em.id === memberId) return { ...em, is_non_prize: !!value };
+          if (code && em.member_code === code) return { ...em, is_non_prize: !!value };
+          return em;
+        })
+      );
+      setSavedMembers(prev =>
+        prev.map(m => {
+          if (m.id === memberId) return { ...m, is_non_prize: !!value };
+          if (code && m.member_code === code) return { ...m, is_non_prize: !!value };
+          return m;
+        })
+      );
+      return;
+    }
+
     setEditedMembers(prev =>
       prev.map(em => em.id === memberId ? { ...em, [field]: value } : em)
     );
@@ -275,16 +299,16 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
         const key = `code:${oldCode}`;
         if (seenCodePairs.has(key)) {
           // 他プロパティの変更があれば別行として処理する必要がある
-          if (edited.belong !== snap.belong || edited.class !== snap.class || edited.is_judge !== snap.is_judge) {
-            changes.push({ id: edited.id, member_code: newCode, belong: edited.belong, class: edited.class, is_judge: edited.is_judge, memberCodeChanged: false });
+          if (edited.belong !== snap.belong || edited.class !== snap.class || edited.is_judge !== snap.is_judge || edited.is_non_prize !== snap.is_non_prize) {
+            changes.push({ id: edited.id, member_code: newCode, belong: edited.belong, class: edited.class, is_judge: edited.is_judge, is_non_prize: edited.is_non_prize, memberCodeChanged: false });
           }
           continue;
         }
         seenCodePairs.add(key);
       }
 
-      if (codeChanged || edited.belong !== snap.belong || edited.class !== snap.class || edited.is_judge !== snap.is_judge) {
-        changes.push({ id: edited.id, member_code: newCode, belong: edited.belong, class: edited.class, is_judge: edited.is_judge, memberCodeChanged: codeChanged });
+      if (codeChanged || edited.belong !== snap.belong || edited.class !== snap.class || edited.is_judge !== snap.is_judge || edited.is_non_prize !== snap.is_non_prize) {
+        changes.push({ id: edited.id, member_code: newCode, belong: edited.belong, class: edited.class, is_judge: edited.is_judge, is_non_prize: edited.is_non_prize, memberCodeChanged: codeChanged });
       }
     }
 
@@ -328,6 +352,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
           if (c.belong !== snap.belong) body.belong = c.belong;
           if (c.class !== snap.class) body.class = c.class;
           if (c.is_judge !== snap.is_judge) body.is_judge = c.is_judge;
+          if (c.is_non_prize !== snap.is_non_prize) body.is_non_prize = c.is_non_prize;
         }
         const res = await fetch(`/api/tournaments/${tournamentId}/members/${c.id}`, {
           method: 'PATCH',
@@ -1090,6 +1115,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                       { label: '射順', width: 50, sticky: true, left: 0 },
                       { label: '会員番号', width: 90 },
                       { label: '氏名', width: undefined, sticky: true, left: 50 },
+                      { label: '賞典外', width: 60 },
                       { label: '所属協会', width: 140 },
                       { label: 'クラス', width: 80 },
                       { label: '審判', width: 60 },
@@ -1144,6 +1170,21 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                               </td>
                               <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, fontWeight: 500, position: 'sticky', left: 50, zIndex: 1, background: C.surface }}>
                                 {member.name}
+                              </td>
+                              {/* 賞典外 */}
+                              <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                                {editing ? (
+                                  <input
+                                    type="checkbox"
+                                    checked={member.is_non_prize}
+                                    onChange={e => updateEditedMember(member.id, 'is_non_prize', e.target.checked)}
+                                    style={{ width: 16, height: 16, cursor: 'pointer', accentColor: C.gold }}
+                                  />
+                                ) : (
+                                  <span style={{ fontSize: 15, color: member.is_non_prize ? C.gold : C.muted }}>
+                                    {member.is_non_prize ? '✓' : ''}
+                                  </span>
+                                )}
                               </td>
                               {/* 所属協会 */}
                               <td style={{ padding: '4px 6px' }}>
@@ -1239,7 +1280,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                               </td>
                             </>
                           ) : (
-                            <td colSpan={7} style={{ padding: '6px 10px', fontSize: 15, color: C.gold, position: 'sticky', left: 50, zIndex: 1, background: `${C.gold}0a` }}>
+                            <td colSpan={8} style={{ padding: '6px 10px', fontSize: 15, color: C.gold, position: 'sticky', left: 50, zIndex: 1, background: `${C.gold}0a` }}>
                               －（空き）
                             </td>
                           )}

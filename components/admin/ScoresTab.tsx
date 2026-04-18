@@ -526,7 +526,6 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                       <tr style={{ background: `${C.surface2}88` }}>
                         <th style={{ ...thStyle, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: C.surface2 }}>氏名</th>
                         <th style={thStyle}>所属協会</th>
-                        <th style={thStyle}>賞典外</th>
                         {roundLabels.map(l => (
                           <th key={l} style={thStyle}>{l}</th>
                         ))}
@@ -562,31 +561,6 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                             {/* 所属協会 */}
                             <td style={{ padding: '6px 10px', fontSize: 13, color: C.muted, whiteSpace: 'nowrap' }}>
                               {m.belong ?? '-'}
-                            </td>
-
-                            {/* 賞典外 */}
-                            <td style={{ padding: '6px 10px', textAlign: 'center' }}>
-                              <label style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={m.is_non_prize}
-                                  onChange={async () => {
-                                    try {
-                                      const res = await fetch(`/api/tournaments/${tournamentId}/members/${m.id}`, {
-                                        method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ is_non_prize: !m.is_non_prize }),
-                                      });
-                                      const json = await res.json();
-                                      if (!json.success) throw new Error(json.error);
-                                      fetchData();
-                                    } catch (e) {
-                                      setError(e instanceof Error ? e.message : '更新に失敗しました');
-                                    }
-                                  }}
-                                  style={{ width: 16, height: 16, accentColor: C.gold }}
-                                />
-                              </label>
                             </td>
 
                             {/* ラウンド点数 */}

@@ -42,6 +42,16 @@ interface PlayerMaster {
   skeet_class: string | null;
 }
 
+// 申込管理リストの一括編集モード用スナップショット
+interface EditableReg {
+  id: number;
+  name: string;
+  belong: string | null;
+  class: ClassType | null;
+  is_judge: boolean;
+  participation_day: ParticipationDay;
+}
+
 function normalizeSpaces(s: string): string {
   return s.replace(/[\s\u3000]/g, '');
 }
@@ -57,9 +67,11 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   const [transferError, setTransferError] = useState<string | null>(null);
   const [transferring, setTransferring] = useState(false);
 
-  // Inline editing state
-  const [editingCell, setEditingCell] = useState<{ regId: number; field: string } | null>(null);
-  const [editValue, setEditValue] = useState('');
+  // ===== Bulk edit mode =====
+  const [editing, setEditing] = useState(false);
+  const [editedMap, setEditedMap] = useState<Record<number, EditableReg>>({});
+  const [snapshotMap, setSnapshotMap] = useState<Record<number, EditableReg>>({});
+  const [savingEdits, setSavingEdits] = useState(false);
 
   // Manual add state
   const [manualRows, setManualRows] = useState<ManualRow[]>(() => generateManualRows(INIT_MANUAL_ROWS, 0));
@@ -208,60 +220,98 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
     });
   }
 
-  // Inline edit: start editing
-  function startEdit(regId: number, field: string, currentValue: string) {
-    setEditingCell({ regId, field });
-    setEditValue(currentValue);
+  // ===== 一括編集モード =====
+  function enterEditMode() {
+    // キャンセル済以外の全行をスナップショット
+    const map: Record<number, EditableReg> = {};
+    for (const r of registrations) {
+      if (r.status === 'cancelled') continue;
+      map[r.id] = {
+        id: r.id,
+        name: r.name,
+        belong: r.belong,
+        class: r.class,
+        is_judge: r.is_judge,
+        participation_day: r.participation_day,
+      };
+    }
+    setSnapshotMap(map);
+    setEditedMap(JSON.parse(JSON.stringify(map)));
+    setEditing(true);
   }
 
-  // Inline edit: save
-  async function saveEdit(reg: Registration) {
-    if (!editingCell) return;
-    const { field } = editingCell;
-    const newVal = editValue;
+  function cancelEditMode() {
+    setEditing(false);
+    setEditedMap({});
+    setSnapshotMap({});
+  }
 
-    // Only save if changed
-    const oldVal = String((reg as unknown as Record<string, unknown>)[field] ?? '');
-    if (newVal === oldVal) {
-      setEditingCell(null);
+  function updateEdited<K extends keyof EditableReg>(regId: number, field: K, value: EditableReg[K]) {
+    setEditedMap(prev => ({
+      ...prev,
+      [regId]: { ...prev[regId], [field]: value },
+    }));
+  }
+
+  async function saveEditMode() {
+    // 差分検出
+    const changes: Array<{ reg: Registration; body: Record<string, unknown> }> = [];
+    for (const reg of registrations) {
+      const edited = editedMap[reg.id];
+      const snap = snapshotMap[reg.id];
+      if (!edited || !snap) continue;
+      const body: Record<string, unknown> = {};
+      if (edited.name !== snap.name) body.name = edited.name;
+      if (edited.belong !== snap.belong) body.belong = edited.belong;
+      if (edited.class !== snap.class) body.class = edited.class;
+      if (edited.is_judge !== snap.is_judge) body.is_judge = edited.is_judge;
+      if (edited.participation_day !== snap.participation_day) body.participation_day = edited.participation_day;
+      if (Object.keys(body).length > 0) changes.push({ reg, body });
+    }
+
+    if (changes.length === 0) {
+      cancelEditMode();
       return;
     }
 
-    // 登録済の場合は 1日目↔2日目 の直接変更を禁止（クライアント側でも事前チェック）
-    if (field === 'participation_day' && reg.transferred_at) {
-      const from = reg.participation_day;
-      const to = newVal as ParticipationDay;
-      const allowed =
-        (from === 'both' && (to === 'day1' || to === 'day2')) ||
-        ((from === 'day1' || from === 'day2') && to === 'both');
-      if (!allowed) {
-        setAlertModal('登録済の申込では 1日目↔2日目 の直接変更はできません。キャンセルして再登録してください。');
-        setEditingCell(null);
-        return;
+    // 登録済の 1日目↔2日目 直接変更チェック（クライアント事前バリデーション）
+    for (const c of changes) {
+      if (c.body.participation_day && c.reg.transferred_at) {
+        const from = c.reg.participation_day;
+        const to = c.body.participation_day as ParticipationDay;
+        const allowed =
+          (from === 'both' && (to === 'day1' || to === 'day2')) ||
+          ((from === 'day1' || from === 'day2') && to === 'both');
+        if (!allowed) {
+          setAlertModal(`${c.reg.name} さんは登録済のため 1日目↔2日目 の直接変更はできません。キャンセルして再登録してください。`);
+          return;
+        }
       }
     }
 
     try {
-      const body: Record<string, unknown> = {};
-      if (field === 'belong') body.belong = newVal || null;
-      else if (field === 'class') body.class = newVal || null;
-      else if (field === 'is_judge') body.is_judge = newVal === 'true';
-      else if (field === 'name') body.name = newVal;
-      else if (field === 'member_code') body.member_code = newVal;
-      else if (field === 'participation_day') body.participation_day = newVal;
-
-      const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      fetchRegistrations();
+      setSavingEdits(true);
+      const errors: string[] = [];
+      for (const c of changes) {
+        const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${c.reg.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(c.body),
+        });
+        const json = await res.json();
+        if (!json.success) errors.push(json.error || `${c.reg.name}の更新に失敗`);
+      }
+      if (errors.length > 0) {
+        setAlertModal(errors.join('\n'));
+      }
+      await fetchRegistrations();
+      setEditing(false);
+      setEditedMap({});
+      setSnapshotMap({});
     } catch (e) {
       setAlertModal(e instanceof Error ? e.message : '更新に失敗しました');
     } finally {
-      setEditingCell(null);
+      setSavingEdits(false);
     }
   }
 
@@ -795,9 +845,52 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
 
       <ErrorModal message={transferError} onClose={() => setTransferError(null)} />
 
-      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>申込管理リスト</span>
         <span style={{ fontSize: 13, color: C.muted }}>※すべての選手を「選手管理」に移行し、「登録済」になっていることを確認してください。</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          {editing ? (
+            <>
+              <button
+                onClick={cancelEditMode}
+                disabled={savingEdits}
+                style={{
+                  background: C.surface2, color: C.muted, border: `1px solid ${C.border}`,
+                  borderRadius: 5, padding: '6px 14px', fontSize: 14,
+                  cursor: savingEdits ? 'not-allowed' : 'pointer',
+                  opacity: savingEdits ? 0.6 : 1,
+                }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={saveEditMode}
+                disabled={savingEdits}
+                style={{
+                  background: C.gold, color: '#000', border: 'none',
+                  borderRadius: 5, padding: '6px 14px', fontSize: 14, fontWeight: 700,
+                  cursor: savingEdits ? 'not-allowed' : 'pointer',
+                  opacity: savingEdits ? 0.7 : 1,
+                }}
+              >
+                {savingEdits ? '保存中...' : '保存'}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={enterEditMode}
+              disabled={registrations.length === 0}
+              style={{
+                background: C.surface2, color: C.gold, border: `1px solid ${C.gold}`,
+                borderRadius: 5, padding: '6px 14px', fontSize: 14,
+                cursor: registrations.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: registrations.length === 0 ? 0.5 : 1,
+              }}
+            >
+              編集
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -867,82 +960,55 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                       {reg.member_code}
                     </td>
 
-                    {/* 氏名 (editable, sticky) */}
+                    {/* 氏名 (sticky) */}
                     <td style={{ padding: '7px 10px', fontSize: 14, color: C.text, fontWeight: 600, position: 'sticky', left: 0, zIndex: 2, minWidth: 110, background: isCancelled ? '#1e2228' : isTransferred ? '#1c1f26' : C.surface }}>
-                      {editingCell?.regId === reg.id && editingCell?.field === 'name' ? (
-                        <input type="text" value={editValue}
-                          onChange={e => setEditValue(e.target.value)}
-                          onBlur={() => saveEdit(reg)}
-                          onKeyDown={e => { if (e.key === 'Enter') saveEdit(reg); if (e.key === 'Escape') setEditingCell(null); }}
-                          autoFocus
+                      {editing && !isCancelled ? (
+                        <input type="text"
+                          value={editedMap[reg.id]?.name ?? reg.name}
+                          onChange={e => updateEdited(reg.id, 'name', e.target.value)}
                           style={{ ...inputStyle, width: 120 }} />
                       ) : (
-                        <span onClick={() => !isCancelled && startEdit(reg.id, 'name', reg.name)}
-                          style={{ cursor: !isCancelled ? 'pointer' : 'default' }}>
-                          {reg.name}
-                        </span>
+                        reg.name
                       )}
                     </td>
 
-                    {/* 所属協会 (editable, sticky) */}
+                    {/* 所属協会 (sticky) */}
                     <td style={{ padding: '7px 10px', fontSize: 13, color: C.muted, position: 'sticky', left: 110, zIndex: 2, background: isCancelled ? '#1e2228' : isTransferred ? '#1c1f26' : C.surface }}>
-                      {editingCell?.regId === reg.id && editingCell?.field === 'belong' ? (
-                        <select value={editValue}
-                          onChange={e => { setEditValue(e.target.value); }}
-                          onBlur={() => saveEdit(reg)}
-                          autoFocus
+                      {editing && !isCancelled ? (
+                        <select
+                          value={editedMap[reg.id]?.belong ?? ''}
+                          onChange={e => updateEdited(reg.id, 'belong', e.target.value || null)}
                           style={{ ...inputStyle, width: 100 }}>
                           <option value="">---</option>
                           {associationNames.map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
                       ) : (
-                        <span onClick={() => !isCancelled && startEdit(reg.id, 'belong', reg.belong ?? '')}
-                          style={{ cursor: !isCancelled ? 'pointer' : 'default' }}>
-                          {reg.belong || '---'}
-                        </span>
+                        reg.belong || '---'
                       )}
                     </td>
 
-                    {/* クラス (editable) */}
+                    {/* クラス */}
                     <td style={{ padding: '7px 10px', fontSize: 13, color: C.muted, textAlign: 'center' }}>
-                      {editingCell?.regId === reg.id && editingCell?.field === 'class' ? (
-                        <select value={editValue}
-                          onChange={e => { setEditValue(e.target.value); }}
-                          onBlur={() => saveEdit(reg)}
-                          autoFocus
+                      {editing && !isCancelled ? (
+                        <select
+                          value={editedMap[reg.id]?.class ?? ''}
+                          onChange={e => updateEdited(reg.id, 'class', (e.target.value || null) as ClassType | null)}
                           style={{ ...inputStyle, width: 56 }}>
                           <option value="">-</option>
                           {(['AAA', 'AA', 'A', 'B', 'C'] as ClassType[]).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                       ) : (
-                        <span onClick={() => !isCancelled && startEdit(reg.id, 'class', reg.class ?? '')}
-                          style={{ cursor: !isCancelled ? 'pointer' : 'default' }}>
-                          {reg.class ?? '---'}
-                        </span>
+                        reg.class ?? '---'
                       )}
                     </td>
 
-                    {/* 審判 (editable) */}
+                    {/* 審判 */}
                     <td style={{ padding: '7px 10px', fontSize: 13, textAlign: 'center' }}>
-                      {!isCancelled ? (
-                        <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <input type="checkbox" checked={reg.is_judge}
-                            onChange={async () => {
-                              try {
-                                const res = await fetch(`/api/tournaments/${tournamentId}/registrations/${reg.id}`, {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ is_judge: !reg.is_judge }),
-                                });
-                                const json = await res.json();
-                                if (!json.success) throw new Error(json.error);
-                                fetchRegistrations();
-                              } catch (e) {
-                                setAlertModal(e instanceof Error ? e.message : '更新に失敗しました');
-                              }
-                            }}
-                            style={{ width: 14, height: 14, accentColor: C.gold }} />
-                        </label>
+                      {editing && !isCancelled ? (
+                        <input type="checkbox"
+                          checked={editedMap[reg.id]?.is_judge ?? false}
+                          onChange={e => updateEdited(reg.id, 'is_judge', e.target.checked)}
+                          style={{ width: 14, height: 14, accentColor: C.gold, cursor: 'pointer' }} />
                       ) : (
                         <span style={{ color: reg.is_judge ? C.gold : C.muted }}>
                           {reg.is_judge ? '⚑' : '-'}
@@ -950,23 +1016,19 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                       )}
                     </td>
 
-                    {/* 参加 (editable — 2日制のみ) */}
+                    {/* 参加 */}
                     <td style={{ padding: '7px 10px', fontSize: 13, color: C.text }}>
-                      {editingCell?.regId === reg.id && editingCell?.field === 'participation_day' ? (
-                        <select value={editValue}
-                          onChange={e => { setEditValue(e.target.value); }}
-                          onBlur={() => saveEdit(reg)}
-                          autoFocus
+                      {editing && !isCancelled && is2Day ? (
+                        <select
+                          value={editedMap[reg.id]?.participation_day ?? reg.participation_day}
+                          onChange={e => updateEdited(reg.id, 'participation_day', e.target.value as ParticipationDay)}
                           style={{ ...inputStyle, width: 80 }}>
                           <option value="day1">1日目</option>
                           <option value="day2">2日目</option>
                           <option value="both">両方</option>
                         </select>
                       ) : (
-                        <span onClick={() => !isCancelled && is2Day && startEdit(reg.id, 'participation_day', reg.participation_day)}
-                          style={{ cursor: (!isCancelled && is2Day) ? 'pointer' : 'default' }}>
-                          {dayLabel(reg.participation_day)}
-                        </span>
+                        dayLabel(reg.participation_day)
                       )}
                     </td>
 
@@ -995,37 +1057,52 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
                       )}
                     </td>
 
-                    {/* 操作 */}
+                    {/* 操作 — 編集モード時のみ活性 */}
                     <td style={{ padding: '7px 10px', whiteSpace: 'nowrap', display: 'flex', gap: 4 }}>
                       {isCancelled ? (
                         <button
-                          onClick={() => !hasActiveDuplicate && handleRestore(reg)}
-                          disabled={hasActiveDuplicate}
-                          title={hasActiveDuplicate ? 'この会員番号はすでにアクティブな申込があります' : undefined}
+                          onClick={() => editing && !hasActiveDuplicate && handleRestore(reg)}
+                          disabled={!editing || hasActiveDuplicate}
+                          title={!editing ? '編集ボタンを押してから操作できます' : hasActiveDuplicate ? 'この会員番号はすでにアクティブな申込があります' : undefined}
                           style={{
                             background: 'transparent',
-                            color: hasActiveDuplicate ? C.muted : C.blue2,
-                            border: `1px solid ${hasActiveDuplicate ? C.border : C.blue2}`,
+                            color: (!editing || hasActiveDuplicate) ? C.muted : C.blue2,
+                            border: `1px solid ${(!editing || hasActiveDuplicate) ? C.border : C.blue2}`,
                             borderRadius: 4, padding: '3px 10px', fontSize: 12,
-                            cursor: hasActiveDuplicate ? 'not-allowed' : 'pointer',
-                            opacity: hasActiveDuplicate ? 0.5 : 1,
+                            cursor: (!editing || hasActiveDuplicate) ? 'not-allowed' : 'pointer',
+                            opacity: (!editing || hasActiveDuplicate) ? 0.5 : 1,
                           }}>
                           申込中に戻す
                         </button>
                       ) : (
-                        <button onClick={() => handleCancel(reg)}
+                        <button
+                          onClick={() => editing && handleCancel(reg)}
+                          disabled={!editing}
+                          title={!editing ? '編集ボタンを押してから操作できます' : undefined}
                           style={{
-                            background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
-                            borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
+                            background: 'transparent',
+                            color: editing ? C.red : C.muted,
+                            border: `1px solid ${editing ? C.red : C.border}`,
+                            borderRadius: 4, padding: '3px 10px', fontSize: 12,
+                            cursor: editing ? 'pointer' : 'not-allowed',
+                            opacity: editing ? 1 : 0.5,
+                            fontWeight: editing ? 700 : 400,
                           }}>
-                          キャンセル
+                          参加キャンセル
                         </button>
                       )}
                       {isManual && (
-                        <button onClick={() => handleDeleteManual(reg)}
+                        <button
+                          onClick={() => editing && handleDeleteManual(reg)}
+                          disabled={!editing}
+                          title={!editing ? '編集ボタンを押してから操作できます' : undefined}
                           style={{
-                            background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
-                            borderRadius: 4, padding: '3px 10px', fontSize: 12, cursor: 'pointer',
+                            background: 'transparent',
+                            color: editing ? C.red : C.muted,
+                            border: `1px solid ${editing ? C.red : C.border}`,
+                            borderRadius: 4, padding: '3px 10px', fontSize: 12,
+                            cursor: editing ? 'pointer' : 'not-allowed',
+                            opacity: editing ? 1 : 0.5,
                           }}>
                           削除
                         </button>
