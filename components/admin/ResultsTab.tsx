@@ -77,8 +77,8 @@ export default function ResultsTab({ tournamentId }: Props) {
 
   // ---- 手動順位モーダル ----
   function openManualModal() {
-    // 有効選手のみ DnD リストに（API からの順序 = 現在の rank 順）
-    const valid = results.filter(r => r.status === 'valid' || !r.status);
+    // 通常選手（賞典外・失格・棄権を除く）のみ DnD リストに
+    const valid = results.filter(r => (r.status === 'valid' || !r.status) && !r.is_non_prize);
     setDndItems(valid);
     setRankError(null);
     setManualModalOpen(true);
@@ -469,33 +469,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {(() => {
-                      const colCount = 10 + (has2ndDay ? 5 : 0) + 2 + (hasCB ? 1 : 0) + (hasFR ? 1 : 0);
-                      const rows: React.ReactNode[] = [];
-                      let prevNonPrize = false;
-                      filtered.forEach((r, idx) => {
-                        if (r.is_non_prize && !prevNonPrize && idx > 0) {
-                          rows.push(
-                            <tr key="__non_prize_sep__" style={{ background: `${C.surface2}88` }}>
-                              <td colSpan={colCount} style={{
-                                padding: '8px 12px',
-                                textAlign: 'center',
-                                fontWeight: 700,
-                                color: C.muted,
-                                borderTop: `2px solid ${C.border}`,
-                                borderBottom: `1px solid ${C.border}`,
-                                letterSpacing: '0.1em',
-                              }}>
-                                ── 賞典外 ──
-                              </td>
-                            </tr>
-                          );
-                        }
-                        prevNonPrize = r.is_non_prize;
-                        rows.push(renderResultRow(r));
-                      });
-                      return rows;
-                    })()}
+                    {filtered.map(r => renderResultRow(r))}
                   </tbody>
                 </table>
           )}
@@ -542,6 +516,9 @@ export default function ResultsTab({ tournamentId }: Props) {
                           {/* 氏名 */}
                           <td style={{ ...tdS, textAlign: 'left', whiteSpace: 'nowrap', position: 'sticky', left: 44, zIndex: 1, background: isDQ ? '#1a1d24' : isHighlighted ? '#1a2a1a' : C.surface }}>
                             <span style={{ color: isDQ ? '#e74c3c' : C.text, fontWeight: 500 }}>{r.name}</span>
+                            {r.is_non_prize && (
+                              <span style={{ color: C.muted, fontSize: 12, marginLeft: 4 }}>（賞典外）</span>
+                            )}
                             {r.status === 'disqualified' && (
                               <span style={{ color: '#e74c3c', fontSize: 12, marginLeft: 6, fontWeight: 700 }}>失格</span>
                             )}
@@ -552,7 +529,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                           </td>
 
                           <td style={{ ...tdS, color: C.muted, fontSize: 14 }}>
-                            {r.group1}{r.group2 ? `/${r.group2}` : ''}組
+                            {formatGroup(r.group1, r.group2)}
                           </td>
                           <td style={{ ...tdS, textAlign: 'left', color: C.muted, fontSize: 14 }}>{r.belong ?? '-'}</td>
                           <td style={{ ...tdS }}>
@@ -606,6 +583,13 @@ const thS: React.CSSProperties = {
 const tdS: React.CSSProperties = {
   padding: '7px 8px', fontSize: 15, textAlign: 'center', whiteSpace: 'nowrap',
 };
+
+function formatGroup(g1: number | null, g2: number | null): string {
+  if (g1 != null && g2 != null) return `${g1}/${g2}組`;
+  if (g1 != null) return `${g1}組`;
+  if (g2 != null) return `${g2}組`;
+  return '-';
+}
 
 function classBadgeBg(c: ClassType | 'all'): string {
   if (c === 'all') return `${C.gold}22`;

@@ -127,18 +127,17 @@ export default function ViewerPage({ tournamentId }: Props) {
     return true;
   });
 
-  // 通常選手 → 賞典外 の順で並べる
-  // 各ブロック内：点数登録済み→合計降順（上部）、未登録→組・番号順（下部）
+  // 点数登録済み→合計降順（上部）、未登録→組・番号順（下部）
+  // 賞典外選手も混ぜて合計順に並べる（氏名横に「（賞典外）」表示）
   const sortedFiltered = (() => {
-    const sortBlock = (list: typeof filtered) => {
-      const withScore = list.filter(r => r.total > 0).sort((a, b) => b.total - a.total);
-      const noScore = list.filter(r => !r.total).sort((a, b) =>
-        a.group1 !== b.group1 ? a.group1 - b.group1 : a.position - b.position);
-      return [...withScore, ...noScore];
-    };
-    const regular = filtered.filter(r => !r.is_non_prize);
-    const nonPrize = filtered.filter(r => r.is_non_prize);
-    return [...sortBlock(regular), ...sortBlock(nonPrize)];
+    const withScore = filtered.filter(r => r.total > 0).sort((a, b) => b.total - a.total);
+    const noScore = filtered.filter(r => !r.total).sort((a, b) => {
+      const g1a = a.group1 ?? a.group2 ?? 999;
+      const g1b = b.group1 ?? b.group2 ?? 999;
+      if (g1a !== g1b) return g1a - g1b;
+      return (a.position ?? 0) - (b.position ?? 0);
+    });
+    return [...withScore, ...noScore];
   })();
 
   const totalScores = filtered.map(r => r.total).filter(v => v > 0);
@@ -369,27 +368,9 @@ export default function ViewerPage({ tournamentId }: Props) {
                       </tr>
                     </thead>
                     <tbody>
-                      {(() => {
-                        const colCount = 10 + (has2ndDay ? 5 : 0) + 2;
-                        const rows: React.ReactNode[] = [];
-                        let prevNonPrize = false;
-                        sortedFiltered.forEach((r, idx) => {
-                          if (r.is_non_prize && !prevNonPrize && idx > 0) {
-                            rows.push(
-                              <tr key="__non_prize_sep__" style={{ background: `${C.surface2}88` }}>
-                                <td colSpan={colCount} style={{
-                                  padding: '8px 12px', textAlign: 'center', fontWeight: 700,
-                                  color: C.muted, borderTop: `2px solid ${C.border}`,
-                                  borderBottom: `1px solid ${C.border}`, letterSpacing: '0.1em',
-                                }}>
-                                  ── 賞典外 ──
-                                </td>
-                              </tr>
-                            );
-                          }
-                          prevNonPrize = r.is_non_prize;
-                          const isHighlighted = highlightedCode === r.member_code;
-                          rows.push(
+                      {sortedFiltered.map(r => {
+                        const isHighlighted = highlightedCode === r.member_code;
+                        return (
                           <tr
                             key={r.member_code}
                             ref={isHighlighted ? highlightedRowRef : undefined}
@@ -404,10 +385,14 @@ export default function ViewerPage({ tournamentId }: Props) {
                               {r.rank ?? ''}
                             </td>
                             <td style={{ ...tdS, textAlign: 'left', color: C.text, fontWeight: 500, whiteSpace: 'nowrap', position: 'sticky', left: 44, zIndex: 1, background: isHighlighted ? '#2a2518' : C.surface }}>
-                              {r.name}{r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
+                              {r.name}
+                              {r.is_non_prize && (
+                                <span style={{ color: C.muted, fontSize: 12, marginLeft: 4 }}>（賞典外）</span>
+                              )}
+                              {r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
                             </td>
                             <td style={{ ...tdS, color: C.muted, fontSize: 14 }}>
-                              {r.group1}{r.group2 ? `/${r.group2}` : ''}組
+                              {formatGroup(r.group1, r.group2)}
                             </td>
                             <td style={{ ...tdS, textAlign: 'left', color: C.muted, fontSize: 14 }}>{r.belong ?? '-'}</td>
                             <td style={{ ...tdS }}>
@@ -434,10 +419,8 @@ export default function ViewerPage({ tournamentId }: Props) {
                             <td style={{ ...tdS, fontWeight: 700, color: C.gold, fontSize: 16 }}>{r.total || '-'}</td>
                             <td style={{ ...tdS, color: C.muted }}>{r.average !== null && r.average !== undefined ? Number(r.average).toFixed(2) : '-'}</td>
                           </tr>
-                          );
-                        });
-                        return rows;
-                      })()}
+                        );
+                      })}
                     </tbody>
                   </table>
             )}
@@ -727,6 +710,13 @@ const tdS: React.CSSProperties = {
   textAlign: 'center',
   whiteSpace: 'nowrap',
 };
+
+function formatGroup(g1: number | null, g2: number | null): string {
+  if (g1 != null && g2 != null) return `${g1}/${g2}組`;
+  if (g1 != null) return `${g1}組`;
+  if (g2 != null) return `${g2}組`;
+  return '-';
+}
 
 function classBadgeBg(c: ClassType | 'all'): string {
   if (c === 'all') return `${C.gold}22`;

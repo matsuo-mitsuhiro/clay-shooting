@@ -85,9 +85,18 @@ export async function GET(req: NextRequest, { params }: Params) {
     const classesParam = searchParams.get('classes'); // "AA,A" or null
 
     // データ取得（並列）
+    // 全員掲載・通常選手は順位順・賞典外は rank=NULL で total 順に混在
+    // 失格・棄権は最下部
     const [tournamentRows, resultRows, assocRows] = await Promise.all([
       sql`SELECT * FROM tournaments WHERE id = ${tournamentId}`,
-      sql`SELECT * FROM v_results WHERE tournament_id = ${tournamentId} ORDER BY rank NULLS LAST, total DESC, name`,
+      sql`SELECT * FROM v_results WHERE tournament_id = ${tournamentId}
+          ORDER BY
+            (status IN ('disqualified','withdrawn')) ASC,
+            total DESC,
+            COALESCE(r8,0) DESC, COALESCE(r7,0) DESC, COALESCE(r6,0) DESC, COALESCE(r5,0) DESC,
+            COALESCE(r4,0) DESC, COALESCE(r3,0) DESC, COALESCE(r2,0) DESC, COALESCE(r1,0) DESC,
+            COALESCE(cb,999) ASC, COALESCE(fr,0) DESC,
+            name`,
       sql`SELECT cd, name, formal_name FROM associations`,
     ]);
 
@@ -195,8 +204,9 @@ export async function GET(req: NextRequest, { params }: Params) {
       // 会員番号 (B)
       sheetXml = setCellInXml(sheetXml, `B${row}`, r.member_code ?? '');
 
-      // 氏名 (C)
-      sheetXml = setCellInXml(sheetXml, `C${row}`, r.name ?? '');
+      // 氏名 (C) — 賞典外は「氏名（賞典外）」
+      const displayName = r.is_non_prize ? `${r.name ?? ''}（賞典外）` : (r.name ?? '');
+      sheetXml = setCellInXml(sheetXml, `C${row}`, displayName);
 
       // 所属 (D)
       sheetXml = setCellInXml(sheetXml, `D${row}`, r.belong ?? '');
