@@ -149,18 +149,19 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const trapTournament = String(tournament.event_type) === 'trap' ? tournament : pairedTournament;
     const skeetTournament = String(tournament.event_type) === 'skeet' ? tournament : pairedTournament;
 
-    // 7. Count participants by class (DISTINCT member_code)
+    // 7. Count participants by class — 申込管理リスト（registrations）から集計
+    //    active のみ・1選手=1行（両日参加でも1名としてカウント）
     const countByClass = async (tournamentId: number | null) => {
-      if (!tournamentId) return { AA: 0, A: 0, B: 0, C: 0, none: 0, total: 0 };
+      if (!tournamentId) return { AAA: 0, AA: 0, A: 0, B: 0, C: 0, none: 0, total: 0 };
       const rows = await sql`
         SELECT
           COALESCE(class, 'none') AS cls,
-          COUNT(DISTINCT member_code) AS cnt
-        FROM members
-        WHERE tournament_id = ${tournamentId} AND member_code IS NOT NULL
+          COUNT(*) AS cnt
+        FROM registrations
+        WHERE tournament_id = ${tournamentId} AND status = 'active'
         GROUP BY COALESCE(class, 'none')
       `;
-      const map: Record<string, number> = { AA: 0, A: 0, B: 0, C: 0, none: 0 };
+      const map: Record<string, number> = { AAA: 0, AA: 0, A: 0, B: 0, C: 0, none: 0 };
       for (const r of rows) {
         const cls = String(r.cls);
         if (cls in map) map[cls] = Number(r.cnt);

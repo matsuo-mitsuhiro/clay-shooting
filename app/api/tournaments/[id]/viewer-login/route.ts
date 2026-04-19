@@ -7,7 +7,8 @@ function normalizeSpaces(s: string): string {
 }
 
 // POST /api/tournaments/[id]/viewer-login
-// body: { belong?: string, name: string, userAgent?: string }
+// body: { belong?: string, name: string }
+// 閲覧者ログイン（自分の行ハイライト用）— ログ記録は廃止
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,10 +17,9 @@ export async function POST(
     const { id } = await params;
     const tournamentId = Number(id);
     const body = await req.json();
-    const { belong, name, userAgent } = body as {
+    const { belong, name } = body as {
       belong?: string;
       name: string;
-      userAgent?: string;
     };
 
     if (!name?.trim()) {
@@ -40,9 +40,7 @@ export async function POST(
     const normInput = normalizeKanji(normalizeSpaces(name.trim()));
     const matches = members.filter(m => {
       const normMember = normalizeKanji(normalizeSpaces(m.name as string));
-      // 部分一致
       if (!normMember.includes(normInput) && !normInput.includes(normMember)) return false;
-      // 所属フィルタ（指定がある場合のみ）
       if (belong && m.belong !== belong) return false;
       return true;
     });
@@ -54,22 +52,9 @@ export async function POST(
       );
     }
 
-    // ログを記録
-    const matchedName = (matches[0].name as string) ?? null;
-    await sql`
-      INSERT INTO viewer_logs (tournament_id, belong, name_input, matched_name, user_agent)
-      VALUES (
-        ${tournamentId},
-        ${belong ?? null},
-        ${name.trim()},
-        ${matchedName},
-        ${userAgent ?? null}
-      )
-    `;
-
     return NextResponse.json({
       success: true,
-      data: { matchedName },
+      data: { matchedName: (matches[0].name as string) ?? null },
     });
   } catch (e) {
     console.error(e);

@@ -15,6 +15,7 @@ interface Props {
 }
 
 interface ClassCounts {
+  AAA: number;
   AA: number;
   A: number;
   B: number;
@@ -431,11 +432,11 @@ export default function ReportTab({ tournamentId, tournament, onUpdated }: Props
                 </tr>
               </thead>
               <tbody>
-                {(['AA', 'A', 'B', 'C', 'none'] as const).map(cls => {
+                {(['AAA', 'AA', 'A', 'B', 'C', 'none'] as const).map(cls => {
                   const trapN = data.trapCounts[cls] ?? 0;
                   const skeetN = data.skeetCounts[cls] ?? 0;
                   const totalN = trapN + skeetN;
-                  if (totalN === 0 && cls === 'AA') return null; // AAは使わない場合非表示
+                  if (totalN === 0 && (cls === 'AAA' || cls === 'AA')) return null; // AAA/AA は0のとき非表示
                   return (
                     <tr key={cls} style={{ borderBottom: `1px solid ${C.border}` }}>
                       <td style={{ padding: '6px 12px', color: C.text }}>

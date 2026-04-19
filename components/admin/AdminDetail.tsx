@@ -11,7 +11,6 @@ import ScoresTab from './ScoresTab';
 import ResultsTab from './ResultsTab';
 import SettingsTab from './SettingsTab';
 import ApplySettingsTab from './ApplySettingsTab';
-import ViewerHistoryTab from './ViewerHistoryTab';
 import InspectionTab from './InspectionTab';
 import dynamic from 'next/dynamic';
 const ReportTab = dynamic(() => import('./ReportTab'), { ssr: false });
@@ -19,13 +18,13 @@ import RegistrationsTab from './RegistrationsTab';
 import Footer from '@/components/Footer';
 import { ErrorModal } from '@/components/ModalDialog';
 
-type TabType = 'members' | 'scores' | 'results' | 'inspection' | 'report' | 'settings' | 'apply-settings' | 'history' | 'registrations';
+type TabType = 'members' | 'scores' | 'results' | 'inspection' | 'report' | 'settings' | 'apply-settings' | 'registrations';
 
 interface Props {
   tournamentId: number;
 }
 
-const VALID_TABS: TabType[] = ['members', 'scores', 'results', 'inspection', 'report', 'settings', 'apply-settings', 'history', 'registrations'];
+const VALID_TABS: TabType[] = ['members', 'scores', 'results', 'inspection', 'report', 'settings', 'apply-settings', 'registrations'];
 
 export default function AdminDetail({ tournamentId }: Props) {
   const router = useRouter();
@@ -78,7 +77,6 @@ export default function AdminDetail({ tournamentId }: Props) {
     { key: 'results', label: '成績確認' },
     { key: 'inspection', label: '記録審査' },
     { key: 'report', label: '大会報告' },
-    { key: 'history', label: '閲覧履歴' },
   ];
 
   const anyModalOpen = menuOpen || contactOpen;
@@ -479,9 +477,6 @@ export default function AdminDetail({ tournamentId }: Props) {
                 tournament={tournament}
                 onUpdated={fetchTournament}
               />
-            )}
-            {activeTab === 'history' && (
-              <ViewerHistoryTab tournamentId={tournamentId} />
             )}
           </>
         )}

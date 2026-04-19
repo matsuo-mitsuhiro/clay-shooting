@@ -203,17 +203,6 @@ export interface Result {
   rank: number | null;
 }
 
-// ---------- ViewerLog ----------
-export interface ViewerLog {
-  id: number;
-  tournament_id: number;
-  logged_at: string;
-  belong: string | null;
-  name_input: string | null;
-  matched_name: string | null;
-  user_agent: string | null;
-}
-
 // ---------- TournamentAdmin ----------
 export interface TournamentAdmin {
   id: number;
