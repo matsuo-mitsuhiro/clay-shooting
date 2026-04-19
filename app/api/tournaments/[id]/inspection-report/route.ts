@@ -193,10 +193,20 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     // --- データ行 (Row 10〜81, 最大72行) ---
     const DATA_START_ROW = 10;
+    const DATA_ROW_COUNT = 72; // テンプレート上限
 
-    for (let i = 0; i < results.length; i++) {
-      const r = results[i];
+    for (let i = 0; i < DATA_ROW_COUNT; i++) {
       const row = DATA_START_ROW + i;
+
+      if (i >= results.length) {
+        // 選手データのない行は全セルを空欄でクリア（連番や"0"を残さない）
+        for (const col of ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P']) {
+          sheetXml = setCellInXml(sheetXml, `${col}${row}`, '');
+        }
+        continue;
+      }
+
+      const r = results[i];
 
       // 順位 (A)
       sheetXml = setCellInXml(sheetXml, `A${row}`, r.rank != null ? Number(r.rank) : '');
@@ -204,9 +214,8 @@ export async function GET(req: NextRequest, { params }: Params) {
       // 会員番号 (B)
       sheetXml = setCellInXml(sheetXml, `B${row}`, r.member_code ?? '');
 
-      // 氏名 (C) — 賞典外は「氏名（賞典外）」
-      const displayName = r.is_non_prize ? `${r.name ?? ''}（賞典外）` : (r.name ?? '');
-      sheetXml = setCellInXml(sheetXml, `C${row}`, displayName);
+      // 氏名 (C) — タグは付けず本名のみ
+      sheetXml = setCellInXml(sheetXml, `C${row}`, r.name ?? '');
 
       // 所属 (D)
       sheetXml = setCellInXml(sheetXml, `D${row}`, r.belong ?? '');
@@ -221,7 +230,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       sheetXml = setCellInXml(sheetXml, `G${row}`, r3 ?? '');
       sheetXml = setCellInXml(sheetXml, `H${row}`, r4 ?? '');
 
-      // I列 (1日目計) — 数式を上書きし集計値を直接セット
+      // I列 (1日目計)
       const day1Total = Number(r.day1_total);
       sheetXml = setCellInXml(sheetXml, `I${row}`, day1Total > 0 ? day1Total : '');
 
@@ -235,27 +244,22 @@ export async function GET(req: NextRequest, { params }: Params) {
       sheetXml = setCellInXml(sheetXml, `L${row}`, r7 ?? '');
       sheetXml = setCellInXml(sheetXml, `M${row}`, r8 ?? '');
 
-      // N列 (2日目計) — 集計値を直接セット
+      // N列 (2日目計)
       const day2Total = Number(r.day2_total);
       sheetXml = setCellInXml(sheetXml, `N${row}`, day2Total > 0 ? day2Total : '');
 
-      // O列 (総計) — 数式を上書きし集計値を直接セット
+      // O列 (総計)
       const total = Number(r.total);
       sheetXml = setCellInXml(sheetXml, `O${row}`, total > 0 ? total : '');
 
-      // 摘要 (P) — CB/FR/失格/棄権
-      let remarks = '';
-      if (r.status === 'disqualified') {
-        remarks = '失格';
-      } else if (r.status === 'withdrawn') {
-        remarks = '棄権';
-      } else {
-        const parts: string[] = [];
-        if (r.cb != null && Number(r.cb) > 0) parts.push(`CB${r.cb}`);
-        if (r.fr != null && Number(r.fr) > 0) parts.push(`FR${r.fr}`);
-        remarks = parts.join('');
-      }
-      sheetXml = setCellInXml(sheetXml, `P${row}`, remarks);
+      // 摘要 (P) — 賞典外・失格/棄権・CB/FR をスペース区切りで併記
+      const parts: string[] = [];
+      if (r.is_non_prize) parts.push('賞典外');
+      if (r.status === 'disqualified') parts.push('失格');
+      else if (r.status === 'withdrawn') parts.push('棄権');
+      if (r.cb != null && Number(r.cb) > 0) parts.push(`CB${r.cb}`);
+      if (r.fr != null && Number(r.fr) > 0) parts.push(`FR${r.fr}`);
+      sheetXml = setCellInXml(sheetXml, `P${row}`, parts.join(' '));
     }
 
     // 全数式タグを一括削除（共有数式の孤児参照エラーを完全防止）

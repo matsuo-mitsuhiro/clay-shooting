@@ -304,6 +304,15 @@ export async function GET(_req: NextRequest, { params }: Params) {
     xml = setCellInXml(xml, 'J29', certFee);
     xml = setCellInXml(xml, 'J30', adFee);
 
+    // ④ 奨励金に伴う納付金 (row 31): O31=名数, Q31=金額 (@1,000 × 名数)
+    // ⑤ 参加料に伴う納付金 (row 32): O32=名数, Q32=金額 (@1,000 × 名数)
+    // 画面と同じ計算値を直接書き込み（テンプレートの数式を値で上書き）
+    const totalHeadcount = trapCounts.total + skeetCounts.total;
+    xml = setCellInXml(xml, 'O31', totalHeadcount || null);
+    xml = setCellInXml(xml, 'Q31', totalHeadcount ? totalHeadcount * 1000 : null);
+    xml = setCellInXml(xml, 'O32', totalHeadcount || null);
+    xml = setCellInXml(xml, 'Q32', totalHeadcount ? totalHeadcount * 1000 : null);
+
     // Q33: incentive payment total (number of people x amount - manual)
     const incentiveTotal = incentives.reduce((sum, inc) => sum + Number(inc.amount ?? 0), 0);
     xml = setCellInXml(xml, 'Q33', incentiveTotal || null);
