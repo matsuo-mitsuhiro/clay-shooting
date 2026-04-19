@@ -237,19 +237,28 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         }
       }
 
-      // player_master も更新（class / is_judge のみ）
+      // player_master も更新（class / is_judge）
+      // class は event_type に応じて trap_class / skeet_class を切り替え
       if (body.class !== undefined || body.is_judge !== undefined) {
         try {
           const playerRows = await sql`SELECT member_code FROM player_master WHERE member_code = ${cur.member_code}`;
           if (playerRows.length > 0) {
             if (body.class !== undefined) {
-              await sql`UPDATE player_master SET class = ${(body.class ?? null) as string | null} WHERE member_code = ${cur.member_code}`;
+              const tRows = await sql`SELECT event_type FROM tournaments WHERE id = ${tid}`;
+              const isSkeet = tRows.length > 0 && tRows[0].event_type === 'skeet';
+              const newCls = (body.class ?? null) as string | null;
+              if (isSkeet) {
+                await sql`UPDATE player_master SET skeet_class = ${newCls}, updated_at = NOW() WHERE member_code = ${cur.member_code}`;
+              } else {
+                await sql`UPDATE player_master SET trap_class = ${newCls}, updated_at = NOW() WHERE member_code = ${cur.member_code}`;
+              }
             }
             if (body.is_judge !== undefined) {
-              await sql`UPDATE player_master SET is_judge = ${body.is_judge as boolean} WHERE member_code = ${cur.member_code}`;
+              await sql`UPDATE player_master SET is_judge = ${body.is_judge as boolean}, updated_at = NOW() WHERE member_code = ${cur.member_code}`;
             }
           }
-        } catch {
+        } catch (e) {
+          console.error('player_master sync failed:', e);
           // player_master 更新失敗は致命的ではないので無視
         }
       }

@@ -136,11 +136,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const member = members[0] as { member_code: string | null; belong: string | null; class: string | null; is_judge: boolean; is_non_prize: boolean };
 
+    // class と is_judge は選手管理からは変更不可（申込管理タブで変更 → members 両日分 + player_master に同期）
+    // 防御的に body から無視する
     const newBelong = body.belong !== undefined
       ? (body.belong ? (toShortName(body.belong) || null) : null)
       : member.belong;
-    const newClass = body.class !== undefined ? body.class : member.class;
-    const newIsJudge = body.is_judge !== undefined ? body.is_judge : member.is_judge;
+    const newClass = member.class;
+    const newIsJudge = member.is_judge;
     const newIsNonPrize = body.is_non_prize !== undefined ? body.is_non_prize : member.is_non_prize;
 
     // 会員番号の変更（scores / registrations / 同一会員の両日分 members をまとめて同期）
@@ -212,28 +214,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       `;
     }
 
-    // Also update player_master if member_code exists
-    if (member.member_code && (body.class !== undefined || body.is_judge !== undefined)) {
-      try {
-        const tRows = await sql`SELECT event_type FROM tournaments WHERE id = ${tournamentId}`;
-        const isSkeet = tRows.length > 0 && tRows[0].event_type === 'skeet';
-        if (isSkeet) {
-          await sql`
-            UPDATE player_master
-            SET skeet_class = ${newClass}, is_judge = ${newIsJudge}, updated_at = NOW()
-            WHERE member_code = ${member.member_code}
-          `;
-        } else {
-          await sql`
-            UPDATE player_master
-            SET trap_class = ${newClass}, is_judge = ${newIsJudge}, updated_at = NOW()
-            WHERE member_code = ${member.member_code}
-          `;
-        }
-      } catch {
-        // player_master update failure is non-critical
-      }
-    }
+    // class / is_judge の player_master 同期は選手管理からは行わない
+    // （申込管理タブから変更すると registrations/[regId] ルートで同期される）
 
     // Return updated member
     const updated = await sql`SELECT * FROM members WHERE id = ${memberIdNum}`;

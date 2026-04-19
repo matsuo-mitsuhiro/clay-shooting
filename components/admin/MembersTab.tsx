@@ -1203,13 +1203,14 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                                   <span style={{ fontSize: 15, color: C.text }}>{member.belong ?? '-'}</span>
                                 )}
                               </td>
-                              {/* クラス */}
+                              {/* クラス（編集不可・申込管理タブから変更） */}
                               <td style={{ padding: '4px 6px' }}>
                                 {editing ? (
                                   <select
                                     value={member.class ?? ''}
-                                    onChange={e => updateEditedMember(member.id, 'class', e.target.value || null)}
-                                    style={{ ...selectStyle, width: 60 }}
+                                    disabled
+                                    title="クラスの変更は「申込管理」タブから行ってください"
+                                    style={{ ...selectStyle, width: 60, opacity: 0.4, cursor: 'not-allowed' }}
                                   >
                                     <option value="">-</option>
                                     {(['AAA', 'AA', 'A', 'B', 'C'] as ClassType[]).map(c => (
@@ -1229,15 +1230,19 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                                   ) : <span style={{ color: C.muted }}>-</span>
                                 )}
                               </td>
-                              {/* 審判 */}
+                              {/* 審判（編集不可・申込管理タブから変更） */}
                               <td style={{ padding: '4px 6px', textAlign: 'center' }}>
                                 {editing ? (
-                                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'pointer' }}>
+                                  <label
+                                    title="審判の変更は「申込管理」タブから行ってください"
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'not-allowed', opacity: 0.4 }}
+                                  >
                                     <input
                                       type="checkbox"
                                       checked={member.is_judge}
-                                      onChange={e => updateEditedMember(member.id, 'is_judge', e.target.checked)}
-                                      style={{ width: 14, height: 14, cursor: 'pointer', accentColor: C.gold }}
+                                      disabled
+                                      readOnly
+                                      style={{ width: 14, height: 14, cursor: 'not-allowed', accentColor: C.gold }}
                                     />
                                     <span style={{ fontSize: 15, color: member.is_judge ? C.gold : C.muted }}>⚑</span>
                                   </label>
