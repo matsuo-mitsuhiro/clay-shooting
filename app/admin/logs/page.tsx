@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { C } from '@/lib/colors';
 import type { OperationLog, OperationAction } from '@/lib/types';
@@ -33,15 +33,19 @@ const PAGE_SIZE = 50;
 export default function OperationLogsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isSystem = session?.user?.role === 'system';
   const userAffiliation = session?.user?.affiliation ?? null;
+
+  // URL の ?tournament_id= から初期フィルタを取得（大会詳細画面からの遷移用）
+  const initialTournamentId = searchParams.get('tournament_id') ?? '';
 
   const [logs, setLogs] = useState<OperationLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filterAction, setFilterAction] = useState('');
-  const [filterTournament, setFilterTournament] = useState('');
+  const [filterTournament, setFilterTournament] = useState(initialTournamentId);
   const [filterAffiliation, setFilterAffiliation] = useState('');
   const [affiliations, setAffiliations] = useState<string[]>([]);
 

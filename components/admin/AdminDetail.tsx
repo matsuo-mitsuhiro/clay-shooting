@@ -306,6 +306,24 @@ export default function AdminDetail({ tournamentId }: Props) {
                 {/* 区切り線 */}
                 <div style={{ height: 1, background: C.border, margin: '8px 16px' }} />
 
+                {/* 操作ログ（この大会） */}
+                <button
+                  onClick={() => { setMenuOpen(false); router.push(`/admin/logs?tournament_id=${tournamentId}`); }}
+                  style={{
+                    background: 'transparent',
+                    color: C.muted,
+                    border: 'none',
+                    borderLeft: '3px solid transparent',
+                    padding: '10px 20px',
+                    fontSize: 15,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    width: '100%',
+                  }}
+                >
+                  📋 操作ログ ↗
+                </button>
+
                 {/* Q&A */}
                 <a
                   href="/faq"
@@ -431,6 +449,28 @@ export default function AdminDetail({ tournamentId }: Props) {
               {tab.label}
             </button>
           ))}
+          {/* 操作ログ参照ボタン — タブと差別化（枠付き・右寄せ） */}
+          <div style={{ marginLeft: 'auto', paddingRight: 16 }}>
+            <button
+              onClick={() => router.push(`/admin/logs?tournament_id=${tournamentId}`)}
+              title="この大会の操作ログを閲覧"
+              style={{
+                background: 'transparent',
+                color: C.muted,
+                border: `1px solid ${C.border}`,
+                borderRadius: 6,
+                padding: '6px 14px',
+                fontSize: 14,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              📋 操作ログ <span style={{ fontSize: 12, opacity: 0.6 }}>↗</span>
+            </button>
+          </div>
         </div>
       )}
 
