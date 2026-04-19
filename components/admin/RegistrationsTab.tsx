@@ -45,6 +45,7 @@ interface PlayerMaster {
 // 申込管理リストの一括編集モード用スナップショット
 interface EditableReg {
   id: number;
+  member_code: string;
   name: string;
   belong: string | null;
   class: ClassType | null;
@@ -88,6 +89,11 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   // Modal state
   const [confirmModal, setConfirmModal] = useState<{ message: string; onOk: () => void; okLabel?: string; okColor?: string } | null>(null);
   const [alertModal, setAlertModal] = useState<string | null>(null);
+  // 会員番号変更で選手マスター未登録があった場合の確認モーダル
+  const [memberCodeWarn, setMemberCodeWarn] = useState<{
+    unknown: string[];
+    pendingChanges: Array<{ reg: Registration; body: Record<string, unknown> }>;
+  } | null>(null);
 
   // Filters for registration list
   const [filterClass, setFilterClass] = useState<string>('all');
@@ -228,6 +234,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
       if (r.status === 'cancelled') continue;
       map[r.id] = {
         id: r.id,
+        member_code: r.member_code ?? '',
         name: r.name,
         belong: r.belong,
         class: r.class,
@@ -254,25 +261,82 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
   }
 
   async function saveEditMode() {
+    // 会員番号の正規化（全角→半角、trim）
+    const normalizeCode = (s: string) => s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).trim();
+
+    // 会員番号バリデーション（半角数字のみ・空不可）
+    for (const reg of registrations) {
+      const edited = editedMap[reg.id];
+      const snap = snapshotMap[reg.id];
+      if (!edited || !snap) continue;
+      const newCode = normalizeCode(edited.member_code);
+      if (newCode !== snap.member_code) {
+        if (!newCode) {
+          setAlertModal(`${reg.name} の会員番号は空にできません`);
+          return;
+        }
+        if (!/^\d+$/.test(newCode)) {
+          setAlertModal(`${reg.name} の会員番号は半角数字のみで入力してください`);
+          return;
+        }
+        // 同一大会内の重複チェック(他の active 申込)
+        const dup = registrations.find(r =>
+          r.id !== reg.id && r.status === 'active' && r.member_code === newCode
+        );
+        if (dup) {
+          setAlertModal(`会員番号 ${newCode} は ${dup.name} さんの申込で既に使用されています`);
+          return;
+        }
+      }
+    }
+
     // 差分検出
-    const changes: Array<{ reg: Registration; body: Record<string, unknown> }> = [];
+    const changes: Array<{ reg: Registration; body: Record<string, unknown>; newCode: string | null }> = [];
+    const newCodeChanges: string[] = []; // 選手マスター未登録チェック用
     for (const reg of registrations) {
       const edited = editedMap[reg.id];
       const snap = snapshotMap[reg.id];
       if (!edited || !snap) continue;
       const body: Record<string, unknown> = {};
+      const newCode = normalizeCode(edited.member_code);
+      const codeChanged = newCode !== snap.member_code;
+      if (codeChanged) {
+        body.member_code = newCode;
+        newCodeChanges.push(newCode);
+      }
       if (edited.name !== snap.name) body.name = edited.name;
       if (edited.belong !== snap.belong) body.belong = edited.belong;
       if (edited.class !== snap.class) body.class = edited.class;
       if (edited.is_judge !== snap.is_judge) body.is_judge = edited.is_judge;
       if (edited.participation_day !== snap.participation_day) body.participation_day = edited.participation_day;
-      if (Object.keys(body).length > 0) changes.push({ reg, body });
+      if (Object.keys(body).length > 0) changes.push({ reg, body, newCode: codeChanged ? newCode : null });
     }
 
     if (changes.length === 0) {
       cancelEditMode();
       return;
     }
+
+    // 会員番号変更があれば選手マスターに存在するか事前チェック
+    const unknownCodes: string[] = [];
+    for (const code of Array.from(new Set(newCodeChanges))) {
+      try {
+        const res = await fetch(`/api/players?code=${encodeURIComponent(code)}`);
+        const json = await res.json();
+        if (!json.success) unknownCodes.push(code);
+      } catch {
+        unknownCodes.push(code);
+      }
+    }
+    if (unknownCodes.length > 0) {
+      setMemberCodeWarn({ unknown: unknownCodes, pendingChanges: changes });
+      return;
+    }
+
+    await applyRegistrationChanges(changes);
+  }
+
+  async function applyRegistrationChanges(changes: Array<{ reg: Registration; body: Record<string, unknown> }>) {
 
     // 登録済の 1日目↔2日目 直接変更チェック（クライアント事前バリデーション）
     for (const c of changes) {
@@ -957,7 +1021,17 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
 
                     {/* 会員番号 */}
                     <td style={{ padding: '7px 10px', fontSize: 13, color: C.muted }}>
-                      {reg.member_code}
+                      {editing && !isCancelled ? (
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={editedMap[reg.id]?.member_code ?? ''}
+                          onChange={e => updateEdited(reg.id, 'member_code', e.target.value)}
+                          style={{ ...inputStyle, width: 80, fontFamily: 'monospace' }}
+                        />
+                      ) : (
+                        reg.member_code
+                      )}
                     </td>
 
                     {/* 氏名 (sticky) */}
@@ -1126,6 +1200,19 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
       )}
       {alertModal && (
         <AlertModal message={alertModal} onClose={() => setAlertModal(null)} />
+      )}
+      {memberCodeWarn && (
+        <ConfirmModal
+          message={`次の会員番号は選手マスターに未登録です：\n${memberCodeWarn.unknown.join('、')}\n\nこのまま保存しますか？`}
+          onOk={() => {
+            const changes = memberCodeWarn.pendingChanges;
+            setMemberCodeWarn(null);
+            applyRegistrationChanges(changes);
+          }}
+          onCancel={() => setMemberCodeWarn(null)}
+          okLabel="このまま保存"
+          okColor={C.gold}
+        />
       )}
     </div>
   );

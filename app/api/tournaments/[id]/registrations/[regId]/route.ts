@@ -191,8 +191,34 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (body.is_judge !== undefined) {
       await sql`UPDATE registrations SET is_judge = ${body.is_judge as boolean} WHERE id = ${rid} AND tournament_id = ${tid}`;
     }
+    // 会員番号変更: registrations / members(両日) / scores をまとめて同期
+    // player_master は主キーなので触らない（新コードが既に別選手を指しているか、未登録の場合は警告済み）
     if (body.member_code !== undefined) {
-      await sql`UPDATE registrations SET member_code = ${body.member_code as string} WHERE id = ${rid} AND tournament_id = ${tid}`;
+      const newCode = String(body.member_code ?? '').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).trim();
+      if (!newCode || !/^\d+$/.test(newCode)) {
+        return NextResponse.json<ApiResponse>({ success: false, error: '会員番号は半角数字のみで入力してください' }, { status: 400 });
+      }
+      if (newCode !== cur.member_code) {
+        // 同一大会内の重複チェック（他のアクティブな申込が同じコードを使っていないか）
+        const dup = await sql`
+          SELECT id, name FROM registrations
+          WHERE tournament_id = ${tid} AND id != ${rid}
+            AND member_code = ${newCode} AND status = 'active'
+          LIMIT 1
+        `;
+        if (dup.length > 0) {
+          return NextResponse.json<ApiResponse>({ success: false, error: `会員番号 ${newCode} は既に他の申込で使用されています` }, { status: 409 });
+        }
+        const oldCode = cur.member_code;
+        // 1. registrations 更新
+        await sql`UPDATE registrations SET member_code = ${newCode} WHERE id = ${rid} AND tournament_id = ${tid}`;
+        // 2. 移行済みの場合は members（両日分）と scores も同期
+        if (isTransferred && oldCode) {
+          await sql`UPDATE members SET member_code = ${newCode} WHERE tournament_id = ${tid} AND member_code = ${oldCode}`;
+          await sql`UPDATE scores SET member_code = ${newCode} WHERE tournament_id = ${tid} AND member_code = ${oldCode}`;
+        }
+        cur.member_code = newCode;
+      }
     }
     if (newPday !== undefined) {
       await sql`UPDATE registrations SET participation_day = ${newPday} WHERE id = ${rid} AND tournament_id = ${tid}`;
