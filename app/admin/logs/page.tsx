@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { C } from '@/lib/colors';
@@ -31,6 +31,15 @@ const ACTION_LABELS: Record<OperationAction, string> = {
 const PAGE_SIZE = 50;
 
 export default function OperationLogsPage() {
+  // useSearchParams() は Next.js App Router で Suspense 境界が必要
+  return (
+    <Suspense fallback={<div style={{ background: C.bg, minHeight: '100vh' }} />}>
+      <OperationLogsPageInner />
+    </Suspense>
+  );
+}
+
+function OperationLogsPageInner() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
