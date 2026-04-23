@@ -115,32 +115,35 @@ export default function Home() {
               }
 
               return (
-              <div key={t.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Link href={btnHref} style={{ textDecoration: 'none', flex: 1 }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                      <span style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{t.name}</span>
-                      <span style={{ background: C.gold, color: '#000', borderRadius: 20, padding: '2px 10px', fontSize: 13, fontWeight: 600 }}>{eventLabel(t.event_type)}</span>
-                    </div>
-                    <div style={{ fontSize: 15, color: '#ffffff', display: 'flex', gap: 16 }}>
-                      {t.venue && <span>📍 {t.venue}</span>}
-                      {t.day1_date && <span>📅 {fmtDate(t.day1_date)}{t.day2_date ? ` / ${fmtDate(t.day2_date)}` : ''}</span>}
-                    </div>
-                  </div>
-                </Link>
-                <Link
-                  href={btnHref}
-                  style={{
-                    background: btnBg, color: btnColor,
-                    borderRadius: 6, padding: '7px 16px',
-                    fontSize: 14, fontWeight: 700,
-                    textDecoration: 'none', whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
-                  {btnLabel}
-                </Link>
-              </div>
+              <Link
+                key={t.id}
+                href={btnHref}
+                style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  padding: '16px 20px',
+                  display: 'block',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                }}
+              >
+                <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 8, lineHeight: 1.4 }}>
+                  {t.name}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                  <span style={{ background: C.gold, color: '#000', borderRadius: 20, padding: '3px 12px', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {eventLabel(t.event_type)}
+                  </span>
+                  <span style={{ background: btnBg, color: btnColor, borderRadius: 6, padding: '7px 18px', fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    {btnLabel}
+                  </span>
+                </div>
+                <div style={{ fontSize: 15, color: '#ffffff', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {t.venue && <span style={{ whiteSpace: 'nowrap' }}>📍 {t.venue}</span>}
+                  {t.day1_date && <span style={{ whiteSpace: 'nowrap' }}>📅 {fmtDate(t.day1_date)}{t.day2_date ? ` / ${fmtDate(t.day2_date)}` : ''}</span>}
+                </div>
+              </Link>
               );
             })}
           </div>
