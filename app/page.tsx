@@ -1,13 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { C } from '@/lib/colors';
 import type { Tournament } from '@/lib/types';
 import Footer from '@/components/Footer';
 
 export default function Home() {
-  const router = useRouter();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [listTab, setListTab] = useState<'current' | 'past'>('current');
@@ -17,15 +15,6 @@ export default function Home() {
       if (j.success) setTournaments(j.data);
     }).finally(() => setLoading(false));
   }, []);
-
-  function handleAdminClick() {
-    const pw = window.prompt('パスワードを入力してください');
-    if (pw === 'repros') {
-      router.push('/admin');
-    } else if (pw !== null) {
-      alert('あなたの会社名は？');
-    }
-  }
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const eventLabel = (t: string) => t === 'trap' ? 'トラップ' : t === 'skeet' ? 'スキート' : t === 'double_trap' ? 'ダブルトラップ' : t;
@@ -149,18 +138,6 @@ export default function Home() {
           </div>
         )}
       </main>
-      {/* Hidden admin button */}
-      <button
-        onClick={handleAdminClick}
-        style={{
-          position: 'fixed', bottom: 16, left: 16,
-          width: 40, height: 40,
-          background: C.bg, color: C.bg,
-          border: 'none', borderRadius: 4,
-          cursor: 'pointer', fontSize: 1,
-        }}
-        aria-label=""
-      >　</button>
       <Footer />
     </div>
   );
