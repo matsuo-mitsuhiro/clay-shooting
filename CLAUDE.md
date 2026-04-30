@@ -44,6 +44,32 @@ docs/07_AI引き継ぎメモ.md
 
 ---
 
+## ブランチ戦略・デプロイフロー（v3.78.5〜、3環境運用）
+
+```
+feature/* （Claudeが作業）
+   │ PR
+   ▼
+staging  （ユーザーがレビュー後マージ）→ Vercel staging（clay-shooting-stg.vercel.app）+ Neon staging branch
+   │ PR
+   ▼
+main     （ユーザーがレビュー後マージ）→ Vercel 本番（clay-shooting.vercel.app）+ Neon production
+```
+
+### Claude の作業ルール
+- **main / staging に直 push しない**（ブランチ保護で禁止済み）
+- 変更は必ず `feature/<目的>` ブランチで作業
+- 完了したら `gh pr create --base staging` で staging 向けPR作成
+- ユーザーが staging で確認後、Claude が `gh pr create --base main` で本番昇格PR作成
+
+### マイグレーション運用
+- `db/migrations/NNN_xxx.sql` を追加するだけでOK
+- `staging` ブランチへ push されると `migrate-staging.yml` が staging DB に自動適用
+- `main` ブランチへ push されると `migrate-production.yml` が本番 DB に自動適用
+- 適用履歴は `_migrations` テーブルで管理（migration 024 で導入）
+
+---
+
 ## コミット・プッシュ前（必須）
 コードをコミット・プッシュする前に、**必ず**以下を実行すること。
 
@@ -54,6 +80,13 @@ npx tsc --noEmit --incremental false
 - エラーが1件でもあれば、必ず修正してからコミットする
 - 特に `lib/types.ts` を変更した場合は、他ファイルへの影響が出やすいため必須
 - エラーなし（出力なし）を確認してからコミットすること
+
+### 1.5 ESLint（追加）
+```bash
+npx eslint .
+```
+- エラー（`error`）は0件必須、警告（`warning`）は許容
+- CI でも自動チェックされる
 
 ### 2. バージョン番号の更新（`lib/version.ts`）
 **すべてのコミットで `lib/version.ts` を更新すること。**

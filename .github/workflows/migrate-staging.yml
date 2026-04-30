@@ -1,0 +1,27 @@
+name: Migrate Staging DB
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'db/migrations/**'
+      - 'scripts/run-migrations.js'
+      - '.github/workflows/migrate-staging.yml'
+  workflow_dispatch:
+    # 手動実行も可能（GitHub Actions タブから）
+
+jobs:
+  migrate:
+    name: Apply pending migrations to Neon staging branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run migrations
+        run: node scripts/run-migrations.js
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.STAGING_DATABASE_URL_UNPOOLED }}
