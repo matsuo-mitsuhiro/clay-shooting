@@ -1,0 +1,27 @@
+name: Migrate Production DB
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'db/migrations/**'
+      - 'scripts/run-migrations.js'
+      - '.github/workflows/migrate-production.yml'
+  workflow_dispatch:
+    # 手動実行も可能（緊急時のロールフォワード等）
+
+jobs:
+  migrate:
+    name: Apply pending migrations to Neon production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run migrations
+        run: node scripts/run-migrations.js
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.PRODUCTION_DATABASE_URL_UNPOOLED }}

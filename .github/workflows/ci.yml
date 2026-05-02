@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [main, staging]
+
+jobs:
+  type-check:
+    name: TypeScript 型チェック
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx tsc --noEmit --incremental false
+
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+
+  build:
+    name: Next.js ビルド
+    runs-on: ubuntu-latest
+    needs: [type-check, lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx next build
+        env:
+          # ビルド時には DB アクセスはしないが NextAuth が NEXTAUTH_SECRET を要求するため
+          # ビルド専用のダミー値を渡す
+          NEXTAUTH_SECRET: ci-build-only-not-used-at-runtime
+          NEXTAUTH_URL: http://localhost:3000
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db
+          GOOGLE_CLIENT_ID: ci-build-dummy
+          GOOGLE_CLIENT_SECRET: ci-build-dummy
+          SYSTEM_ADMIN_EMAILS: ci@example.com
+          EMAIL_USER: ci@example.com
+          EMAIL_PASS: ci-dummy
