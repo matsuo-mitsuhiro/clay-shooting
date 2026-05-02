@@ -7,10 +7,12 @@
  *
  * 動作:
  *   1. _migrations テーブルが無ければ作成
- *   2. db/migrations/*.sql を昇順に走査
- *   3. _migrations に未記録のファイルだけを順次適用
- *   4. 各ファイルの適用は1つのトランザクションで実行（失敗時はROLLBACK）
- *   5. 適用成功したら _migrations に記録
+ *   2. _migrations が空 + DB に schema が既にある場合は 024 を bootstrap として先に実行
+ *      （production から複製した staging branch などへの初回適用に対応）
+ *   3. db/migrations/*.sql を昇順に走査
+ *   4. _migrations に未記録のファイルだけを順次適用
+ *   5. 各ファイルの適用は1つのトランザクションで実行（失敗時はROLLBACK）
+ *   6. 適用成功したら _migrations に記録
  *
  * CI（GitHub Actions）から呼ばれることを想定:
  *   - .github/workflows/migrate-staging.yml （staging branch push時）
@@ -55,6 +57,41 @@ async function main() {
     const files = fs.readdirSync(migrationsDir)
       .filter(f => f.endsWith('.sql'))
       .sort(); // 001_..., 002_..., ... の連番ソート
+
+    // === Bootstrap: production-copy DB without _migrations ===
+    // staging branch を production からコピーした直後など、DB に schema が
+    // 既に入っているのに _migrations が空の場合、024 を bootstrap として
+    // 先に実行して 001-023 をバックフィルする
+    if (applied.size === 0) {
+      const { rows: t } = await client.query(
+        `SELECT 1 FROM information_schema.tables WHERE table_name = 'tournaments' LIMIT 1`
+      );
+      if (t.length > 0) {
+        const bootstrapFile = '024_create_migration_history.sql';
+        const bootstrapPath = path.join(migrationsDir, bootstrapFile);
+        if (fs.existsSync(bootstrapPath)) {
+          console.log(`→ Production-copy DB を検出。${bootstrapFile} を bootstrap として先に実行...`);
+          const bootstrapSql = fs.readFileSync(bootstrapPath, 'utf8');
+          await client.query('BEGIN');
+          try {
+            await client.query(bootstrapSql);
+            await client.query(
+              'INSERT INTO _migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING',
+              [bootstrapFile]
+            );
+            await client.query('COMMIT');
+          } catch (e) {
+            await client.query('ROLLBACK');
+            console.error(`✗ Bootstrap 失敗: ${e.message}`);
+            throw e;
+          }
+          // 024 が backfill した結果を反映
+          const { rows: r2 } = await client.query('SELECT filename FROM _migrations');
+          r2.forEach(r => applied.add(r.filename));
+          console.log(`✓ Bootstrap 完了: ${applied.size}件を適用済としてマーク`);
+        }
+      }
+    }
 
     let appliedCount = 0;
     let skipCount = 0;
