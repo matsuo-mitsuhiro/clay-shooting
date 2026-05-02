@@ -44,7 +44,6 @@ function OperationLogsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isSystem = session?.user?.role === 'system';
-  const userAffiliation = session?.user?.affiliation ?? null;
 
   // URL の ?tournament_id= から初期フィルタを取得（大会詳細画面からの遷移用）
   const initialTournamentId = searchParams.get('tournament_id') ?? '';
