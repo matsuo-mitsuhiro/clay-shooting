@@ -1,24 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { C } from '@/lib/colors';
-import type { Member, ClassType, ScoreStatus, Tournament, Result } from '@/lib/types';
+import type { Member, ClassType, ScoreStatus, Tournament, Result, UnusedSlot } from '@/lib/types';
 import { PREFECTURES } from '@/lib/prefectures';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import { ConfirmModal, ErrorModal } from '@/components/ModalDialog';
@@ -27,53 +11,20 @@ interface Props {
   tournamentId: number;
   tournament: Tournament | null;
   onNavigateToApplySettings?: () => void;
+  onTournamentRefresh?: () => void;
 }
 
 interface SlotItem {
   group: number;
   position: number;
   member: Member | null;
+  isUnused: boolean;
 }
 
 const POSITIONS = 6;
 
-function SortablePlayerRow({ slot }: { slot: SlotItem }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: `slot-${slot.group}-${slot.position}`,
-  });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <tr ref={setNodeRef} style={{ ...style, borderBottom: `1px solid ${C.border}33` }}>
-      <td style={{ padding: '5px 10px', color: C.muted, fontSize: 15 }}>{slot.group}組</td>
-      <td style={{ padding: '5px 10px', color: C.muted, fontSize: 15 }}>{slot.position}</td>
-      <td style={{ padding: '5px 10px', color: C.text, fontSize: 15 }}>
-        {slot.member ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span {...attributes} {...listeners} style={{ cursor: 'grab', color: C.muted, fontSize: 18, userSelect: 'none' }}>⠿</span>
-            {slot.member.name}{slot.member.is_judge ? <span style={{ color: C.gold }}>⚑</span> : ''}
-          </div>
-        ) : <span style={{ color: C.gold }}>－（空き）</span>}
-      </td>
-      <td style={{ padding: '5px 10px', color: C.muted, fontSize: 15 }}>{slot.member?.belong ?? '-'}</td>
-      <td style={{ padding: '5px 10px', fontSize: 15 }}>
-        {slot.member?.class ? (
-          <span style={{
-            background: classBadgeBg(slot.member.class),
-            color: classBadgeColor(slot.member.class),
-            borderRadius: 4,
-            padding: '1px 7px',
-            fontSize: 13,
-            fontWeight: 700,
-          }}>{slot.member.class}</span>
-        ) : '-'}
-      </td>
-    </tr>
-  );
+function isSlotUnused(unusedSlots: UnusedSlot[], day: number, group: number, position: number): boolean {
+  return unusedSlots.some(u => u.day === day && u.group === group && u.position === position);
 }
 
 interface UnregisteredEntry {
@@ -99,8 +50,9 @@ interface MemberChange {
   is_non_prize: boolean;
 }
 
-export default function MembersTab({ tournamentId, tournament, onNavigateToApplySettings }: Props) {
+export default function MembersTab({ tournamentId, tournament, onNavigateToApplySettings, onTournamentRefresh }: Props) {
   const hasTwoDays = !!(tournament?.day2_date);
+  const unusedSlots: UnusedSlot[] = tournament?.unused_slots ?? [];
 
   const [selectedDay, setSelectedDay] = useState<1 | 2>(1);
   const [groupCount, setGroupCount] = useState<{ 1: number; 2: number }>({ 1: 1, 2: 1 });
@@ -128,6 +80,19 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
   const [editedMembers, setEditedMembers] = useState<EditableMember[]>([]);
   const [snapshotMembers, setSnapshotMembers] = useState<EditableMember[]>([]);
 
+  // 移動モーダル（⋮⋮ クリックで開く）
+  const [moveModal, setMoveModal] = useState<{ slot: SlotItem } | null>(null);
+  const [moveTargetGroup, setMoveTargetGroup] = useState(1);
+  const [moveTargetPosition, setMoveTargetPosition] = useState(1);
+
+  // 空席設定モーダル
+  const [unusedModalOpen, setUnusedModalOpen] = useState(false);
+  const [unusedDraft, setUnusedDraft] = useState<Set<string>>(new Set()); // "g-p" の Set
+
+  // ランダム組替プレビュー状態
+  const [randomPreview, setRandomPreview] = useState(false);
+  const [randomBackup, setRandomBackup] = useState<SlotItem[] | null>(null);
+
   useEffect(() => {
     fetch('/api/associations')
       .then(r => r.json())
@@ -136,11 +101,6 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       })
       .catch(() => {});
   }, []);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
 
   const fetchMembers = useCallback(async () => {
     try {
@@ -438,28 +398,212 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
     for (let g = 1; g <= count; g++) {
       for (let p = 1; p <= POSITIONS; p++) {
         const member = dayMems.find(m => m.group_number === g && m.position === p) || null;
-        slots.push({ group: g, position: p, member });
+        const isUnused = isSlotUnused(unusedSlots, selectedDay, g, p);
+        slots.push({ group: g, position: p, member, isUnused });
       }
     }
     setReorderItems(slots);
     setReorderMode(true);
+    setRandomPreview(false);
+    setRandomBackup(null);
   }
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+  // 移動モーダルを開く
+  function openMoveModal(slot: SlotItem) {
+    if (!slot.member) return;
+    if (randomPreview) return; // プレビュー中はロック
+    setMoveModal({ slot });
+    setMoveTargetGroup(slot.group);
+    setMoveTargetPosition(slot.position);
+  }
 
-    setReorderItems(items => {
-      const oldIdx = items.findIndex(s => `slot-${s.group}-${s.position}` === active.id);
-      const newIdx = items.findIndex(s => `slot-${s.group}-${s.position}` === over.id);
-      if (oldIdx === -1 || newIdx === -1) return items;
+  // モーダル「決定」: A → B 移動（リスト挿入カスケード、空席スキップ）+ 即時 DB 保存
+  async function confirmMove() {
+    if (!moveModal) return;
+    const src = moveModal.slot;
+    const dstG = moveTargetGroup;
+    const dstP = moveTargetPosition;
 
-      const newItems = items.map(item => ({ ...item }));
-      const tempMember = newItems[oldIdx].member;
-      newItems[oldIdx].member = newItems[newIdx].member;
-      newItems[newIdx].member = tempMember;
-      return newItems;
+    // 元位置と同じ場合は no-op
+    if (src.group === dstG && src.position === dstP) {
+      setMoveModal(null);
+      return;
+    }
+
+    // 新しい layout を計算
+    const newItems = reorderItems.map(s => ({ ...s }));
+    const srcIdx = newItems.findIndex(s => s.group === src.group && s.position === src.position);
+    const dstIdx = newItems.findIndex(s => s.group === dstG && s.position === dstP);
+    if (srcIdx === -1 || dstIdx === -1) {
+      setMoveModal(null);
+      return;
+    }
+    const movingMember = newItems[srcIdx].member;
+    if (!movingMember) {
+      setMoveModal(null);
+      return;
+    }
+
+    // 行先が空席だった場合: 空席指定を自動解除（DB 反映: unused_slots からも削除）
+    let dstWasUnused = false;
+    if (newItems[dstIdx].isUnused) {
+      dstWasUnused = true;
+      newItems[dstIdx].isUnused = false;
+      newItems[dstIdx].member = movingMember;
+      newItems[srcIdx].member = null;
+    } else {
+      // 通常のリスト挿入カスケード（空席スキップ）
+      newItems[srcIdx].member = null;
+      if (srcIdx > dstIdx) {
+        const indices: number[] = [];
+        for (let i = dstIdx; i <= srcIdx; i++) {
+          if (!newItems[i].isUnused) indices.push(i);
+        }
+        const oldMembers = indices.map(i => newItems[i].member);
+        for (let k = 0; k < indices.length; k++) {
+          if (k === 0) newItems[indices[k]].member = movingMember;
+          else newItems[indices[k]].member = oldMembers[k - 1];
+        }
+      } else {
+        const indices: number[] = [];
+        for (let i = srcIdx; i <= dstIdx; i++) {
+          if (!newItems[i].isUnused) indices.push(i);
+        }
+        const oldMembers = indices.map(i => newItems[i].member);
+        for (let k = 0; k < indices.length; k++) {
+          if (k === indices.length - 1) newItems[indices[k]].member = movingMember;
+          else newItems[indices[k]].member = oldMembers[k + 1];
+        }
+      }
+    }
+
+    setReorderItems(newItems);
+    setMoveModal(null);
+
+    // DB 即時反映
+    try {
+      setSaving(true);
+      const membersPayload = newItems
+        .filter(s => s.member !== null)
+        .map(s => ({
+          day: selectedDay,
+          group_number: s.group,
+          position: s.position,
+          member_code: s.member!.member_code ?? undefined,
+          name: s.member!.name,
+          belong: s.member!.belong ?? undefined,
+          class: (s.member!.class ?? undefined) as ClassType | undefined,
+          is_judge: s.member!.is_judge,
+          is_non_prize: s.member!.is_non_prize,
+        }));
+
+      if (dstWasUnused) {
+        // 行先空席を解除して保存（unused_slots から削除）
+        const newUnused = unusedSlots.filter(u =>
+          !(u.day === selectedDay && u.group === dstG && u.position === dstP)
+        );
+        const res = await fetch(`/api/tournaments/${tournamentId}/unused-slots`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ unused_slots: newUnused, members: membersPayload, day: selectedDay }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        onTournamentRefresh?.();
+      } else {
+        // 通常の members 更新のみ
+        const res = await fetch(`/api/tournaments/${tournamentId}/members`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ day: selectedDay, members: membersPayload }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+      }
+      await fetchMembers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '保存に失敗しました');
+      // 失敗時はリストをリフレッシュで戻す
+      await fetchMembers();
+      enterReorderMode();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // 空席設定モーダルを開く
+  function openUnusedModal() {
+    if (randomPreview) return;
+    // 現在日の空席を Set 化
+    const set = new Set<string>();
+    for (const u of unusedSlots) {
+      if (u.day === selectedDay) set.add(`${u.group}-${u.position}`);
+    }
+    setUnusedDraft(set);
+    setUnusedModalOpen(true);
+  }
+
+  function toggleUnusedDraft(g: number, p: number) {
+    setUnusedDraft(prev => {
+      const next = new Set(prev);
+      const key = `${g}-${p}`;
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
     });
+  }
+
+  // 空席設定の保存（カスケード適用）
+  async function saveUnusedSlots() {
+    setError(null);
+    // 新しい現在日の空席リスト
+    const newCurrentDayUnused: UnusedSlot[] = Array.from(unusedDraft).map(key => {
+      const [g, p] = key.split('-').map(Number);
+      return { day: selectedDay, group: g, position: p };
+    });
+    // 他日の空席はそのまま
+    const otherDayUnused = unusedSlots.filter(u => u.day !== selectedDay);
+    const fullUnused = [...otherDayUnused, ...newCurrentDayUnused];
+
+    // 現在日の members に対してカスケード適用
+    const result = applyUnusedCascade(savedMembers, newCurrentDayUnused, selectedDay, groupCount[selectedDay]);
+    if (result.rejected) {
+      setError(result.rejected);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const res = await fetch(`/api/tournaments/${tournamentId}/unused-slots`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          unused_slots: fullUnused,
+          members: result.members.map(m => ({
+            day: m.day,
+            group_number: m.group_number,
+            position: m.position,
+            member_code: m.member_code ?? undefined,
+            name: m.name,
+            belong: m.belong ?? undefined,
+            class: m.class ?? undefined,
+            is_judge: m.is_judge,
+            is_non_prize: m.is_non_prize,
+          })),
+          day: selectedDay,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      setUnusedModalOpen(false);
+      await fetchMembers();
+      onTournamentRefresh?.();
+      setSuccess('空席設定を保存しました');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '保存に失敗しました');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSaveReorder() {
@@ -511,20 +655,27 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
     }
   }
 
-  // ランダム組替
+  // ランダム組替（プレビュー）
   function handleRandomShuffle() {
     if (!reorderItems.length) return;
+
+    // 現在の状態を backup（キャンセル用）
+    setRandomBackup(reorderItems.map(s => ({ ...s })));
+    setRandomPreview(true);
 
     // 主催協会名を取得
     const organizerName = tournament?.organizer_cd
       ? PREFECTURES.find(p => p.cd === tournament.organizer_cd)?.name ?? null
       : null;
 
-    // 現在の選手一覧を取り出す（空きスロットは除外）
+    // 現在の選手一覧を取り出す（空きスロット・空席は除外）
     const allMembers = reorderItems
       .filter(s => s.member !== null)
       .map(s => s.member!);
     const numGroups = Math.max(...reorderItems.map(s => s.group));
+
+    // 空席判定ヘルパー
+    const isUnusedSlot = (g: number, p: number) => isSlotUnused(unusedSlots, selectedDay, g, p);
 
     // 両日参加者を判定（反対の日にも同じmember_codeがいるか）
     const otherDay = selectedDay === 1 ? 2 : 1;
@@ -594,62 +745,57 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
     const hn = bothFirst(hostNon);
     const oj = [...sortedOtherJudges].sort((a, b) => (isBothDays(a) ? 0 : 1) - (isBothDays(b) ? 0 : 1));
 
-    // Step 1: 各組に主催協会を2名配置（射順1と射順4）
-    // 理想: 両方審判、次善: 片方審判+片方非審判
+    // Step 1: 各組に主催協会を2名配置（射順1と射順4、空席ならスキップ）
     for (let g = 0; g < numGroups; g++) {
-      // 射順1（前半）: 主催審判を優先
-      const pos1 = pickFrom(hj) ?? pickFrom(hn);
-      if (pos1) groupSlots[g][0] = pos1;
-
-      // 射順4（後半）: 主催審判を優先
-      const pos4 = pickFrom(hj) ?? pickFrom(hn);
-      if (pos4) groupSlots[g][3] = pos4;
+      if (!isUnusedSlot(g + 1, 1)) {
+        const pos1 = pickFrom(hj) ?? pickFrom(hn);
+        if (pos1) groupSlots[g][0] = pos1;
+      }
+      if (!isUnusedSlot(g + 1, 4)) {
+        const pos4 = pickFrom(hj) ?? pickFrom(hn);
+        if (pos4) groupSlots[g][3] = pos4;
+      }
     }
 
-    // Step 2: 審判不足の組を補充
-    // 各組に最低1名の審判が必要。主催審判が配置できなかった組に他協会審判を入れる
+    // Step 2: 審判不足の組を補充（空席はスキップ）
     for (let g = 0; g < numGroups; g++) {
       const hasJudge = groupSlots[g].some(m => m && m.is_judge);
       if (!hasJudge) {
-        // 主催が非審判×2で配置されている場合、他協会の審判を空き位置に追加
-        // 前半（射順2,3）か後半（射順5,6）の空きに配置
-        // 前半に主催非審判がいて後半に主催非審判がいる場合 → 射順5に他協会審判
-        // 前半に主催非審判がいて後半が空の場合 → 射順4に他協会審判
         const judge = pickFrom(oj);
         if (judge) {
-          // 後半に主催がいる → 前半の空きに審判を入れる（射順2）
-          // 前半に主催がいる → 後半の空きに審判を入れる（射順5）
+          const tryPlace = (idx: number) => {
+            const pos = idx + 1;
+            if (!isUnusedSlot(g + 1, pos) && !groupSlots[g][idx]) {
+              groupSlots[g][idx] = judge;
+              return true;
+            }
+            return false;
+          };
           if (groupSlots[g][3]) {
-            // 後半に主催いる → 前半（射順2）に審判
-            if (!groupSlots[g][1]) groupSlots[g][1] = judge;
-            else if (!groupSlots[g][2]) groupSlots[g][2] = judge;
+            if (!tryPlace(1)) tryPlace(2);
           } else if (groupSlots[g][0]) {
-            // 前半に主催いる → 後半（射順5）に審判
-            if (!groupSlots[g][4]) groupSlots[g][4] = judge;
-            else if (!groupSlots[g][5]) groupSlots[g][5] = judge;
+            if (!tryPlace(4)) tryPlace(5);
           } else {
-            // 主催がいない → 射順1に審判
-            if (!groupSlots[g][0]) groupSlots[g][0] = judge;
+            tryPlace(0);
           }
         }
       }
     }
 
-    // Step 3: まだ審判ゼロの組に対して、残りの他協会審判を配置
+    // Step 3: まだ審判ゼロの組に対して、残りの他協会審判を配置（空席スキップ）
     for (let g = 0; g < numGroups; g++) {
       const hasJudge = groupSlots[g].some(m => m && m.is_judge);
       if (!hasJudge) {
         const judge = pickFrom(oj);
         if (judge) {
-          const emptyIdx = groupSlots[g].findIndex(s => s === null);
+          const emptyIdx = groupSlots[g].findIndex((s, i) => s === null && !isUnusedSlot(g + 1, i + 1));
           if (emptyIdx !== -1) groupSlots[g][emptyIdx] = judge;
         }
       }
     }
 
-    // Step 4: 残りの選手を配置（両日参加者を前方の組に優先配置）
+    // Step 4: 残りの選手を配置（両日参加者を前方の組に優先配置、空席スキップ）
     const remainingAll = shuffle([...hj, ...hn, ...oj, ...otherNon].filter(m => !used.has(m.id)));
-    // 両日参加者を先、片日のみを後にソート
     const remaining = remainingAll.sort((a, b) => {
       const aBoth = isBothDays(a) ? 0 : 1;
       const bBoth = isBothDays(b) ? 0 : 1;
@@ -658,13 +804,14 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
     let rIdx = 0;
     for (let g = 0; g < numGroups; g++) {
       for (let p = 0; p < POSITIONS; p++) {
+        if (isUnusedSlot(g + 1, p + 1)) continue;
         if (!groupSlots[g][p] && rIdx < remaining.length) {
           groupSlots[g][p] = remaining[rIdx++];
         }
       }
     }
 
-    // reorderItems に反映
+    // reorderItems に反映（空席フラグも保持）
     const newItems: SlotItem[] = [];
     for (let g = 0; g < numGroups; g++) {
       for (let p = 0; p < POSITIONS; p++) {
@@ -672,10 +819,27 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
           group: g + 1,
           position: p + 1,
           member: groupSlots[g][p],
+          isUnused: isUnusedSlot(g + 1, p + 1),
         });
       }
     }
     setReorderItems(newItems);
+  }
+
+  // ランダム組替プレビュー: キャンセル
+  function cancelRandomPreview() {
+    if (randomBackup) {
+      setReorderItems(randomBackup);
+    }
+    setRandomBackup(null);
+    setRandomPreview(false);
+  }
+
+  // ランダム組替プレビュー: 保存
+  async function saveRandomPreview() {
+    await handleSaveReorder();
+    setRandomBackup(null);
+    setRandomPreview(false);
   }
 
   // 前日の成績順組替（2日目専用）
@@ -784,18 +948,42 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
         ...block4Day2Only.map(b => b.member),
       ];
 
-      // グループに配置（6名ずつ）
-      const numGroups = Math.ceil(sortedMembers.length / POSITIONS);
-      const newItems: SlotItem[] = [];
-      for (let g = 0; g < numGroups; g++) {
-        for (let p = 0; p < POSITIONS; p++) {
-          const idx = g * POSITIONS + p;
-          newItems.push({
-            group: g + 1,
-            position: p + 1,
-            member: idx < sortedMembers.length ? sortedMembers[idx] : null,
-          });
+      // 既存の reorderItems の組数を維持（不足する場合は拡張）
+      const currentMaxGroup = reorderItems.length > 0 ? Math.max(...reorderItems.map(s => s.group)) : 1;
+      const numGroups = Math.max(currentMaxGroup, Math.ceil(sortedMembers.length / POSITIONS));
+      // 空席を考慮した利用可能スロット数を計算し、選手数と整合
+      const availableSlotIndices: { g: number; p: number }[] = [];
+      for (let g = 1; g <= numGroups; g++) {
+        for (let p = 1; p <= POSITIONS; p++) {
+          if (!isSlotUnused(unusedSlots, selectedDay, g, p)) {
+            availableSlotIndices.push({ g, p });
+          }
         }
+      }
+
+      // ランダム組替プレビュー状態に入れる
+      setRandomBackup(reorderItems.map(s => ({ ...s })));
+      setRandomPreview(true);
+
+      const newItems: SlotItem[] = [];
+      let memberIdx = 0;
+      for (let g = 1; g <= numGroups; g++) {
+        for (let p = 1; p <= POSITIONS; p++) {
+          const isUnused = isSlotUnused(unusedSlots, selectedDay, g, p);
+          let member: Member | null = null;
+          if (!isUnused) {
+            const slotIndex = availableSlotIndices.findIndex(s => s.g === g && s.p === p);
+            if (slotIndex !== -1 && slotIndex < sortedMembers.length) {
+              member = sortedMembers[slotIndex];
+              memberIdx++;
+            }
+          }
+          newItems.push({ group: g, position: p, member, isUnused });
+        }
+      }
+      // 余剰選手があれば最後に追加（注意ログ）
+      if (memberIdx < sortedMembers.length) {
+        console.warn('成績順組替: 配置しきれなかった選手がいます', sortedMembers.length - memberIdx);
       }
       setReorderItems(newItems);
     } catch (e) {
@@ -1069,6 +1257,19 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                     const rows = [];
                     for (let p = 1; p <= POSITIONS; p++) {
                       const member = groupMembers.find(m => m.position === p);
+                      const isUnused = isSlotUnused(unusedSlots, selectedDay, selectedGroup, p);
+                      // 空席行（射順は表示するが氏名列に「空席」と表示）
+                      if (!member && isUnused) {
+                        rows.push(
+                          <tr key={p} style={{ borderBottom: `1px solid ${C.border}33`, background: '#1a1a1a55' }}>
+                            <td style={{ padding: '6px 10px', color: C.muted, fontSize: 15, position: 'sticky', left: 0, zIndex: 1, background: '#1a1a1a' }}>{p}</td>
+                            <td colSpan={8} style={{ padding: '6px 10px', fontSize: 14, color: C.muted, fontStyle: 'italic', position: 'sticky', left: 50, zIndex: 1, background: '#1a1a1a' }}>
+                              空席
+                            </td>
+                          </tr>
+                        );
+                        continue;
+                      }
                       rows.push(
                         <tr key={p} style={{
                           borderBottom: `1px solid ${C.border}33`,
@@ -1185,35 +1386,61 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
 
           {/* 選手組替 button */}
           {dayMembers.length > 0 && !editing && (
-            <div style={{ marginTop: 20, marginBottom: 4, display: 'flex', justifyContent: 'flex-start', gap: 10 }}>
-              <button
-                onClick={() => {
-                  if (reorderMode) {
-                    setReorderMode(false);
-                  } else {
-                    enterReorderMode();
-                  }
-                }}
-                style={{ background: C.surface2, color: C.gold, border: `1px solid ${C.gold}`, borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
-              >
-                {reorderMode ? '組替をキャンセル' : '選手組替'}
-              </button>
-              {reorderMode && (
+            <div style={{ marginTop: 20, marginBottom: 4, display: 'flex', justifyContent: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+              {!reorderMode ? (
                 <button
-                  onClick={handleRandomShuffle}
-                  style={{ background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
+                  onClick={enterReorderMode}
+                  style={{ background: C.surface2, color: C.gold, border: `1px solid ${C.gold}`, borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
                 >
-                  ランダム組替
+                  選手組替
                 </button>
-              )}
-              {reorderMode && selectedDay === 2 && (
-                <button
-                  onClick={handlePreviousDayRankShuffle}
-                  disabled={saving}
-                  style={{ background: '#2980b9', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: saving ? 0.7 : 1 }}
-                >
-                  {saving ? '処理中...' : '前日の成績順組替'}
-                </button>
+              ) : randomPreview ? (
+                <>
+                  <button
+                    onClick={cancelRandomPreview}
+                    style={{ background: C.surface2, color: C.muted, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    組替をキャンセル
+                  </button>
+                  <button
+                    onClick={saveRandomPreview}
+                    disabled={saving}
+                    style={{ background: C.green, color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+                  >
+                    {saving ? '保存中...' : '組替を保存'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={openUnusedModal}
+                    style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    空席設定
+                  </button>
+                  <button
+                    onClick={handleRandomShuffle}
+                    style={{ background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    ランダム組替
+                  </button>
+                  {selectedDay === 2 && (
+                    <button
+                      onClick={handlePreviousDayRankShuffle}
+                      disabled={saving}
+                      style={{ background: '#2980b9', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: saving ? 0.7 : 1 }}
+                    >
+                      {saving ? '処理中...' : '前日の成績順組替'}
+                    </button>
+                  )}
+                  <div style={{ flex: 1 }} />
+                  <button
+                    onClick={() => setReorderMode(false)}
+                    style={{ background: C.surface2, color: C.muted, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    組替モード終了
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -1221,42 +1448,102 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
           {/* Reorder Mode */}
           {reorderMode && (
             <div style={{ marginTop: 12, background: C.surface, border: `1px solid ${C.gold}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
-              <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.surface2 }}>
-                <span style={{ fontWeight: 600, color: C.gold, fontSize: 16 }}>選手組替モード — ⠿ アイコンをドラッグして移動</span>
-                <button
-                  onClick={handleSaveReorder}
-                  disabled={saving}
-                  style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '6px 16px', fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
-                >
-                  {saving ? '保存中...' : '組替を保存'}
-                </button>
+              <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, background: C.surface2 }}>
+                <span style={{ fontWeight: 600, color: C.gold, fontSize: 16 }}>
+                  選手組替モード {randomPreview ? '— プレビュー中（手動編集ロック）' : '— ⋮⋮ アイコンをクリックして組と射順を変更してください'}
+                </span>
               </div>
+              {randomPreview && (
+                <div style={{ padding: '10px 14px', background: '#2a1a00', borderBottom: `1px solid #fbbf24`, color: '#fbbf24', fontSize: 13 }}>
+                  ⚠️ プレビュー中: ランダム組替の結果を表示しています。「保存」または「キャンセル」を選択してください。
+                </div>
+              )}
               <div style={{ overflowX: 'auto' }}>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext
-                    items={reorderItems.map(s => `slot-${s.group}-${s.position}`)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
-                      <thead>
-                        <tr style={{ background: C.surface2 }}>
-                          {['組', '射順', '氏名', '所属協会', 'クラス'].map(h => (
-                            <th key={h} style={{ padding: '7px 10px', fontSize: 13, color: C.muted, fontWeight: 600, textAlign: 'left', borderBottom: `1px solid ${C.border}` }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {reorderItems.map(slot => (
-                          <SortablePlayerRow key={`slot-${slot.group}-${slot.position}`} slot={slot} />
-                        ))}
-                      </tbody>
-                    </table>
-                  </SortableContext>
-                </DndContext>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
+                  <thead>
+                    <tr style={{ background: C.surface2 }}>
+                      {['組', '射順', '氏名', '所属協会', 'クラス'].map(h => (
+                        <th key={h} style={{ padding: '7px 10px', fontSize: 13, color: C.muted, fontWeight: 600, textAlign: 'left', borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reorderItems.map(slot => (
+                      <tr key={`slot-${slot.group}-${slot.position}`} style={{
+                        borderBottom: `1px solid ${C.border}33`,
+                        background: slot.isUnused ? '#1a1a1a55' : 'transparent',
+                      }}>
+                        <td style={{ padding: '5px 10px', color: C.muted, fontSize: 15 }}>{slot.group}組</td>
+                        <td style={{ padding: '5px 10px', color: C.muted, fontSize: 15 }}>{slot.position}</td>
+                        <td style={{ padding: '5px 10px', color: C.text, fontSize: 15 }}>
+                          {slot.isUnused ? (
+                            <span style={{ color: C.muted, fontStyle: 'italic' }}>空席</span>
+                          ) : slot.member ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span
+                                onClick={() => openMoveModal(slot)}
+                                title="クリックして組と射順を変更"
+                                style={{
+                                  cursor: randomPreview ? 'not-allowed' : 'pointer',
+                                  color: randomPreview ? '#444' : C.gold,
+                                  fontSize: 18,
+                                  userSelect: 'none',
+                                  padding: '0 4px',
+                                  opacity: randomPreview ? 0.4 : 1,
+                                }}
+                              >⋮⋮</span>
+                              {slot.member.name}{slot.member.is_judge ? <span style={{ color: C.gold, marginLeft: 6 }}>⚑</span> : ''}
+                            </div>
+                          ) : <span style={{ color: C.gold }}>－（空き）</span>}
+                        </td>
+                        <td style={{ padding: '5px 10px', color: C.muted, fontSize: 15 }}>{slot.member?.belong ?? (slot.isUnused ? '—' : '-')}</td>
+                        <td style={{ padding: '5px 10px', fontSize: 15 }}>
+                          {slot.member?.class ? (
+                            <span style={{
+                              background: classBadgeBg(slot.member.class),
+                              color: classBadgeColor(slot.member.class),
+                              borderRadius: 4,
+                              padding: '1px 7px',
+                              fontSize: 13,
+                              fontWeight: 700,
+                            }}>{slot.member.class}</span>
+                          ) : (slot.isUnused ? <span style={{ color: C.muted }}>—</span> : '-')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
         </>
+      )}
+
+      {/* 移動モーダル */}
+      {moveModal && (
+        <MoveModal
+          slot={moveModal.slot}
+          maxGroup={Math.max(...reorderItems.map(s => s.group))}
+          targetGroup={moveTargetGroup}
+          targetPosition={moveTargetPosition}
+          onChangeGroup={setMoveTargetGroup}
+          onChangePosition={setMoveTargetPosition}
+          onCancel={() => setMoveModal(null)}
+          onConfirm={confirmMove}
+        />
+      )}
+
+      {/* 空席設定モーダル */}
+      {unusedModalOpen && (
+        <UnusedSlotsModal
+          day={selectedDay}
+          groupCount={groupCount[selectedDay]}
+          draft={unusedDraft}
+          onToggle={toggleUnusedDraft}
+          onCancel={() => setUnusedModalOpen(false)}
+          onSave={saveUnusedSlots}
+          saving={saving}
+        />
       )}
 
       {/* 両日参加者 削除モーダル */}
@@ -1338,4 +1625,218 @@ function classBadgeBg(c: ClassType): string {
 }
 function classBadgeColor(c: ClassType): string {
   return { AAA: '#9b59b6', AA: '#e74c3c', A: C.gold, B: '#3498db', C: '#2ecc71' }[c] ?? C.muted;
+}
+
+// ============================================================
+// 空席設定変更時のカスケード適用
+// 現在日の members を、新しい空席設定に従って再配置する。
+// 各選手は自身の現在位置以降の最初の「非空席かつ未占有」スロットに置かれる。
+// ============================================================
+function applyUnusedCascade(
+  members: Member[],
+  newCurrentDayUnused: UnusedSlot[],
+  day: 1 | 2,
+  groupCount: number,
+): { members: Member[]; rejected: string | null } {
+  const isUnused = (g: number, p: number) =>
+    newCurrentDayUnused.some(u => u.day === day && u.group === g && u.position === p);
+
+  // 全スロット（線形）
+  const slots: { group: number; position: number; isUnused: boolean }[] = [];
+  for (let g = 1; g <= groupCount; g++) {
+    for (let p = 1; p <= POSITIONS; p++) {
+      slots.push({ group: g, position: p, isUnused: isUnused(g, p) });
+    }
+  }
+
+  // 現在日の members を現在位置順にソート
+  const dayMembers = members
+    .filter(m => m.day === day)
+    .sort((a, b) => {
+      if (a.group_number !== b.group_number) return a.group_number - b.group_number;
+      return a.position - b.position;
+    });
+
+  const placed = new Set<number>(); // slot index
+  const newDayMembers: Member[] = [];
+
+  for (const m of dayMembers) {
+    const startIdx = slots.findIndex(s => s.group === m.group_number && s.position === m.position);
+    const searchFrom = startIdx >= 0 ? startIdx : 0;
+    let landed = -1;
+    for (let i = searchFrom; i < slots.length; i++) {
+      if (slots[i].isUnused) continue;
+      if (placed.has(i)) continue;
+      landed = i;
+      break;
+    }
+    if (landed === -1) {
+      return { members, rejected: '全スロットが選手で埋まっているため空席化できません' };
+    }
+    placed.add(landed);
+    newDayMembers.push({
+      ...m,
+      group_number: slots[landed].group,
+      position: slots[landed].position,
+    });
+  }
+
+  const otherDayMembers = members.filter(m => m.day !== day);
+  return { members: [...newDayMembers, ...otherDayMembers], rejected: null };
+}
+
+// ============================================================
+// 移動モーダル: ⋮⋮ クリック時に表示
+// ============================================================
+function MoveModal({
+  slot, maxGroup, targetGroup, targetPosition,
+  onChangeGroup, onChangePosition, onCancel, onConfirm,
+}: {
+  slot: SlotItem;
+  maxGroup: number;
+  targetGroup: number;
+  targetPosition: number;
+  onChangeGroup: (g: number) => void;
+  onChangePosition: (p: number) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+    }} onClick={onCancel}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
+        padding: '24px 32px', minWidth: 360, maxWidth: 480, width: '90%',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      }}>
+        <h3 style={{ margin: '0 0 18px', fontSize: 17, color: C.gold, borderBottom: `1px solid ${C.border}`, paddingBottom: 10 }}>
+          選手の組・射順を変更
+        </h3>
+
+        {/* 現在 */}
+        <div style={{ background: C.surface2, padding: '10px 14px', borderRadius: 6, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ color: C.muted, fontSize: 13, fontWeight: 600, minWidth: 40 }}>現在</span>
+          <span style={{ color: C.gold, fontSize: 15, fontWeight: 600 }}>{slot.group}組</span>
+          <span style={{ color: C.muted, fontSize: 14 }}>射順</span>
+          <span style={{ color: C.gold, fontSize: 15, fontWeight: 600 }}>{slot.position}</span>
+          <span style={{ color: C.muted, fontSize: 14 }}>·</span>
+          <span style={{ color: C.text, fontSize: 15, fontWeight: 600 }}>
+            {slot.member?.name}
+            {slot.member?.is_judge ? <span style={{ color: C.gold, marginLeft: 6 }}>⚑</span> : ''}
+          </span>
+        </div>
+
+        {/* 変更 */}
+        <div style={{ background: '#1a1500', padding: '10px 14px', borderRadius: 6, marginBottom: 18, border: `1px solid ${C.gold}66`, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ color: C.muted, fontSize: 13, fontWeight: 600, minWidth: 40 }}>変更</span>
+          <select
+            value={targetGroup}
+            onChange={e => onChangeGroup(Number(e.target.value))}
+            style={{
+              background: C.inputBg, color: C.text, border: `1px solid ${C.border}`,
+              borderRadius: 6, padding: '8px 12px', fontSize: 14, cursor: 'pointer',
+            }}
+          >
+            {Array.from({ length: maxGroup }, (_, i) => i + 1).map(g => (
+              <option key={g} value={g}>{g}組</option>
+            ))}
+          </select>
+          <select
+            value={targetPosition}
+            onChange={e => onChangePosition(Number(e.target.value))}
+            style={{
+              background: C.inputBg, color: C.text, border: `1px solid ${C.border}`,
+              borderRadius: 6, padding: '8px 12px', fontSize: 14, cursor: 'pointer',
+            }}
+          >
+            {Array.from({ length: POSITIONS }, (_, i) => i + 1).map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+          <button onClick={onCancel} style={{
+            background: C.surface2, color: C.text, border: `1px solid ${C.border}`,
+            borderRadius: 6, padding: '8px 18px', fontSize: 14, cursor: 'pointer',
+          }}>キャンセル</button>
+          <button onClick={onConfirm} style={{
+            background: C.green, color: '#fff', border: 'none',
+            borderRadius: 6, padding: '8px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+          }}>決定</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 空席設定モーダル
+// ============================================================
+function UnusedSlotsModal({
+  day, groupCount, draft, onToggle, onCancel, onSave, saving,
+}: {
+  day: 1 | 2;
+  groupCount: number;
+  draft: Set<string>;
+  onToggle: (g: number, p: number) => void;
+  onCancel: () => void;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+    }} onClick={onCancel}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
+        padding: '28px 36px', minWidth: 480, maxWidth: 680, width: '90%',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      }}>
+        <h3 style={{ margin: '0 0 20px', fontSize: 16, color: C.gold, borderBottom: `1px solid ${C.border}`, paddingBottom: 10 }}>
+          空席に設定したい射順を選択してください（{day}日目）
+        </h3>
+
+        {Array.from({ length: groupCount }, (_, gi) => gi + 1).map(g => (
+          <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12, flexWrap: 'wrap' }}>
+            <span style={{ width: 56, color: '#aaa', fontSize: 14, fontWeight: 600 }}>{g}組</span>
+            {Array.from({ length: POSITIONS }, (_, pi) => pi + 1).map(p => {
+              const key = `${g}-${p}`;
+              const selected = draft.has(key);
+              return (
+                <button
+                  key={p}
+                  onClick={() => onToggle(g, p)}
+                  style={{
+                    width: 38, height: 38, borderRadius: '50%',
+                    border: `2px solid ${selected ? '#ef4444' : '#555'}`,
+                    background: selected ? '#ef4444' : 'transparent',
+                    color: selected ? '#fff' : '#aaa',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    transition: 'all 0.15s',
+                  }}
+                >{p}</button>
+              );
+            })}
+          </div>
+        ))}
+
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: `1px solid ${C.border}`, paddingTop: 16, marginTop: 20 }}>
+          <button onClick={onCancel} style={{
+            background: C.surface2, color: C.text, border: `1px solid ${C.border}`,
+            borderRadius: 6, padding: '8px 18px', fontSize: 14, cursor: 'pointer',
+          }}>閉じる</button>
+          <button onClick={onSave} disabled={saving} style={{
+            background: C.gold, color: '#000', border: 'none',
+            borderRadius: 6, padding: '8px 22px', fontSize: 14, fontWeight: 700,
+            cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
+          }}>{saving ? '保存中...' : '保存'}</button>
+        </div>
+      </div>
+    </div>
+  );
 }

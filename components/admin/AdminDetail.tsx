@@ -482,7 +482,7 @@ export default function AdminDetail({ tournamentId }: Props) {
               <RegistrationsTab tournamentId={tournamentId} tournament={tournament} />
             )}
             {activeTab === 'members' && (
-              <MembersTab tournamentId={tournamentId} tournament={tournament} onNavigateToApplySettings={() => setActiveTab('apply-settings')} />
+              <MembersTab tournamentId={tournamentId} tournament={tournament} onNavigateToApplySettings={() => setActiveTab('apply-settings')} onTournamentRefresh={fetchTournament} />
             )}
             {activeTab === 'scores' && (
               <ScoresTab tournamentId={tournamentId} tournament={tournament} />

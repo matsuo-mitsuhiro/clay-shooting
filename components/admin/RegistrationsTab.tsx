@@ -645,7 +645,10 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
 
   return (
     <div style={{ padding: '0 16px', maxWidth: 1400, margin: '0 auto' }}>
-      <LoadingOverlay show={searching || saving} message={searching ? '検索中...' : '保存中...'} />
+      <LoadingOverlay
+        show={searching || saving || transferring}
+        message={transferring ? '選手管理へ移行中...' : (searching ? '検索中...' : '保存中...')}
+      />
 
       {/* ============ Manual Add Area ============ */}
       <div style={{

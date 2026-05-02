@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>組替モード仕様モックアップ v2</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0a0a0a;
+  color: #f5f5f5;
+  font-family: -apple-system, "Segoe UI", "Yu Gothic", sans-serif;
+  padding: 24px;
+  min-height: 100vh;
+}
+h1 { font-size: 20px; color: #fbbf24; margin-bottom: 8px; }
+.subtitle { color: #888; font-size: 13px; margin-bottom: 24px; }
+
+/* タブナビ */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  padding: 12px 18px;
+  background: #1a1a1a;
+  color: #888;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.tab-btn:hover { background: #2a2a2a; }
+.tab-btn.active {
+  background: #2a2a2a;
+  color: #fbbf24;
+  border-bottom: 2px solid #fbbf24;
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* 共通ボタン */
+.toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.btn {
+  padding: 10px 18px;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-amber { background: #fbbf24; color: #1a1a1a; }
+.btn-red { background: #ef4444; color: #fff; }
+.btn-green { background: #22c55e; color: #fff; }
+.btn-gray { background: #2a2a2a; color: #f5f5f5; border: 1px solid #444; }
+.btn[disabled] { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+
+/* 組替モードヘッダー */
+.mode-header {
+  background: #181818;
+  border: 1px solid #2a2a2a;
+  padding: 12px 18px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  color: #fbbf24;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mode-header .grip-hint { color: #aaa; font-weight: normal; margin-left: 8px; font-size: 13px; }
+
+/* テーブル */
+.player-table {
+  width: 100%;
+  background: #141414;
+  border-radius: 12px;
+  border: 1px solid #2a2a2a;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+.player-table th, .player-table td {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 14px;
+  border-bottom: 1px solid #1f1f1f;
+}
+.player-table th {
+  color: #888;
+  font-weight: 500;
+  background: #181818;
+  font-size: 13px;
+}
+.player-table tr:last-child td { border-bottom: none; }
+.player-table tr:hover { background: #1a1a1a; }
+
+/* グリップアイコン（クリックでモーダル） */
+.grip {
+  display: inline-block;
+  color: #888;
+  cursor: pointer;
+  margin-right: 10px;
+  font-size: 16px;
+  user-select: none;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.grip:hover {
+  color: #fbbf24;
+  background: rgba(251,191,36,0.1);
+}
+.grip.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.flag-icon { color: #fbbf24; margin-left: 6px; }
+.empty-label { color: #888; font-style: italic; }
+.class-badge {
+  display: inline-block;
+  background: #22c55e;
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.class-badge.b { background: #3b82f6; }
+
+/* プレビュー時のロックバナー */
+.preview-banner {
+  background: #2a1a00;
+  border: 1px solid #fbbf24;
+  color: #fbbf24;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* モーダルステージ */
+.modal-stage {
+  position: relative;
+  min-height: 600px;
+  background: #0f0f0f;
+  border: 1px dashed #333;
+  border-radius: 12px;
+  padding: 20px;
+  overflow: hidden;
+}
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.modal {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 28px 36px;
+  min-width: 420px;
+  max-width: 540px;
+  border: 1px solid #333;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.modal-title {
+  font-size: 16px;
+  margin-bottom: 22px;
+  color: #fbbf24;
+  font-weight: 600;
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 12px;
+}
+
+/* 移動モーダル専用 */
+.move-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: #0f0f0f;
+  border-radius: 6px;
+}
+.move-modal-row .label {
+  color: #888;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 50px;
+}
+.move-modal-row .value {
+  font-size: 15px;
+  color: #f5f5f5;
+}
+.move-modal-row .value-strong { color: #fbbf24; font-weight: 600; }
+.modal-select {
+  background: #1f1f1f;
+  color: #f5f5f5;
+  border: 1px solid #444;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  min-width: 80px;
+}
+.modal-select:focus { outline: 2px solid #fbbf24; outline-offset: 0; }
+
+/* 空席モーダル専用 */
+.modal-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.modal-row .group-label {
+  width: 56px;
+  color: #aaa;
+  font-size: 14px;
+  font-weight: 600;
+}
+.slot-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid #555;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #aaa;
+  transition: all 0.15s;
+}
+.slot-circle:hover { border-color: #888; color: #f5f5f5; }
+.slot-circle.selected {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #2a2a2a;
+}
+
+/* ローディングオーバーレイ */
+.loading-stage {
+  position: relative;
+  min-height: 500px;
+  background: #141414;
+  border-radius: 12px;
+  border: 1px solid #2a2a2a;
+  overflow: hidden;
+}
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+.spinner {
+  width: 64px;
+  height: 64px;
+  border: 4px solid #333;
+  border-top-color: #fbbf24;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 18px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: #fbbf24; font-size: 15px; font-weight: 500; }
+
+/* テーブルロック演出 */
+.locked-overlay { position: relative; }
+.locked-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg, transparent, transparent 12px,
+    rgba(251,191,36,0.04) 12px, rgba(251,191,36,0.04) 24px
+  );
+  pointer-events: none;
+  border-radius: 12px;
+}
+
+.note {
+  background: #0f0f0f;
+  border-left: 3px solid #fbbf24;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #aaa;
+  line-height: 1.6;
+}
+.note strong { color: #fbbf24; }
+.note code {
+  background: #2a2a2a;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #fbbf24;
+}
+
+.spacer { flex: 1; }
+</style>
+</head>
+<body>
+
+<h1>組替モード仕様モックアップ v2</h1>
+<div class="subtitle">スマホ崩れ対策で「アイコンクリック → モーダル」方式に変更</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab(event, 'normal')">① 通常編集（一覧）</button>
+  <button class="tab-btn" onclick="showTab(event, 'movemodal')">①-b 移動モーダル</button>
+  <button class="tab-btn" onclick="showTab(event, 'preview')">② ランダム組替プレビュー中</button>
+  <button class="tab-btn" onclick="showTab(event, 'seat')">③ 空席設定モーダル</button>
+  <button class="tab-btn" onclick="showTab(event, 'loading')">④ 移行中ローディング</button>
+</div>
+
+<!-- ============================================== -->
+<!-- ① 通常編集（一覧） -->
+<!-- ============================================== -->
+<div id="tab-normal" class="tab-content active">
+  <div class="note">
+    <strong>状態</strong>: 組替モード開始直後。<br>
+    <strong>操作</strong>: 各行の <code>⋮⋮</code> アイコンをクリック → 移動モーダルが開く（次タブ参照）。<br>
+    <strong>見た目</strong>: 一覧画面では組・射順は通常表示（ドロップダウン化はしない、スマホでも崩れない）。
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-amber">空席設定</button>
+    <button class="btn btn-red">ランダム組替</button>
+    <div class="spacer"></div>
+    <button class="btn btn-gray">組替モード終了</button>
+  </div>
+
+  <div class="mode-header">
+    選手組替モード <span class="grip-hint">— ⋮⋮ アイコンをクリックして組と射順を変更してください。</span>
+  </div>
+
+  <table class="player-table">
+    <thead>
+      <tr>
+        <th style="width:80px;">組</th>
+        <th style="width:80px;">射順</th>
+        <th>氏名</th>
+        <th style="width:160px;">所属協会</th>
+        <th style="width:80px;">クラス</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1組</td><td>1</td>
+        <td><span class="grip">⋮⋮</span> 木原 碩秀</td>
+        <td>大阪</td><td>-</td>
+      </tr>
+      <tr>
+        <td>1組</td><td>2</td>
+        <td><span class="grip">⋮⋮</span> 甲谷 輝彦</td>
+        <td>京都</td><td><span class="class-badge">C</span></td>
+      </tr>
+      <tr>
+        <td>1組</td><td>3</td>
+        <td><span class="grip">⋮⋮</span> 石川 恵一</td>
+        <td>大阪</td><td><span class="class-badge">C</span></td>
+      </tr>
+      <tr>
+        <td>1組</td><td>4</td>
+        <td><span class="grip">⋮⋮</span> 森 秀樹</td>
+        <td>滋賀</td><td>-</td>
+      </tr>
+      <tr>
+        <td>1組</td><td>5</td>
+        <td><span class="grip">⋮⋮</span> 粟津 雅文 <span class="flag-icon">🚩</span></td>
+        <td>京都</td><td>-</td>
+      </tr>
+      <tr>
+        <td>1組</td><td>6</td>
+        <td><span class="grip">⋮⋮</span> 木吉 省三</td>
+        <td>大阪</td><td>-</td>
+      </tr>
+      <tr>
+        <td>2組</td><td>1</td>
+        <td><span class="grip">⋮⋮</span> 信田 光晴</td>
+        <td>大阪</td><td>-</td>
+      </tr>
+      <tr>
+        <td>2組</td><td>6</td>
+        <td><span class="empty-label">空席</span></td>
+        <td>—</td><td>—</td>
+      </tr>
+      <tr>
+        <td>3組</td><td>6</td>
+        <td><span class="empty-label">空席</span></td>
+        <td>—</td><td>—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note" style="margin-top: 16px;">
+    <strong>空席行</strong>: 氏名列に「空席」とグレー表示。<code>⋮⋮</code> アイコンは表示しない（移動対象外）。
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- ①-b 移動モーダル -->
+<!-- ============================================== -->
+<div id="tab-movemodal" class="tab-content">
+  <div class="note">
+    <strong>状態</strong>: 一覧画面で 1 組 1 番「木原 碩秀」の <code>⋮⋮</code> をクリックした直後。<br>
+    <strong>モーダル内容</strong>: 「現在」行に元の組・射順・氏名、「変更」行に新しい組・射順のドロップダウン（初期値=現在値）。<br>
+    <strong>操作</strong>:
+    <ul style="margin: 6px 0 0 24px;">
+      <li><strong>決定</strong>: 移動アルゴリズム実行（カスケード）+ DB 即保存 → モーダル閉じる</li>
+      <li><strong>キャンセル</strong>: 何も変更せずにモーダル閉じる</li>
+      <li>現在値と同じまま決定 → no-op（何も起きない）</li>
+      <li>変更先が「空席」スロット → 空席指定を自動解除して配置（カスケード不要）</li>
+    </ul>
+  </div>
+
+  <div class="modal-stage">
+    <!-- 背景: 一覧画面が薄く見える -->
+    <div style="opacity:0.3; pointer-events:none;">
+      <div class="toolbar">
+        <button class="btn btn-amber">空席設定</button>
+        <button class="btn btn-red">ランダム組替</button>
+        <div class="spacer"></div>
+        <button class="btn btn-gray">組替モード終了</button>
+      </div>
+      <div style="background: #141414; height: 300px; border-radius: 8px;"></div>
+    </div>
+
+    <div class="modal-backdrop">
+      <div class="modal">
+        <div class="modal-title">選手の組・射順を変更</div>
+
+        <div class="move-modal-row">
+          <span class="label">現在</span>
+          <span class="value">
+            <span class="value-strong">1組</span> &nbsp; 射順 <span class="value-strong">1</span> &nbsp;・&nbsp;
+            <span class="value-strong">木原 碩秀</span>
+          </span>
+        </div>
+
+        <div class="move-modal-row" style="background: #1a1500; border: 1px solid #fbbf24;">
+          <span class="label">変更</span>
+          <select class="modal-select">
+            <option>1組</option>
+            <option selected>2組</option>
+            <option>3組</option>
+          </select>
+          <select class="modal-select">
+            <option selected>1</option>
+            <option>2</option>
+            <option>3</option>
+            <option>4</option>
+            <option>5</option>
+            <option>6</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-gray">キャンセル</button>
+          <button class="btn btn-green">決定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top: 16px;">
+    上記例: 木原 碩秀 を 1組1番 → 2組1番 に移動。決定すると 2組1番にいた信田 光晴とその後の選手がカスケードで後ろにずれる。
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- ② ランダム組替プレビュー中 -->
+<!-- ============================================== -->
+<div id="tab-preview" class="tab-content">
+  <div class="note">
+    <strong>状態</strong>: 「ランダム組替」ボタンを押した直後。新しい配置がプレビュー表示（DB 未保存）。<br>
+    <strong>ボタン</strong>: 「組替をキャンセル」「組替を保存」が出現。「組替モード終了」「空席設定」「ランダム組替」は無効化。<br>
+    <strong>ロック</strong>: <code>⋮⋮</code> アイコンも無効化（クリックしてもモーダル開かない）。<br>
+    <strong>操作</strong>: 「保存」で DB 確定 → 通常モードへ / 「キャンセル」で元の配置を復元。
+  </div>
+
+  <div class="preview-banner">
+    ⚠️ プレビュー中: ランダム組替の結果を表示しています。「保存」または「キャンセル」を選択してください。
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-amber" disabled>空席設定</button>
+    <button class="btn btn-red" disabled>ランダム組替</button>
+    <div class="spacer"></div>
+    <button class="btn btn-gray">組替をキャンセル</button>
+    <button class="btn btn-green">組替を保存</button>
+  </div>
+
+  <div class="mode-header">
+    選手組替モード <span class="grip-hint">— プレビュー中（手動編集ロック中）</span>
+  </div>
+
+  <div class="locked-overlay">
+  <table class="player-table">
+    <thead>
+      <tr>
+        <th style="width:80px;">組</th>
+        <th style="width:80px;">射順</th>
+        <th>氏名</th>
+        <th style="width:160px;">所属協会</th>
+        <th style="width:80px;">クラス</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1組</td><td>1</td>
+        <td><span class="grip disabled">⋮⋮</span> 石川 恵一</td>
+        <td>大阪</td><td><span class="class-badge">C</span></td>
+      </tr>
+      <tr>
+        <td>1組</td><td>2</td>
+        <td><span class="grip disabled">⋮⋮</span> 木原 碩秀</td>
+        <td>大阪</td><td>-</td>
+      </tr>
+      <tr>
+        <td>1組</td><td>3</td>
+        <td><span class="grip disabled">⋮⋮</span> 森 秀樹</td>
+        <td>滋賀</td><td>-</td>
+      </tr>
+      <tr>
+        <td>1組</td><td>4</td>
+        <td><span class="grip disabled">⋮⋮</span> 木吉 省三</td>
+        <td>大阪</td><td>-</td>
+      </tr>
+      <tr>
+        <td>1組</td><td>5</td>
+        <td><span class="grip disabled">⋮⋮</span> 粟津 雅文 <span class="flag-icon">🚩</span></td>
+        <td>京都</td><td>-</td>
+      </tr>
+      <tr>
+        <td>1組</td><td>6</td>
+        <td><span class="grip disabled">⋮⋮</span> 甲谷 輝彦</td>
+        <td>京都</td><td><span class="class-badge">C</span></td>
+      </tr>
+      <tr>
+        <td>2組</td><td>1</td>
+        <td><span class="grip disabled">⋮⋮</span> 信田 光晴</td>
+        <td>大阪</td><td>-</td>
+      </tr>
+      <tr>
+        <td>2組</td><td>6</td>
+        <td><span class="empty-label">空席</span></td>
+        <td>—</td><td>—</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note" style="margin-top: 16px;">
+    斜線パターンはロック演出（実装では <code>⋮⋮</code> の opacity 低下 + cursor: not-allowed）。
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- ③ 空席設定モーダル -->
+<!-- ============================================== -->
+<div id="tab-seat" class="tab-content">
+  <div class="note">
+    <strong>状態</strong>: 「空席設定」ボタンを押した直後。<br>
+    <strong>操作</strong>: 円をクリックでトグル（白丸＝使用、赤丸＝空席）→ 「保存」で DB（<code>tournaments.unused_slots JSONB</code>）に反映。<br>
+    <strong>注意</strong>: 既に選手がいるスロットも空席化可能（その選手は後ろにカスケード）。全スロットが選手で埋まっている時の空席化は<strong>エラー拒否</strong>。
+  </div>
+
+  <div class="modal-stage">
+    <div style="opacity:0.3; pointer-events:none;">
+      <div class="toolbar">
+        <button class="btn btn-amber">空席設定</button>
+        <button class="btn btn-red">ランダム組替</button>
+        <div class="spacer"></div>
+        <button class="btn btn-gray">組替モード終了</button>
+      </div>
+      <div style="background: #141414; height: 300px; border-radius: 8px;"></div>
+    </div>
+
+    <div class="modal-backdrop">
+      <div class="modal" style="min-width: 540px;">
+        <div class="modal-title">空席に設定したい射順を選択してください。</div>
+        <div class="modal-row">
+          <span class="group-label">1組</span>
+          <button class="slot-circle">1</button>
+          <button class="slot-circle">2</button>
+          <button class="slot-circle">3</button>
+          <button class="slot-circle">4</button>
+          <button class="slot-circle">5</button>
+          <button class="slot-circle">6</button>
+        </div>
+        <div class="modal-row">
+          <span class="group-label">2組</span>
+          <button class="slot-circle">1</button>
+          <button class="slot-circle">2</button>
+          <button class="slot-circle">3</button>
+          <button class="slot-circle">4</button>
+          <button class="slot-circle">5</button>
+          <button class="slot-circle selected">6</button>
+        </div>
+        <div class="modal-row">
+          <span class="group-label">3組</span>
+          <button class="slot-circle">1</button>
+          <button class="slot-circle">2</button>
+          <button class="slot-circle">3</button>
+          <button class="slot-circle">4</button>
+          <button class="slot-circle">5</button>
+          <button class="slot-circle selected">6</button>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-gray">閉じる</button>
+          <button class="btn btn-amber">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- ④ 移行中ローディング -->
+<!-- ============================================== -->
+<div id="tab-loading" class="tab-content">
+  <div class="note">
+    <strong>状態</strong>: 申込管理タブの「選手管理に移行」ボタン押下後、API 完了待ち。<br>
+    <strong>表示</strong>: 画面中央にスピナー + メッセージ、背景は半透明オーバーレイで操作不可（クリック・スクロール無効）。<br>
+    <strong>実装</strong>: 既存の <code>&lt;LoadingOverlay show={isTransferring} message="選手管理へ移行中..." /&gt;</code> を流用。
+  </div>
+
+  <div class="loading-stage">
+    <div style="padding: 20px;">
+      <div class="toolbar">
+        <button class="btn btn-amber" disabled style="opacity:0.7;">手動追加</button>
+        <button class="btn btn-amber" disabled style="opacity:0.7;">一括登録</button>
+        <div class="spacer"></div>
+        <button class="btn btn-amber" disabled style="opacity:0.7;">移行中...</button>
+      </div>
+      <table class="player-table">
+        <thead><tr><th>登録元</th><th>会員番号</th><th>氏名</th><th>所属協会</th><th>クラス</th><th>参加</th><th>申込日時</th><th>ステータス</th></tr></thead>
+        <tbody>
+          <tr><td>Web</td><td>35313</td><td>松尾 充泰</td><td>大阪</td><td>-</td><td>両方</td><td>2026-04-15</td><td>申込中</td></tr>
+          <tr><td>Web</td><td>35314</td><td>田中 太郎</td><td>京都</td><td>C</td><td>1日目</td><td>2026-04-16</td><td>申込中</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">選手管理へ移行中...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(e, name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  e.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>

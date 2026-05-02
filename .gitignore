@@ -49,3 +49,10 @@ next-env.d.ts
 /playwright-report/
 /test-results/
 /playwright/.cache/
+
+# Vercel
+.vercel
+
+# 開発用一時ファイル（gh api への入力 / 一時的な値の置き場）
+tmp-*
+.env.*.tmp
