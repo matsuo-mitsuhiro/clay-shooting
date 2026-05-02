@@ -534,10 +534,10 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                               background: isDQ ? '#e74c3c08' : 'transparent',
                             }}
                           >
-                            {/* 氏名 */}
+                            {/* 氏名（審判フラグは氏名の後ろに表示） */}
                             <td style={{ padding: '6px 10px', fontSize: 15, color: isDQ ? '#e74c3c' : C.text, whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: isDQ ? '#1a1d24' : C.surface }}>
-                              {m.is_judge ? <span style={{ color: C.gold }}>⚑ </span> : ''}
                               {m.position}. {m.name}
+                              {m.is_judge && <span style={{ color: C.gold, marginLeft: 6 }}>⚑</span>}
                               {!code && (
                                 <span style={{ fontSize: 13, color: C.red, marginLeft: 6 }}>(会員番号なし)</span>
                               )}
