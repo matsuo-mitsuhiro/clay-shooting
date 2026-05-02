@@ -44,3 +44,8 @@ desktop.ini
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright
+/playwright-report/
+/test-results/
+/playwright/.cache/
