@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
@@ -79,8 +78,6 @@ const filterScheduleTime = (time: Date) => {
 };
 
 export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }: Props) {
-  const { data: session } = useSession();
-
   const [applyForm, setApplyForm] = useState<{
     max_participants: string;
     apply_start_at: Date | null;

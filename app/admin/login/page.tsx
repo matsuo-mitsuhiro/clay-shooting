@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import Link from 'next/link';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { C } from '@/lib/colors';
@@ -9,7 +10,7 @@ import Footer from '@/components/Footer';
 import { ErrorModal } from '@/components/ModalDialog';
 
 function AdminLoginContent() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') ?? '/admin';
@@ -149,9 +150,9 @@ function AdminLoginContent() {
               ログイン
             </button>
             <div style={{ textAlign: 'center', marginTop: 12 }}>
-              <a href="/admin/forgot-password" style={{ color: C.muted, fontSize: 13, textDecoration: 'underline' }}>
+              <Link href="/admin/forgot-password" style={{ color: C.muted, fontSize: 13, textDecoration: 'underline' }}>
                 パスワードをお忘れの方はこちら
-              </a>
+              </Link>
             </div>
           </form>
         </div>
