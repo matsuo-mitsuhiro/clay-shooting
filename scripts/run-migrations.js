@@ -58,16 +58,18 @@ async function main() {
       .filter(f => f.endsWith('.sql'))
       .sort(); // 001_..., 002_..., ... の連番ソート
 
-    // === Bootstrap: production-copy DB without _migrations ===
+    // === Bootstrap: production-copy DB ===
     // staging branch を production からコピーした直後など、DB に schema が
-    // 既に入っているのに _migrations が空の場合、024 を bootstrap として
-    // 先に実行して 001-023 をバックフィルする
-    if (applied.size === 0) {
+    // 既に入っているのに _migrations が 024 を含まない場合、024 を bootstrap として
+    // 先に実行して 001-023 をバックフィルする。
+    // 024 自体は ON CONFLICT DO NOTHING で冪等なので、_migrations が部分的に
+    // 埋まっている状態（過去の失敗実行で 001-005 だけ記録された等）からの復旧にも対応。
+    const bootstrapFile = '024_create_migration_history.sql';
+    if (!applied.has(bootstrapFile)) {
       const { rows: t } = await client.query(
         `SELECT 1 FROM information_schema.tables WHERE table_name = 'tournaments' LIMIT 1`
       );
       if (t.length > 0) {
-        const bootstrapFile = '024_create_migration_history.sql';
         const bootstrapPath = path.join(migrationsDir, bootstrapFile);
         if (fs.existsSync(bootstrapPath)) {
           console.log(`→ Production-copy DB を検出。${bootstrapFile} を bootstrap として先に実行...`);
