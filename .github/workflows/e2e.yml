@@ -1,0 +1,56 @@
+name: E2E (Playwright)
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [staging]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: '対象URL（空ならローカル起動）'
+        required: false
+        default: ''
+
+jobs:
+  e2e:
+    name: Playwright スモークテスト
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npx playwright test
+        env:
+          # CI ではローカル Next.js を起動して smoke test のみ実行
+          # （フルテストは staging URL を指定して手動実行）
+          E2E_BASE_URL: ${{ github.event.inputs.base_url }}
+          # ビルド + dev サーバー起動に必要なダミー env
+          NEXTAUTH_SECRET: ci-dummy-secret-not-used
+          NEXTAUTH_URL: http://localhost:3000
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db
+          GOOGLE_CLIENT_ID: ci-dummy
+          GOOGLE_CLIENT_SECRET: ci-dummy
+          SYSTEM_ADMIN_EMAILS: ci@example.com
+          EMAIL_USER: ci@example.com
+          EMAIL_PASS: ci-dummy
+          # 認証付きテストのシークレット（未設定なら test.skip / fixme で除外）
+          E2E_ADMIN_MEMBER_CODE: ${{ secrets.E2E_ADMIN_MEMBER_CODE }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
