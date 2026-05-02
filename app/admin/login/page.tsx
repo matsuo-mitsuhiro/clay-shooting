@@ -10,7 +10,7 @@ import Footer from '@/components/Footer';
 import { ErrorModal } from '@/components/ModalDialog';
 
 function AdminLoginContent() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') ?? '/admin';
@@ -25,9 +25,11 @@ function AdminLoginContent() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      router.push(callbackUrl);
+      // システム管理者は callbackUrl を無視して常に /admin
+      const target = session?.user?.role === 'system' ? '/admin' : callbackUrl;
+      router.push(target);
     }
-  }, [status, router, callbackUrl]);
+  }, [status, router, callbackUrl, session]);
 
   async function handleCredentialsLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -56,7 +58,8 @@ function AdminLoginContent() {
 
   async function handleGoogleLogin() {
     setLoading(true);
-    await signIn('google', { callbackUrl });
+    // システム管理者は常に /admin に遷移
+    await signIn('google', { callbackUrl: '/admin' });
   }
 
   const inputStyle: React.CSSProperties = {

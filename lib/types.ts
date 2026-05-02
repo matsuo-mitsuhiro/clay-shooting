@@ -54,9 +54,19 @@ export interface Tournament {
   // 組発表
   squad_published_at: string | null;
   squad_comment: string | null;
+  // 空席設定（組替モードで使用しない射順）
+  unused_slots: UnusedSlot[];
   // 進捗判定用（一覧取得時のみ付与）
   member_count?: number;
   score_count?: number;
+}
+
+// ---------- UnusedSlot ----------
+// 空席として確保するスロット（組替モードで選手を配置しない位置）
+export interface UnusedSlot {
+  day: 1 | 2;
+  group: number;
+  position: number;
 }
 
 export interface SquadMember {
