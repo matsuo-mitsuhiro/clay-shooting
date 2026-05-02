@@ -156,7 +156,9 @@ export default function ApplyPage() {
       if (!json.success) throw new Error(json.error);
       setRegistrationId(json.data.id);
       setContinuousCompleted(true);
-      // 完了後に他の大会リストを更新（今申込んだ大会を除外）
+      // 完了後に他の大会リストを再取得（今申込んだ大会も除外）
+      const appliedIds = [Number(id), ...otherTournaments.filter(tt => tt.id !== ct.id).map(() => 0), ct.id];
+      // 既に申込済みの大会IDsを収集してリスト更新
       setOtherTournaments(prev => prev.filter(tt => tt.id !== ct.id));
     } catch (e) {
       setContinuousError(e instanceof Error ? e.message : '申込に失敗しました');

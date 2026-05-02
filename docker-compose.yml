@@ -1,0 +1,36 @@
+# ============================================================
+# クレー射撃大会システム — ローカル開発用 Docker Compose
+#
+# 使い方:
+#   docker compose up               # 起動（フォアグラウンド、ログ表示）
+#   docker compose up -d            # 起動（バックグラウンド）
+#   docker compose down             # 停止
+#   docker compose build --no-cache # キャッシュ無視で再ビルド
+#   docker compose logs -f app      # ログ追従
+#
+# 前提:
+#   - .env.local を作成済（.env.example をコピーして編集）
+#   - DATABASE_URL は Neon の dev branch を指している
+# ============================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: clay-shooting-app
+    ports:
+      - "3000:3000"
+    volumes:
+      # ソースコードをマウント（ホットリロード）
+      - .:/app
+      # ホスト側 node_modules を上書き防止（Linuxバイナリを保持）
+      - /app/node_modules
+      # .next ビルドキャッシュもコンテナ側を保持
+      - /app/.next
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped

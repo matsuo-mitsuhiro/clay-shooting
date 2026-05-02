@@ -11,7 +11,7 @@ interface Props {
 
 export default function ResultsTab({ tournamentId }: Props) {
   const [results, setResults] = useState<Result[]>([]);
-  const [, setTournament] = useState<Tournament | null>(null);
+  const [tournament, setTournament] = useState<Tournament | null>(null);
   const [has2ndDay, setHas2ndDay] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     await sendSupportInvitation(email.trim(), token);
 
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (e) {
     return NextResponse.json({ success: false, error: '送信に失敗しました。しばらく経ってから再度お試しください。' }, { status: 500 });
   }
 }

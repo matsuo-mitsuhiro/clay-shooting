@@ -192,6 +192,16 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
     }));
   }
 
+  function updateStatus(memberCode: string, status: ScoreStatus) {
+    setScoreMap(prev => ({
+      ...prev,
+      [memberCode]: {
+        ...(prev[memberCode] ?? emptyScoreEntry()),
+        status,
+      },
+    }));
+  }
+
   function isInvalid(value: string): boolean {
     if (value === '') return false;
     const n = Number(value);
@@ -208,6 +218,11 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
       if (v !== '') { hasAny = true; total += Number(v); }
     }
     return hasAny ? String(total) : '-';
+  }
+
+  // 全表示中メンバーのフラット配列（ナビゲーション用）
+  function getAllGroupMembers(): Member[] {
+    return filteredGroups.flatMap(g => dayMembers.filter(m => m.group_number === g));
   }
 
   function openNumpad(member: Member, field: NumpadField) {

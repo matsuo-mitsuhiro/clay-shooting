@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "node --require ./windows-eperm-fix.js node_modules/next/dist/bin/next dev --webpack",
+    "dev:docker": "next dev --webpack --hostname 0.0.0.0",
     "docs:dev": "vitepress dev manual",
     "docs:build": "vitepress build manual",
     "build": "vitepress build manual && next build",
+    "build:next": "next build",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
