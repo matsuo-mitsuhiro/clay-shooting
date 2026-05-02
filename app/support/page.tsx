@@ -6,6 +6,8 @@ import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import Footer from '@/components/Footer';
 
+const FAQ_CATEGORIES = ['閲覧者の機能', '運営管理者の機能'];
+
 const inputStyle: React.CSSProperties = {
   background: '#0d0f14',
   border: `1px solid ${C.border}`,

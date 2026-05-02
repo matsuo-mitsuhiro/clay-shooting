@@ -972,7 +972,7 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900, background: C.surface }}>
             <thead>
               <tr style={{ background: C.surface2 }}>
-                {['登録元', '会員番号', '氏名', '所属協会', 'クラス', '審判', '参加', '申込日時', 'ステータス', '操作'].map((h) => {
+                {['登録元', '会員番号', '氏名', '所属協会', 'クラス', '審判', '参加', '申込日時', 'ステータス', '操作'].map((h, i) => {
                   const isName = h === '氏名';
                   const isBelong = h === '所属協会';
                   const stickyLeft = isName ? { position: 'sticky' as const, left: 0, zIndex: 4, minWidth: 110 }

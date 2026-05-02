@@ -2,30 +2,7 @@ import nodemailer from 'nodemailer';
 
 const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://clay-shooting.vercel.app';
 
-/**
- * SMTP 設定を環境変数から組み立てる。
- *
- * 優先順位:
- *   1. EMAIL_HOST が設定されていれば → 任意 SMTP（host/port/user/pass）
- *      例: staging で Mailtrap を使う場合
- *   2. それ以外 → Gmail サービス（後方互換、本番）
- *      GMAIL_USER / GMAIL_APP_PASSWORD を使う
- *
- * ※ EMAIL_USER / EMAIL_PASS は EMAIL_HOST と併用するパターン。
- *    GMAIL_USER / GMAIL_APP_PASSWORD は Gmail 専用フォールバック。
- */
 function getTransporter() {
-  if (process.env.EMAIL_HOST) {
-    return nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: Number(process.env.EMAIL_PORT ?? 587),
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-  }
-  // 本番（Gmail）後方互換
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -35,23 +12,9 @@ function getTransporter() {
   });
 }
 
-/**
- * 送信元アドレスを返す。
- *   1. EMAIL_FROM が設定されていればそれを使用
- *   2. なければ GMAIL_USER（本番デフォルト）
- *   3. それも無ければハードコードのフォールバック
- */
-function getFromAddress(): string {
-  return process.env.EMAIL_FROM
-    ?? process.env.GMAIL_USER
-    ?? 'jpn.clayshooting@gmail.com';
-}
-
-const FROM = `"クレー射撃大会運営システム" <${getFromAddress()}>`;
-
 export async function sendRegistrationComplete(to: string, name: string) {
   await getTransporter().sendMail({
-    from: FROM,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: '【クレー射撃大会運営システム】運営管理者登録完了',
     html: `
@@ -69,7 +32,7 @@ export async function sendRegistrationComplete(to: string, name: string) {
 export async function sendSupportInvitation(to: string, token: string) {
   const url = `${BASE_URL}/support?token=${token}`;
   await getTransporter().sendMail({
-    from: FROM,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: '【クレー射撃大会運営システム】お問い合わせフォームのご案内',
     html: `
@@ -87,7 +50,7 @@ export async function sendSupportInvitation(to: string, token: string) {
 
 export async function sendQuestionConfirmation(to: string, name: string, body: string) {
   await getTransporter().sendMail({
-    from: FROM,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: '【クレー射撃大会運営システム】質問を受け付けました',
     html: `
@@ -108,7 +71,7 @@ export async function sendQuestionNotification(
   email: string, body: string
 ) {
   await getTransporter().sendMail({
-    from: FROM,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to: 'matsuo@repros.co.jp',
     subject: '【クレー射撃大会運営システム】新しい質問が届きました',
     html: `
@@ -132,7 +95,7 @@ export async function sendAnswerNotification(
   to: string, name: string, questionBody: string, answerBody: string
 ) {
   await getTransporter().sendMail({
-    from: FROM,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: '【クレー射撃大会運営システム】質問への回答',
     html: `
@@ -158,7 +121,7 @@ export async function sendAnswerNotification(
 
 export async function sendApplyCode(to: string, tournamentName: string, code: string): Promise<void> {
   await getTransporter().sendMail({
-    from: FROM,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: `「${tournamentName}」申込コードのご案内`,
     html: `
@@ -213,7 +176,7 @@ export async function sendApplyConfirmation(
   ].filter(Boolean);
 
   await getTransporter().sendMail({
-    from: FROM,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: `「${tournament.name}」申込完了のお知らせ`,
     html: `
@@ -234,7 +197,7 @@ export async function sendApplyConfirmation(
 
 export async function sendCancelToken(to: string, tournamentName: string, cancelUrl: string): Promise<void> {
   await getTransporter().sendMail({
-    from: FROM,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: `「${tournamentName}」キャンセル手続きのご案内`,
     html: `
@@ -254,7 +217,7 @@ export async function sendCancelToken(to: string, tournamentName: string, cancel
 export async function sendPasswordReset(to: string, name: string, token: string) {
   const url = `${BASE_URL}/admin/reset-password/${token}`;
   await getTransporter().sendMail({
-    from: FROM,
+    from: `"クレー射撃大会運営システム" <${process.env.GMAIL_USER}>`,
     to,
     subject: '【クレー射撃大会運営システム】パスワードリセット',
     html: `
