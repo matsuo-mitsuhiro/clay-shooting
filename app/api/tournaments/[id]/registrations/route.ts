@@ -104,17 +104,17 @@ export async function POST(req: NextRequest, { params }: Params) {
           `;
         }
       } else {
-        // 既存選手の情報を更新
+        // 既存選手の情報を更新（氏名は上書き禁止 — 異体字消失等のデータ事故防止）
         if (isSkeet) {
           await sql`
             UPDATE player_master
-            SET name = ${name}, affiliation = ${belong}, skeet_class = ${classVal}, is_judge = ${is_judge}, updated_at = NOW()
+            SET affiliation = ${belong}, skeet_class = ${classVal}, is_judge = ${is_judge}, updated_at = NOW()
             WHERE member_code = ${member_code}
           `;
         } else {
           await sql`
             UPDATE player_master
-            SET name = ${name}, affiliation = ${belong}, trap_class = ${classVal}, is_judge = ${is_judge}, updated_at = NOW()
+            SET affiliation = ${belong}, trap_class = ${classVal}, is_judge = ${is_judge}, updated_at = NOW()
             WHERE member_code = ${member_code}
           `;
         }
