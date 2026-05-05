@@ -111,6 +111,20 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
   const [squadPublishedAt, setSquadPublishedAt] = useState<string | null>(null);
   const [previousComment, setPreviousComment] = useState<string | null>(null);
   const [squadSaving, setSquadSaving] = useState(false);
+  const [squadUrlCopied, setSquadUrlCopied] = useState(false);
+
+  // 射順ページURLをクリップボードにコピー（一時的に「✓ コピー済」表示）
+  async function handleCopySquadUrl() {
+    if (typeof window === 'undefined') return;
+    const url = `${window.location.origin}/tournaments/${tournamentId}/apply#squad`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setSquadUrlCopied(true);
+      setTimeout(() => setSquadUrlCopied(false), 2000);
+    } catch {
+      setApplyError('クリップボードへのコピーに失敗しました');
+    }
+  }
 
   useEffect(() => {
     // 協会マスターから cancellation_notice / notes のデフォルト値を取得
@@ -635,6 +649,28 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
             >
               非公開にする
             </button>
+          )}
+          {/* 射順ページURLコピー（公開中のみボタン、非公開時は「準備中」テキスト） */}
+          {squadPublishedAt ? (
+            <button
+              type="button"
+              onClick={handleCopySquadUrl}
+              style={{
+                background: squadUrlCopied ? `${C.green}33` : 'transparent',
+                color: squadUrlCopied ? C.green : C.gold,
+                border: `1px solid ${squadUrlCopied ? C.green : C.gold}`,
+                borderRadius: 5, padding: '9px 24px', fontSize: 15,
+                cursor: 'pointer', fontWeight: 600,
+              }}
+            >
+              {squadUrlCopied ? '✓ コピー済' : '🔗 射順URLをコピー'}
+            </button>
+          ) : (
+            <span style={{
+              alignSelf: 'center', color: C.muted, fontSize: 14, fontStyle: 'italic',
+            }}>
+              射順URL: 準備中
+            </span>
           )}
         </div>
       </section>
