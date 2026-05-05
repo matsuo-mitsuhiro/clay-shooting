@@ -183,6 +183,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: '会員番号と氏名は必須です' }, { status: 400 });
     }
     const normalizedAffiliation = affiliation ? (toShortName(affiliation) || null) : null;
+    // 既存選手への UPDATE では氏名を上書きしない（異体字消失等のデータ事故防止）
+    // 名前の明示的な変更は PUT /api/players/[code] からのみ可能
     const rows = await sql`
       INSERT INTO player_master (member_code, name, affiliation, is_judge, trap_class, skeet_class, updated_at)
       VALUES (
@@ -195,7 +197,6 @@ export async function POST(req: NextRequest) {
         NOW()
       )
       ON CONFLICT (member_code) DO UPDATE SET
-        name        = EXCLUDED.name,
         affiliation = EXCLUDED.affiliation,
         is_judge    = EXCLUDED.is_judge,
         trap_class  = EXCLUDED.trap_class,

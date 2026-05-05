@@ -123,6 +123,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     // player_master 照合 → change_history 更新
+    // ※ 氏名は意図しない上書きを防ぐため、ここでは更新しない（明示的な選手マスター編集のみで変更可）
     const playerRows = await sql`SELECT * FROM player_master WHERE member_code = ${member_code}`;
     if (playerRows.length > 0) {
       const player = playerRows[0];
@@ -140,6 +141,9 @@ export async function POST(req: NextRequest, { params }: Params) {
       if (belong && (player.affiliation ?? null) !== belong) {
         changes.push(`所属 ${player.affiliation ?? '未設定'}→${belong}`);
       }
+      if ((player.is_judge ?? false) !== is_judge) {
+        changes.push(`審判 ${player.is_judge ? '有' : '無'}→${is_judge ? '有' : '無'}`);
+      }
 
       if (changes.length > 0) {
         const entry = `${today} 申込時：${changes.join('、')}`;
@@ -150,6 +154,7 @@ export async function POST(req: NextRequest, { params }: Params) {
             UPDATE player_master SET
               skeet_class    = ${classVal ?? player.skeet_class},
               affiliation    = ${belong ?? player.affiliation},
+              is_judge       = ${is_judge},
               change_history = ${newHistory},
               updated_at     = NOW()
             WHERE member_code = ${member_code}
@@ -159,6 +164,7 @@ export async function POST(req: NextRequest, { params }: Params) {
             UPDATE player_master SET
               trap_class     = ${classVal ?? player.trap_class},
               affiliation    = ${belong ?? player.affiliation},
+              is_judge       = ${is_judge},
               change_history = ${newHistory},
               updated_at     = NOW()
             WHERE member_code = ${member_code}
