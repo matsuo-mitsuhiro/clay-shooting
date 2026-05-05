@@ -156,7 +156,9 @@ export default function ApplyPage() {
       if (!json.success) throw new Error(json.error);
       setRegistrationId(json.data.id);
       setContinuousCompleted(true);
-      // 完了後に他の大会リストを更新（今申込んだ大会を除外）
+      // 完了後に他の大会リストを再取得（今申込んだ大会も除外）
+      const appliedIds = [Number(id), ...otherTournaments.filter(tt => tt.id !== ct.id).map(() => 0), ct.id];
+      // 既に申込済みの大会IDsを収集してリスト更新
       setOtherTournaments(prev => prev.filter(tt => tt.id !== ct.id));
     } catch (e) {
       setContinuousError(e instanceof Error ? e.message : '申込に失敗しました');
@@ -929,19 +931,21 @@ export default function ApplyPage() {
           </div>
         )}
 
-        {/* キャンセルリンク */}
-        <div style={{ marginTop: 20, textAlign: 'center' }}>
-          <button
-            onClick={() => router.push(`/tournaments/${id}/cancel`)}
-            style={{
-              background: 'transparent', color: C.muted,
-              border: `1px solid ${C.border}`, borderRadius: 5,
-              padding: '8px 16px', fontSize: 14, cursor: 'pointer',
-            }}
-          >
-            申込キャンセルの方はこちら
-          </button>
-        </div>
+        {/* キャンセルリンク（キャンセル受付期限内のみ表示。期限+5分のグレース期間はバックエンドと一致） */}
+        {t.cancel_end_at && Date.now() <= new Date(t.cancel_end_at).getTime() + 5 * 60 * 1000 && (
+          <div style={{ marginTop: 20, textAlign: 'center' }}>
+            <button
+              onClick={() => router.push(`/tournaments/${id}/cancel`)}
+              style={{
+                background: 'transparent', color: C.muted,
+                border: `1px solid ${C.border}`, borderRadius: 5,
+                padding: '8px 16px', fontSize: 14, cursor: 'pointer',
+              }}
+            >
+              申込キャンセルの方はこちら
+            </button>
+          </div>
+        )}
         {/* 射順発表 */}
         {squadData && squadData.squad_published_at && squadData.members.length > 0 && (() => {
           const is2DaySquad = squadData.members.some(m => m.day === 2);
