@@ -518,27 +518,27 @@ export default function RegistrationsTab({ tournamentId, tournament }: Props) {
     try {
       setSaving(true);
 
-      // Save each row as a registration with source='manual'
-      const results = [];
-      for (const r of validRows) {
-        const res = await fetch(`/api/tournaments/${tournamentId}/registrations`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            source: 'manual',
-            member_code: r.member_code.trim(),
-            name: r.name.trim(),
-            belong: r.belong || null,
-            class: r.class || null,
-            is_judge: r.is_judge,
-            participation_day: r.participation_day,
-          }),
-        });
-        const json = await res.json();
-        if (!json.success) {
-          throw new Error(json.error || '登録に失敗しました');
-        }
-        results.push(json.data);
+      // 並列で全行を POST（事前に重複チェック済みのためレース無し）
+      const responses = await Promise.all(
+        validRows.map(r =>
+          fetch(`/api/tournaments/${tournamentId}/registrations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              source: 'manual',
+              member_code: r.member_code.trim(),
+              name: r.name.trim(),
+              belong: r.belong || null,
+              class: r.class || null,
+              is_judge: r.is_judge,
+              participation_day: r.participation_day,
+            }),
+          }).then(res => res.json())
+        )
+      );
+      const failed = responses.find(j => !j.success);
+      if (failed) {
+        throw new Error(failed.error || '登録に失敗しました');
       }
 
       setManualSuccess(`${validRows.length}名を手動登録しました`);

@@ -1255,11 +1255,10 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                     {[
                       { label: '射順', width: 50, sticky: true, left: 0 },
                       { label: '会員番号', width: 90 },
-                      { label: '氏名', width: undefined, sticky: true, left: 50 },
+                      { label: '氏名（ 🚩審判）', width: undefined, sticky: true, left: 50 },
                       { label: '賞典外', width: 60 },
                       { label: '所属協会', width: 140 },
                       { label: 'クラス', width: 80 },
-                      { label: '審判', width: 60 },
                       { label: '成績', width: 80 },
                       { label: '操作', width: 60 },
                     ].map((h, i) => (
@@ -1288,7 +1287,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                         rows.push(
                           <tr key={p} style={{ borderBottom: `1px solid ${C.border}33`, background: '#1a1a1a55' }}>
                             <td style={{ padding: '6px 10px', color: C.muted, fontSize: 15, position: 'sticky', left: 0, zIndex: 1, background: '#1a1a1a' }}>{p}</td>
-                            <td colSpan={8} style={{ padding: '6px 10px', fontSize: 14, color: C.muted, fontStyle: 'italic', position: 'sticky', left: 50, zIndex: 1, background: '#1a1a1a' }}>
+                            <td colSpan={7} style={{ padding: '6px 10px', fontSize: 14, color: C.muted, fontStyle: 'italic', position: 'sticky', left: 50, zIndex: 1, background: '#1a1a1a' }}>
                               空席
                             </td>
                           </tr>
@@ -1310,6 +1309,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                               </td>
                               <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, fontWeight: 500, position: 'sticky', left: 50, zIndex: 1, background: C.surface }}>
                                 {member.name}
+                                {member.is_judge && <span style={{ marginLeft: 6 }}>🚩</span>}
                               </td>
                               {/* 賞典外 */}
                               <td style={{ padding: '4px 6px', textAlign: 'center' }}>
@@ -1355,12 +1355,6 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                                     fontWeight: 700,
                                   }}>{member.class}</span>
                                 ) : <span style={{ color: C.muted }}>-</span>}
-                              </td>
-                              {/* 審判（表示のみ・申込管理タブから変更） */}
-                              <td style={{ padding: '4px 6px', textAlign: 'center' }} title="審判の変更は「申込管理」タブから行ってください">
-                                <span style={{ fontSize: 15, color: member.is_judge ? C.gold : C.muted }}>
-                                  {member.is_judge ? '⚑' : '-'}
-                                </span>
                               </td>
                               {/* 成績 */}
                               <td style={{ padding: '4px 6px', textAlign: 'center' }}>
@@ -1487,7 +1481,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
                   <thead>
                     <tr style={{ background: C.surface2 }}>
-                      {['組', '射順', '氏名', '所属協会', 'クラス'].map(h => (
+                      {['組', '射順', '氏名（ 🚩審判）', '所属協会', 'クラス'].map(h => (
                         <th key={h} style={{ padding: '7px 10px', fontSize: 13, color: C.muted, fontWeight: 600, textAlign: 'left', borderBottom: `1px solid ${C.border}` }}>{h}</th>
                       ))}
                     </tr>
@@ -1517,7 +1511,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                                   opacity: randomPreview ? 0.4 : 1,
                                 }}
                               >⋮⋮</span>
-                              {slot.member.name}{slot.member.is_judge ? <span style={{ color: C.gold, marginLeft: 6 }}>⚑</span> : ''}
+                              {slot.member.name}{slot.member.is_judge ? <span style={{ marginLeft: 6 }}>🚩</span> : ''}
                             </div>
                           ) : <span style={{ color: C.gold }}>－（空き）</span>}
                         </td>
