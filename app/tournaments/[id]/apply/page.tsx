@@ -72,17 +72,28 @@ export default function ApplyPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // 組発表データ取得
-  useEffect(() => {
-    fetch(`/api/tournaments/${id}/squad`)
+  // 組発表データ取得（30秒ごと自動 + 手動リフレッシュ用）
+  const [squadRefreshing, setSquadRefreshing] = useState(false);
+  const fetchSquad = useCallback((manual = false) => {
+    if (manual) setSquadRefreshing(true);
+    return fetch(`/api/tournaments/${id}/squad`)
       .then(r => r.json())
       .then(j => {
         if (j.success && j.data.squad_published_at) {
           setSquadData(j.data as SquadData);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (manual) setTimeout(() => setSquadRefreshing(false), 400);
+      });
   }, [id]);
+
+  useEffect(() => {
+    fetchSquad();
+    const intervalId = setInterval(() => fetchSquad(), 30_000);
+    return () => clearInterval(intervalId);
+  }, [fetchSquad]);
 
   useEffect(() => {
     fetch('/api/associations')
@@ -958,7 +969,22 @@ export default function ApplyPage() {
               background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
               padding: '20px', marginTop: 20,
             }}>
-              <h2 style={{ margin: '0 0 12px', fontSize: 17, color: C.gold }}>射順発表</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0, fontSize: 17, color: C.gold }}>射順発表</h2>
+                <button
+                  onClick={() => fetchSquad(true)}
+                  disabled={squadRefreshing}
+                  style={{
+                    background: 'transparent', color: C.muted,
+                    border: `1px solid ${C.border}`, borderRadius: 5,
+                    padding: '4px 12px', fontSize: 12, cursor: squadRefreshing ? 'default' : 'pointer',
+                    opacity: squadRefreshing ? 0.5 : 1,
+                  }}
+                  title="最新の射順を取得"
+                >
+                  {squadRefreshing ? '更新中…' : '↺ 最新表示'}
+                </button>
+              </div>
 
               {/* コメント */}
               {squadData.squad_comment && (
@@ -992,44 +1018,38 @@ export default function ApplyPage() {
                 </div>
               )}
 
-              {/* テーブル */}
+              {/* 組ごとの小テーブル */}
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-                  <thead>
-                    <tr style={{ borderBottom: `2px solid ${C.border}` }}>
-                      {['組', '射順', '所属協会', '氏名', 'クラス', '審判'].map(h => (
-                        <th key={h} style={{
-                          padding: '6px 10px', color: C.muted, fontWeight: 600,
-                          textAlign: h === '氏名' || h === '所属協会' ? 'left' : 'center',
-                          whiteSpace: 'nowrap',
-                        }}>{h}</th>
+                {groups.map((g, gi) => (
+                  <table
+                    key={g}
+                    style={{
+                      width: '100%', borderCollapse: 'collapse', fontSize: 14,
+                      marginTop: gi > 0 ? 16 : 0, minWidth: 'max-content',
+                    }}
+                  >
+                    <thead>
+                      <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+                        <th style={{ padding: '6px 10px', color: C.gold, fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>{g}組</th>
+                        <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }}>所属</th>
+                        <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }}>氏名</th>
+                        <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>クラス</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dayMembers.filter(m => m.group_number === g).map(m => (
+                        <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}22` }}>
+                          <td style={{ padding: '6px 10px', textAlign: 'center', color: C.text }}>{m.position}</td>
+                          <td style={{ padding: '6px 10px', color: C.muted, whiteSpace: 'nowrap' }}>{m.belong ?? '—'}</td>
+                          <td style={{ padding: '6px 10px', color: C.text, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                            {m.name}{m.is_judge ? ' 🚩' : ''}
+                          </td>
+                          <td style={{ padding: '6px 10px', textAlign: 'center', color: C.text }}>{m.class ?? '—'}</td>
+                        </tr>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groups.map((g, gi) => (
-                      <>
-                        {gi > 0 && (
-                          <tr key={`spacer-${g}`}>
-                            <td colSpan={6} style={{ padding: '4px 0' }} />
-                          </tr>
-                        )}
-                        {dayMembers.filter(m => m.group_number === g).map(m => (
-                          <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}22` }}>
-                            <td style={{ padding: '6px 10px', textAlign: 'center', color: C.gold, fontWeight: 700 }}>{m.group_number}</td>
-                            <td style={{ padding: '6px 10px', textAlign: 'center', color: C.text }}>{m.position}</td>
-                            <td style={{ padding: '6px 10px', color: C.muted, whiteSpace: 'nowrap' }}>{m.belong ?? '—'}</td>
-                            <td style={{ padding: '6px 10px', color: C.text, fontWeight: 500 }}>{m.name}</td>
-                            <td style={{ padding: '6px 10px', textAlign: 'center', color: C.text }}>{m.class ?? '—'}</td>
-                            <td style={{ padding: '6px 10px', textAlign: 'center' }}>
-                              {m.is_judge ? <span title="審判資格あり">🚩</span> : ''}
-                            </td>
-                          </tr>
-                        ))}
-                      </>
-                    ))}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                ))}
               </div>
             </section>
           );
