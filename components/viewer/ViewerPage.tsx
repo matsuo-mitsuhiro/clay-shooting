@@ -351,7 +351,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                     <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                       <tr style={{ background: C.surface2 }}>
                         <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 11, background: C.surface2 }}>順位</th>
-                        <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 11, background: C.surface2 }}>氏名　審判フラグ</th>
+                        <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 11, background: C.surface2 }}>氏名（ 🚩審判）</th>
                         <th style={{ ...thS, background: C.surface2 }}>組</th>
                         <th style={{ ...thS, textAlign: 'left', background: C.surface2 }}>所属協会</th>
                         <th style={{ ...thS, background: C.surface2 }}>クラス</th>
@@ -393,7 +393,7 @@ export default function ViewerPage({ tournamentId }: Props) {
                               {r.is_non_prize && (
                                 <span style={{ color: C.muted, fontSize: 12, marginLeft: 4 }}>（賞典外）</span>
                               )}
-                              {r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
+                              {r.is_judge ? <span> 🚩</span> : ''}
                             </td>
                             <td style={{ ...tdS, color: C.muted, fontSize: 14 }}>
                               {formatGroup(r.group1, r.group2)}
