@@ -509,7 +509,7 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
                     <thead>
                       <tr style={{ background: `${C.surface2}88` }}>
-                        <th style={{ ...thStyle, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: C.surface2 }}>氏名</th>
+                        <th style={{ ...thStyle, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: C.surface2 }}>氏名（ 🚩審判）</th>
                         <th style={thStyle}>所属協会</th>
                         {roundLabels.map(l => (
                           <th key={l} style={thStyle}>{l}</th>
@@ -537,7 +537,7 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                             {/* 氏名（審判フラグは氏名の後ろに表示） */}
                             <td style={{ padding: '6px 10px', fontSize: 15, color: isDQ ? '#e74c3c' : C.text, whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: isDQ ? '#1a1d24' : C.surface }}>
                               {m.position}. {m.name}
-                              {m.is_judge && <span style={{ color: C.gold, marginLeft: 6 }}>⚑</span>}
+                              {m.is_judge && <span style={{ marginLeft: 6 }}>🚩</span>}
                               {!code && (
                                 <span style={{ fontSize: 13, color: C.red, marginLeft: 6 }}>(会員番号なし)</span>
                               )}

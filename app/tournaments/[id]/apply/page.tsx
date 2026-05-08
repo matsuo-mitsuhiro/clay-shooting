@@ -1032,7 +1032,7 @@ export default function ApplyPage() {
                         <tr style={{ borderBottom: `2px solid ${C.border}` }}>
                           <th style={{ padding: '6px 10px', color: C.gold, fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>{g}組</th>
                           <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }}>所属</th>
-                          <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }}>氏名</th>
+                          <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }}>氏名（ 🚩審判）</th>
                           <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>クラス</th>
                         </tr>
                       </thead>

@@ -219,7 +219,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                   }}>{i + 1}</span>
                   <span style={{ color: C.text, fontWeight: 500, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {r.name}
-                    {r.is_judge ? <span style={{ color: C.gold, marginLeft: 4 }}>⚑</span> : ''}
+                    {r.is_judge ? <span style={{ marginLeft: 4 }}>🚩</span> : ''}
                   </span>
                   <span style={{ color: C.muted, fontSize: 13, flexShrink: 0 }}>{r.belong ?? ''}</span>
                   <span style={{ color: C.gold, fontWeight: 700, fontSize: 15, minWidth: 28, textAlign: 'right', flexShrink: 0 }}>
@@ -446,7 +446,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                   <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr style={{ background: C.surface2 }}>
                       <th style={{ ...thS, position: 'sticky', left: 0, zIndex: 11, background: C.surface2 }}>順位</th>
-                      <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 11, background: C.surface2 }}>氏名</th>
+                      <th style={{ ...thS, textAlign: 'left', position: 'sticky', left: 44, zIndex: 11, background: C.surface2 }}>氏名（ 🚩審判）</th>
                       <th style={{ ...thS, background: C.surface2 }}>組</th>
                       <th style={{ ...thS, textAlign: 'left', background: C.surface2 }}>所属協会</th>
                       <th style={{ ...thS, background: C.surface2 }}>クラス</th>
@@ -525,7 +525,7 @@ export default function ResultsTab({ tournamentId }: Props) {
                             {r.status === 'withdrawn' && (
                               <span style={{ color: '#e74c3c', fontSize: 12, marginLeft: 6, fontWeight: 700 }}>棄権</span>
                             )}
-                            {r.is_judge ? <span style={{ color: C.gold }}> ⚑</span> : ''}
+                            {r.is_judge ? <span> 🚩</span> : ''}
                           </td>
 
                           <td style={{ ...tdS, color: C.muted, fontSize: 14 }}>
