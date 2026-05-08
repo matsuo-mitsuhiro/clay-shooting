@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Fragment } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import type { Tournament, ParticipationDay, ClassType, SquadMember } from '@/lib/types';
@@ -1018,38 +1018,39 @@ export default function ApplyPage() {
                 </div>
               )}
 
-              {/* 組ごとの小テーブル */}
+              {/* 組ごとの thead/tbody を持つ単一テーブル（列幅を全組で統一する） */}
               <div style={{ overflowX: 'auto' }}>
-                {groups.map((g, gi) => (
-                  <table
-                    key={g}
-                    style={{
-                      width: '100%', borderCollapse: 'collapse', fontSize: 14,
-                      marginTop: gi > 0 ? 16 : 0, minWidth: 'max-content',
-                    }}
-                  >
-                    <thead>
-                      <tr style={{ borderBottom: `2px solid ${C.border}` }}>
-                        <th style={{ padding: '6px 10px', color: C.gold, fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>{g}組</th>
-                        <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }}>所属</th>
-                        <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }}>氏名</th>
-                        <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>クラス</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dayMembers.filter(m => m.group_number === g).map(m => (
-                        <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}22` }}>
-                          <td style={{ padding: '6px 10px', textAlign: 'center', color: C.text }}>{m.position}</td>
-                          <td style={{ padding: '6px 10px', color: C.muted, whiteSpace: 'nowrap' }}>{m.belong ?? '—'}</td>
-                          <td style={{ padding: '6px 10px', color: C.text, fontWeight: 500, whiteSpace: 'nowrap' }}>
-                            {m.name}{m.is_judge ? ' 🚩' : ''}
-                          </td>
-                          <td style={{ padding: '6px 10px', textAlign: 'center', color: C.text }}>{m.class ?? '—'}</td>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, minWidth: 'max-content' }}>
+                  {groups.map((g, gi) => (
+                    <Fragment key={g}>
+                      {gi > 0 && (
+                        <tbody>
+                          <tr><td colSpan={4} style={{ padding: '8px 0' }} /></tr>
+                        </tbody>
+                      )}
+                      <thead>
+                        <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+                          <th style={{ padding: '6px 10px', color: C.gold, fontWeight: 700, textAlign: 'center', whiteSpace: 'nowrap' }}>{g}組</th>
+                          <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }}>所属</th>
+                          <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }}>氏名</th>
+                          <th style={{ padding: '6px 10px', color: C.muted, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>クラス</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ))}
+                      </thead>
+                      <tbody>
+                        {dayMembers.filter(m => m.group_number === g).map(m => (
+                          <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}22` }}>
+                            <td style={{ padding: '6px 10px', textAlign: 'center', color: C.text }}>{m.position}</td>
+                            <td style={{ padding: '6px 10px', color: C.muted, whiteSpace: 'nowrap' }}>{m.belong ?? '—'}</td>
+                            <td style={{ padding: '6px 10px', color: C.text, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                              {m.name}{m.is_judge ? ' 🚩' : ''}
+                            </td>
+                            <td style={{ padding: '6px 10px', textAlign: 'center', color: C.text }}>{m.class ?? '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Fragment>
+                  ))}
+                </table>
               </div>
             </section>
           );
