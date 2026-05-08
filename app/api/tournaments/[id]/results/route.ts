@@ -21,6 +21,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
             COALESCE(r8,0) DESC, COALESCE(r7,0) DESC, COALESCE(r6,0) DESC, COALESCE(r5,0) DESC,
             COALESCE(r4,0) DESC, COALESCE(r3,0) DESC, COALESCE(r2,0) DESC, COALESCE(r1,0) DESC,
             COALESCE(cb,999) ASC, COALESCE(fr,0) DESC,
+            COALESCE(group1, 999) ASC, COALESCE(group2, 999) ASC, COALESCE(position, 999) ASC,
             name`,
       sql`SELECT COUNT(*) AS cnt FROM members WHERE tournament_id = ${tournamentId} AND day = 2`,
       sql`SELECT MAX(updated_at) AS last_updated FROM scores WHERE tournament_id = ${tournamentId}`,
