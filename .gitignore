@@ -54,5 +54,9 @@ next-env.d.ts
 .vercel
 
 # 開発用一時ファイル（gh api への入力 / 一時的な値の置き場）
+# tmp- (dash) と tmp_ (underscore) の両方を対象。.env.*.tmp は環境変数 dump
 tmp-*
+tmp_*
 .env.*.tmp
+# 拡張子なしの怪しいスクラッチ系（先頭ハイフン等）
+-layout
