@@ -27,6 +27,27 @@ function isSlotUnused(unusedSlots: UnusedSlot[], day: number, group: number, pos
   return unusedSlots.some(u => u.day === day && u.group === group && u.position === position);
 }
 
+// 各組内で「空きスロット (!isUnused && member=null) を後ろに、選手を前に」詰める。
+// 空席指定 (isUnused=true) のスロットは位置を固定し、シフト対象から除外する。
+function compactWithinGroups(items: SlotItem[]): SlotItem[] {
+  const result = items.map(s => ({ ...s }));
+  const groups = Array.from(new Set(result.map(s => s.group))).sort((a, b) => a - b);
+  for (const g of groups) {
+    const groupSlotIndices = result
+      .map((s, i) => (s.group === g ? i : -1))
+      .filter(i => i !== -1)
+      .sort((a, b) => result[a].position - result[b].position);
+    const nonUnusedIndices = groupSlotIndices.filter(i => !result[i].isUnused);
+    const members = nonUnusedIndices
+      .map(i => result[i].member)
+      .filter((m): m is Member => m !== null);
+    for (let k = 0; k < nonUnusedIndices.length; k++) {
+      result[nonUnusedIndices[k]].member = k < members.length ? members[k] : null;
+    }
+  }
+  return result;
+}
+
 interface UnregisteredEntry {
   member_code: string;
   name: string;
@@ -477,13 +498,17 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       }
     }
 
-    setReorderItems(newItems);
+    // 各組内で「空きスロット (!isUnused && member=null) を後ろに、選手を前に」詰める
+    // 空席指定 (isUnused=true) のスロットは位置を固定し、シフト対象から除外
+    const compactedItems = compactWithinGroups(newItems);
+
+    setReorderItems(compactedItems);
     setMoveModal(null);
 
     // DB 即時反映
     try {
       setSaving(true);
-      const membersPayload = newItems
+      const membersPayload = compactedItems
         .filter(s => s.member !== null)
         .map(s => ({
           day: selectedDay,
