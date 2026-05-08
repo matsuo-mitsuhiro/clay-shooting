@@ -52,10 +52,11 @@ export default function ViewerPage({ tournamentId }: Props) {
     }
   }, [tournamentId]);
 
-  const fetchResults = useCallback(async () => {
+  // silent=true のとき loading/error state を触らない（自動リフレッシュ用、ちらつき防止）
+  const fetchResults = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) setLoading(true);
+      if (!silent) setError(null);
       const res = await fetch(`/api/tournaments/${tournamentId}/results`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -64,15 +65,18 @@ export default function ViewerPage({ tournamentId }: Props) {
       setHas2ndDay(json.data.has2ndDay);
       setLastUpdated(json.data.lastScoreUpdated ? new Date(json.data.lastScoreUpdated) : null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '成績の取得に失敗しました');
+      if (!silent) setError(e instanceof Error ? e.message : '成績の取得に失敗しました');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [tournamentId]);
 
   useEffect(() => {
     fetchResults();
     setOrigin(window.location.origin);
+    // 30秒ごとに silent で再取得（成績速報の自動更新）
+    const intervalId = setInterval(() => fetchResults(true), 30_000);
+    return () => clearInterval(intervalId);
   }, [fetchResults]);
 
   // ログイン選手の行を自動ハイライト
@@ -297,7 +301,7 @@ export default function ViewerPage({ tournamentId }: Props) {
             </button>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
               <button
-                onClick={fetchResults}
+                onClick={() => fetchResults()}
                 style={{
                   background: C.surface2,
                   color: C.gold,
