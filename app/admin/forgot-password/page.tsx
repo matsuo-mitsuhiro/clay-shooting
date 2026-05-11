@@ -121,10 +121,10 @@ export default function ForgotPasswordPage() {
                 color: '#ffcccc',
                 lineHeight: 1.6,
               }}>
-                <div style={{ marginBottom: 4 }}>⚠️ セキュリティのため、1時間あたり5回までしか送信できません。</div>
+                <div style={{ marginBottom: 4 }}>セキュリティのため、1時間あたり5回までしか送信できません。</div>
                 <div style={{ marginBottom: 4 }}>メールが届かない場合、迷惑メールフォルダに入っていないかなど確認してください。</div>
                 <div style={{ marginBottom: 4 }}>あと <strong>{formatRetryAfter(rateLimitedSec)}</strong> 後に再試行できます。</div>
-                <div>解決しない場合は、システム管理者（matsuo@repros.co.jp）にご相談ください。</div>
+                <div>解決しない場合は、システム管理者にご相談ください。</div>
               </div>
             )}
             {error && (
