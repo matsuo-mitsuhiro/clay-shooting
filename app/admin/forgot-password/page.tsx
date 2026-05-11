@@ -1,11 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import Footer from '@/components/Footer';
-import { ErrorModal } from '@/components/ModalDialog';
+
+function formatRetryAfter(seconds: number): string {
+  if (seconds < 60) return `${seconds} 秒`;
+  const minutes = Math.ceil(seconds / 60);
+  if (minutes < 60) return `${minutes} 分`;
+  const hours = Math.floor(minutes / 60);
+  const remainMin = minutes % 60;
+  return remainMin === 0 ? `${hours} 時間` : `${hours} 時間 ${remainMin} 分`;
+}
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -13,6 +21,21 @@ export default function ForgotPasswordPage() {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rateLimitedSec, setRateLimitedSec] = useState<number | null>(null);
+  const isRateLimited = rateLimitedSec !== null;
+
+  // 429 受信後、Retry-After を毎秒カウントダウン
+  useEffect(() => {
+    if (!isRateLimited) return;
+    const id = setInterval(() => {
+      setRateLimitedSec(prev => {
+        if (prev === null) return null;
+        if (prev <= 1) return null;
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isRateLimited]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,8 +47,27 @@ export default function ForgotPasswordPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
+
+      if (res.status === 429) {
+        const json = await res.json().catch(() => ({}));
+        const retryAfter =
+          Number(res.headers.get('Retry-After')) ||
+          Number(json.retryAfter) ||
+          60 * 60;
+        setRateLimitedSec(retryAfter);
+        return;
+      }
+
+      if (res.status === 404) {
+        setError('登録されたメールアドレスは存在しません。');
+        return;
+      }
+
       const json = await res.json();
-      if (!json.success) { setError(json.error); return; }
+      if (!json.success) {
+        setError(json.error ?? 'エラーが発生しました');
+        return;
+      }
       setDone(true);
     } catch {
       setError('エラーが発生しました');
@@ -35,12 +77,13 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f0f1a', color: '#fff', fontFamily: 'Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 400 }}>
-        <h1 style={{ color: C.gold, fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
-          クレー射撃大会運営システム
-        </h1>
-        <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 32 }}>パスワードをお忘れの方</p>
+    <div style={{ minHeight: '100vh', background: '#0f0f1a', color: '#fff', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ width: '100%', maxWidth: 400 }}>
+          <h1 style={{ color: C.gold, fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
+            クレー射撃大会運営システム
+          </h1>
+          <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 32 }}>パスワードをお忘れの方</p>
 
         {done ? (
           <div style={{ background: '#1a2a1a', border: '1px solid #4caf50', borderRadius: 8, padding: 28, textAlign: 'center' }}>
@@ -64,10 +107,40 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              style={{ background: '#1a1a2e', border: '1px solid #444', borderRadius: 5, color: '#fff', padding: '10px 12px', fontSize: 15, width: '100%', boxSizing: 'border-box', marginBottom: 16 }}
+              disabled={isRateLimited}
+              style={{ background: '#1a1a2e', border: '1px solid #444', borderRadius: 5, color: '#fff', padding: '10px 12px', fontSize: 15, width: '100%', boxSizing: 'border-box', marginBottom: 16, opacity: isRateLimited ? 0.5 : 1 }}
             />
-            {error && <ErrorModal message={error} onClose={() => setError(null)} />}
-            <button type="submit" disabled={sending} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '11px', fontSize: 15, fontWeight: 700, cursor: sending ? 'not-allowed' : 'pointer', width: '100%', marginBottom: 12, opacity: sending ? 0.7 : 1 }}>
+            {isRateLimited && (
+              <div style={{
+                background: '#2a1a1a',
+                border: '1px solid #c44',
+                borderRadius: 6,
+                padding: 12,
+                marginBottom: 16,
+                fontSize: 13,
+                color: '#ffcccc',
+                lineHeight: 1.6,
+              }}>
+                <div style={{ marginBottom: 4 }}>⚠️ セキュリティのため、1時間あたり5回までしか送信できません。</div>
+                <div style={{ marginBottom: 4 }}>メールが届かない場合、迷惑メールフォルダに入っていないかなど確認してください。</div>
+                <div style={{ marginBottom: 4 }}>あと <strong>{formatRetryAfter(rateLimitedSec)}</strong> 後に再試行できます。</div>
+                <div>解決しない場合は、システム管理者（matsuo@repros.co.jp）にご相談ください。</div>
+              </div>
+            )}
+            {error && (
+              <div style={{
+                background: '#2a1a1a',
+                border: '1px solid #c44',
+                borderRadius: 6,
+                padding: 10,
+                marginBottom: 16,
+                fontSize: 13,
+                color: '#ffcccc',
+              }}>
+                {error}
+              </div>
+            )}
+            <button type="submit" disabled={sending || isRateLimited} style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '11px', fontSize: 15, fontWeight: 700, cursor: sending || isRateLimited ? 'not-allowed' : 'pointer', width: '100%', marginBottom: 12, opacity: sending || isRateLimited ? 0.5 : 1 }}>
               {sending ? '送信中...' : 'リセットメールを送信'}
             </button>
             <button type="button" onClick={() => router.push('/admin/login')} style={{ background: 'transparent', color: '#aaa', border: '1px solid #444', borderRadius: 6, padding: '10px', fontSize: 14, cursor: 'pointer', width: '100%' }}>
@@ -75,6 +148,7 @@ export default function ForgotPasswordPage() {
             </button>
           </form>
         )}
+        </div>
       </div>
       <LoadingOverlay show={sending} message="送信中..." />
       <Footer />

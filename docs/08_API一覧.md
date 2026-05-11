@@ -27,7 +27,7 @@
 | POST | `/api/admin/register` | 🎫 | 招待トークン経由の運営管理者登録 |
 | GET/POST/DELETE | `/api/admin/admins` | 🔑 | 運営管理者の一覧・作成・削除 |
 | POST | `/api/admin/invitations` | 🔑 | 運営管理者の招待トークン発行 |
-| POST | `/api/admin/password-reset` | 🔓 | パスワードリセット申請（メール送信） |
+| POST | `/api/admin/password-reset` | 🔓 | パスワードリセット申請。**v3.84**: 同一 IP から 1 時間 5 回までに制限、超過時 HTTP 429 + `Retry-After`。未登録メアドは HTTP 404 |
 | POST | `/api/admin/password-reset/[token]` | 🎫 | パスワードリセット実行 |
 
 ---
