@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
       }
 
       if (res.status === 404) {
-        setError('このメールアドレスは登録されていません。');
+        setError('登録されたメールアドレスは存在しません。');
         return;
       }
 
