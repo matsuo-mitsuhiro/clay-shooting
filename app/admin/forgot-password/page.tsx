@@ -77,12 +77,13 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f0f1a', color: '#fff', fontFamily: 'Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 400 }}>
-        <h1 style={{ color: C.gold, fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
-          クレー射撃大会運営システム
-        </h1>
-        <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 32 }}>パスワードをお忘れの方</p>
+    <div style={{ minHeight: '100vh', background: '#0f0f1a', color: '#fff', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ width: '100%', maxWidth: 400 }}>
+          <h1 style={{ color: C.gold, fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
+            クレー射撃大会運営システム
+          </h1>
+          <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 32 }}>パスワードをお忘れの方</p>
 
         {done ? (
           <div style={{ background: '#1a2a1a', border: '1px solid #4caf50', borderRadius: 8, padding: 28, textAlign: 'center' }}>
@@ -147,6 +148,7 @@ export default function ForgotPasswordPage() {
             </button>
           </form>
         )}
+        </div>
       </div>
       <LoadingOverlay show={sending} message="送信中..." />
       <Footer />
