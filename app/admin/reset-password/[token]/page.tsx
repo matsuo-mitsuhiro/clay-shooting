@@ -60,14 +60,15 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ token:
   if (checking) return <LoadingOverlay show message="確認中..." />;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f0f1a', color: '#fff', fontFamily: 'Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 400 }}>
-        <h1 style={{ color: C.gold, fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
-          クレー射撃大会運営システム
-        </h1>
-        <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 32 }}>新しいパスワードの設定</p>
+    <div style={{ minHeight: '100vh', background: '#0f0f1a', color: '#fff', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ width: '100%', maxWidth: 400 }}>
+          <h1 style={{ color: C.gold, fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
+            クレー射撃大会運営システム
+          </h1>
+          <p style={{ color: '#aaa', textAlign: 'center', marginBottom: 32 }}>新しいパスワードの設定</p>
 
-        {tokenError ? (
+          {tokenError ? (
           <div style={{ background: '#2a1a1a', border: `1px solid ${C.red}`, borderRadius: 8, padding: 24, textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
             <p style={{ color: C.red, marginBottom: 20 }}>{tokenError}</p>
@@ -105,7 +106,8 @@ export default function ResetPasswordPage({ params }: { params: Promise<{ token:
               {saving ? '変更中...' : 'パスワードを変更する'}
             </button>
           </form>
-        )}
+          )}
+        </div>
       </div>
       <LoadingOverlay show={saving} message="変更中..." />
       <Footer />
