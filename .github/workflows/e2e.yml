@@ -58,11 +58,12 @@ jobs:
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
 
       - name: Commit updated snapshots
-        if: github.event.inputs.update_snapshots == 'true'
+        if: ${{ always() && github.event.inputs.update_snapshots == 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add e2e/**/*-snapshots/*.png || true
+          # snapshot dir は e2e/<specfile>-snapshots/*.png 直下に生成される
+          git add e2e/*-snapshots/*.png || true
           if git diff --cached --quiet; then
             echo "No snapshot changes to commit."
           else
