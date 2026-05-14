@@ -36,7 +36,7 @@ test.describe('ビジュアル回帰テスト', () => {
 
   test('パスワード再発行画面', async ({ page }) => {
     await page.goto('/admin/forgot-password');
-    await expect(page.getByRole('heading', { name: /パスワード/ })).toBeVisible();
+    await expect(page.getByText('パスワードをお忘れの方')).toBeVisible();
     await expect(page).toHaveScreenshot('admin-forgot-password.png', {
       mask: FOOTER_MASK(page),
       fullPage: true,
