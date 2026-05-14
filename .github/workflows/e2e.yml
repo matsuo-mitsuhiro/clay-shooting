@@ -11,14 +11,23 @@ on:
         description: '対象URL（空ならローカル起動）'
         required: false
         default: ''
+      update_snapshots:
+        description: 'ビジュアル回帰テストの baseline を更新する（true で実行 → 自動 commit）'
+        required: false
+        default: 'false'
 
 jobs:
   e2e:
     name: Playwright スモークテスト
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # update_snapshots 実行時に commit back するため
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -30,7 +39,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: npx playwright test
+        run: npx playwright test ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
         env:
           # CI ではローカル Next.js を起動して smoke test のみ実行
           # （フルテストは staging URL を指定して手動実行）
@@ -47,6 +56,19 @@ jobs:
           # 認証付きテストのシークレット（未設定なら test.skip / fixme で除外）
           E2E_ADMIN_MEMBER_CODE: ${{ secrets.E2E_ADMIN_MEMBER_CODE }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+
+      - name: Commit updated snapshots
+        if: github.event.inputs.update_snapshots == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/**/*-snapshots/*.png || true
+          if git diff --cached --quiet; then
+            echo "No snapshot changes to commit."
+          else
+            git commit -m "test: update visual baseline snapshots (CI auto-commit)"
+            git push
+          fi
 
       - name: Upload Playwright report
         if: always()
