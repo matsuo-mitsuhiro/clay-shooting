@@ -19,6 +19,18 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['github'], ['html']] : 'html',
 
+  expect: {
+    // ビジュアル回帰テスト（toHaveScreenshot）のデフォルト設定
+    // OS 間のフォントレンダリング差を許容するため、わずかな差分を許容
+    // 大きな変更（レイアウト崩れ等）は閾値を超えて検出される
+    toHaveScreenshot: {
+      maxDiffPixels: 200,
+      maxDiffPixelRatio: 0.02,
+      animations: 'disabled',
+      caret: 'hide',
+    },
+  },
+
   use: {
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
