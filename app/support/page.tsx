@@ -89,9 +89,10 @@ function SupportContent() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px' }}>
+    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column' }}>
       <LoadingOverlay show={submitting} message="送信中..." />
-      <div style={{ width: '100%', maxWidth: 520 }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px' }}>
+        <div style={{ width: '100%', maxWidth: 520 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <h1 style={{ margin: '0 0 6px', fontSize: 22, color: C.gold, fontWeight: 700 }}>クレー射撃大会運営システム</h1>
           <p style={{ margin: 0, fontSize: 13, color: C.muted }}>お問い合わせフォーム</p>
@@ -188,6 +189,7 @@ function SupportContent() {
         <div style={{ marginTop: 24, textAlign: 'center' }}>
           <p style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>よくある質問はこちらで検索できます</p>
           <a href="/faq" style={{ color: C.gold, fontSize: 14, textDecoration: 'underline' }}>Q&A一覧を見る →</a>
+        </div>
         </div>
       </div>
       <Footer />
