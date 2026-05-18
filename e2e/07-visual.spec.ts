@@ -8,8 +8,9 @@ import { test, expect, type Page } from '@playwright/test';
  * - Tailwind 化や CSP 強化など、CSS に影響する変更の安全網
  *
  * 対象:
- * - DB/認証 不要で安定描画される静的ページのみ
- * - 大会一覧・閲覧者画面・管理画面（認証要）は data 依存のため別途検討
+ * - DB/認証 不要で安定描画される静的ページ
+ * - データ依存だが「CI ダミー DB で fetch 失敗 → エラー状態」が確定するページ
+ * - 認証要・seed 必須ページは別途検討
  *
  * Baseline 管理:
  * - 初回・意図的更新は GitHub Actions workflow_dispatch から
@@ -56,6 +57,43 @@ test.describe('ビジュアル回帰テスト', () => {
     await page.goto('/support');
     await expect(page.locator('body')).toBeVisible();
     await expect(page).toHaveScreenshot('support.png', {
+      mask: FOOTER_MASK(page),
+      fullPage: true,
+    });
+  });
+
+  // ---------------- Phase 1 拡張: 確定エラー状態のページ ----------------
+  // CI ダミー DB 環境で確定描画されることが前提（DB fetch 失敗 → catch → 確定文言）
+  // staging URL に対して走らせる場合は別 baseline が必要
+
+  test('管理者新規登録ページ（token なし → 招待リンク無効エラー）', async ({ page }) => {
+    // useEffect で token 空判定が走り、API も叩かず即エラー表示
+    await page.goto('/admin/register');
+    await expect(page.getByText('招待リンクが無効です')).toBeVisible();
+    await expect(page).toHaveScreenshot('admin-register-no-token.png', {
+      mask: FOOTER_MASK(page),
+      fullPage: true,
+    });
+  });
+
+  test('パスワードリセットページ（無効 token → エラー表示）', async ({ page }) => {
+    // CI ダミー DB では neon() の接続が失敗 → frontend の .catch() で
+    // 「エラーが発生しました」が表示される。staging Neon に繋がる場合は
+    // 「このリンクは無効です」が表示されるため別 baseline 想定
+    await page.goto('/admin/reset-password/invalid-vrt-token-for-baseline');
+    await expect(page.getByText('再度リセットを申請する')).toBeVisible();
+    await expect(page).toHaveScreenshot('admin-reset-password-invalid-token.png', {
+      mask: FOOTER_MASK(page),
+      fullPage: true,
+    });
+  });
+
+  test('トップページ（大会なし状態）', async ({ page }) => {
+    // CI ダミー DB では /api/tournaments が失敗 → tournaments=[] のまま loading=false
+    // → 「大会が登録されていません」が表示される
+    await page.goto('/');
+    await expect(page.getByText('大会が登録されていません')).toBeVisible();
+    await expect(page).toHaveScreenshot('top-empty.png', {
       mask: FOOTER_MASK(page),
       fullPage: true,
     });
