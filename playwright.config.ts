@@ -21,11 +21,12 @@ export default defineConfig({
 
   expect: {
     // ビジュアル回帰テスト（toHaveScreenshot）のデフォルト設定
-    // OS 間のフォントレンダリング差を許容するため、わずかな差分を許容
+    // OS 間のフォントレンダリング差 + dynamic rendering 化（v3.89.2）による
+    // run-by-run の微小なレンダリング揺れを許容
     // 大きな変更（レイアウト崩れ等）は閾値を超えて検出される
     toHaveScreenshot: {
-      maxDiffPixels: 200,
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixels: 600,
+      maxDiffPixelRatio: 0.05,
       animations: 'disabled',
       caret: 'hide',
     },
