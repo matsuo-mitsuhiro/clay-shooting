@@ -2,14 +2,17 @@ import { getToken } from 'next-auth/jwt';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// CSP nonce + strict-dynamic を Report-Only で配信（v3.89〜、D-1b Phase 2 step A）
-// strict-dynamic と nonce を組み合わせ、Next.js 内部の inline script は
-// x-nonce request header から自動的に nonce 属性が付与される。
+// CSP nonce + strict-dynamic を強制モードで配信（v3.90〜、D-1b Phase 2 step B）
+// step A (v3.89〜) で Report-Only モードでの違反が 0 件であることを主要 12 シナリオで
+// 自動巡回確認後、強制モードに移行。これにより XSS 攻撃面が大幅縮小。
 // style-src は既存の `style={{}}` 1686 件があるため 'unsafe-inline' を維持。
+// 開発時のみ 'unsafe-eval' を許可（React が eval でデバッグ情報を生成するため、
+// Next.js 公式 docs に明記）。production では不要。
 function buildCsp(nonce: string): string {
+  const isDev = process.env.NODE_ENV === 'development';
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
@@ -45,7 +48,7 @@ export async function middleware(request: NextRequest) {
         const loginUrl = new URL('/admin/login', request.url);
         loginUrl.searchParams.set('callbackUrl', pathname);
         const redirect = NextResponse.redirect(loginUrl);
-        redirect.headers.set('Content-Security-Policy-Report-Only', csp);
+        redirect.headers.set('Content-Security-Policy', csp);
         return redirect;
       }
     }
@@ -54,7 +57,6 @@ export async function middleware(request: NextRequest) {
   // Next.js が内部の inline script に nonce 属性を自動付与するためには、
   // request headers に `x-nonce` と `Content-Security-Policy` の両方が必要
   // （Next.js 公式パターン: https://nextjs.org/docs/app/guides/content-security-policy）
-  // レスポンス側は Report-Only モード維持。
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', csp);
@@ -62,7 +64,7 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
-  response.headers.set('Content-Security-Policy-Report-Only', csp);
+  response.headers.set('Content-Security-Policy', csp);
   return response;
 }
 
