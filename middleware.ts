@@ -6,10 +6,13 @@ import type { NextRequest } from 'next/server';
 // step A (v3.89〜) で Report-Only モードでの違反が 0 件であることを主要 12 シナリオで
 // 自動巡回確認後、強制モードに移行。これにより XSS 攻撃面が大幅縮小。
 // style-src は既存の `style={{}}` 1686 件があるため 'unsafe-inline' を維持。
+// 開発時のみ 'unsafe-eval' を許可（React が eval でデバッグ情報を生成するため、
+// Next.js 公式 docs に明記）。production では不要。
 function buildCsp(nonce: string): string {
+  const isDev = process.env.NODE_ENV === 'development';
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
