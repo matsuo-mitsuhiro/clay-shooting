@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,11 +18,16 @@ export const metadata: Metadata = {
   description: "クレー射撃大会の運営システム",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // dynamic rendering を強制し、middleware で渡された Content-Security-Policy
+  // request header を Next.js に読ませて、framework が出力する inline script
+  // へ自動的に nonce 属性を付与させる（CSP nonce 用、v3.89.2〜）
+  await headers();
+
   return (
     <html
       lang="ja"
