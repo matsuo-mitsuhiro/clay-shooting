@@ -51,10 +51,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // x-nonce request header を Next.js に渡すと、内部の inline script に
-  // nonce 属性が自動付与される（next/script、framework scripts も含む）
+  // Next.js が内部の inline script に nonce 属性を自動付与するためには、
+  // request headers に `x-nonce` と `Content-Security-Policy` の両方が必要
+  // （Next.js 公式パターン: https://nextjs.org/docs/app/guides/content-security-policy）
+  // レスポンス側は Report-Only モード維持。
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', csp);
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
