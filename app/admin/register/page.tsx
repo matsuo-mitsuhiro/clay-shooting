@@ -78,8 +78,9 @@ function RegisterContent() {
   if (checking) return <LoadingOverlay show message="確認中..." />;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f0f1a', color: '#fff', fontFamily: 'Arial, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 480 }}>
+    <div style={{ minHeight: '100vh', background: '#0f0f1a', color: '#fff', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ width: '100%', maxWidth: 480 }}>
         <h1 style={{ color: C.gold, fontSize: 22, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
           クレー射撃大会運営システム
         </h1>
@@ -151,6 +152,7 @@ function RegisterContent() {
             </button>
           </form>
         )}
+        </div>
       </div>
       <LoadingOverlay show={saving} message="登録中..." />
       <Footer />
