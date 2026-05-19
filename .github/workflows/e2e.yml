@@ -40,7 +40,8 @@ jobs:
 
       - name: Run E2E tests
         # Phase 2 (data 依存 VRT, 08-visual-data.spec.ts) は別 job で走らせるためここでは除外
-        run: npx playwright test --grep-invert "Phase 2: data 依存" ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
+        run: |
+          npx playwright test --grep-invert "Phase 2: data 依存" ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
         env:
           # CI ではローカル Next.js を起動して smoke test のみ実行
           # （フルテストは staging URL を指定して手動実行）
@@ -81,7 +82,7 @@ jobs:
           retention-days: 7
 
   e2e-data:
-    name: VRT Phase 2 (data 依存)
+    name: VRT Phase 2 data
     # Phase 1 の auto-commit との競合を避けるため直列化
     needs: e2e
     if: always()
