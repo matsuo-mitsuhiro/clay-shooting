@@ -123,3 +123,40 @@ npx eslint .
 
 ### ドキュメント更新のタイミング
 コードのコミット **前** または **同じコミット内** に更新すること。
+
+---
+
+## スタイリング方針（v3.92〜、Tailwind 化 D+ 段階導入）
+
+### 大方針
+- **新規追加するコードでは `style={{}}` を使わず、Tailwind utility class を使う**
+- **既存コードは触ったファイル単位で段階的に Tailwind utility 化する**（D+ 段階導入＋機会主義）
+  - 「既存ファイルを編集するときは、ついでに `style={{}}` を Tailwind に書き換える」程度の温度感
+  - 一気に全置換しない（VRT 基盤で安全網を確保済みだが、無関係な大量差分は PR レビュー負荷が高い）
+- カラー定数の Single Source of Truth は **`lib/colors.ts`**
+  - `app/globals.css` の `@theme` に同値を CSS 変数として公開済（v3.92〜）
+  - Tailwind utility と JS 双方から同じ値を参照する
+
+### 使えるカラー utility（`@theme` 定義済）
+| 用途 | Tailwind class | 値 |
+|---|---|---|
+| 背景（基本） | `bg-bg` | `#0f1115` |
+| サーフェス | `bg-surface` | `#1a1d24` |
+| サーフェス 2 | `bg-surface-2` | `#22262f` |
+| ボーダー | `border-border` | `#2e3340` |
+| ゴールド | `bg-gold` / `text-gold` | `#e8a020` |
+| ゴールド暗 | `bg-gold-dark` | `#c07010` |
+| ブルー | `bg-blue-2` / `text-blue-2` | `#2a7a9a` |
+| 赤 | `text-red` / `bg-red` | `#ff4d4d` |
+| 緑 | `text-green` / `bg-green` | `#27ae60` |
+| テキスト | `text-text` | `#f0f2f8` |
+| ミュート | `text-muted` | `#a8b4cc` |
+| 入力背景 | `bg-input-bg` | `#0d0f14` |
+
+### ESLint
+- `react/forbid-dom-props` で `style` を **warn**（CI は通る）
+- 警告が出ても CI ブロックはしないが、新規追加時は意識的に Tailwind を選ぶこと
+
+### Tailwind v4 メモ
+- 設定ファイルは `tailwind.config.ts` ではなく `app/globals.css` の `@theme` ブロック
+- 新カラー追加時は `app/globals.css` と `lib/colors.ts` の両方を更新
