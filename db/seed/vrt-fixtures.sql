@@ -129,6 +129,26 @@ VALUES (
   TRUE
 );
 
+-- ---------- VRT Phase 3 (v3.96) 用: 大会報告 + 奨励金 ----------
+-- 用途: ReportTab の baseline で空フォームではなく「保存済み報告」状態を撮影する
+-- fixture report は単独大会（ペア未検出 = pairedTournament=null）でも UI は trap 側のみ表示で安定
+INSERT INTO tournament_reports (id, tournament_id, paired_tournament_id, report_date, certification_fee, advertising_fee, remarks)
+VALUES (1, 1, NULL, '2099-12-31', 50000, 5000, 'VRT サンプル大会の備考');
+
+INSERT INTO report_incentives (report_id, event_type, straight_type, player_name, member_code, belong, amount, sort_order)
+VALUES
+  (1, 'trap', 25, 'サンプル 太郎', '900001', 'VRT', 3000, 0),
+  (1, 'trap', 25, 'サンプル 六郎', '900006', 'VRT', 3000, 1);
+
+-- ---------- VRT Phase 3 (v3.96) 用: 操作ログ ----------
+-- 用途: /admin/logs?action=score_save の baseline で「ログ 1 行表示」状態を確保する
+-- filter=score_save で setup project が積む login record（動的時刻）を除外
+-- 全件表示 (action filter なし) の baseline は将来別ラウンドで検討
+INSERT INTO operation_logs (tournament_id, tournament_name, logged_at, admin_name, admin_affiliation, action, detail)
+VALUES
+  (1, 'VRT サンプル大会', '2099-12-31 08:00:00', 'VRT 管理者', 'VRT', 'login',      NULL),
+  (1, 'VRT サンプル大会', '2099-12-31 09:15:00', 'VRT 管理者', 'VRT', 'score_save', '1組R1：サンプル 太郎 25、サンプル 六郎 25');
+
 -- ---------- シーケンス調整 ----------
 SELECT setval('tournaments_id_seq', (SELECT MAX(id) FROM tournaments));
 SELECT setval('shooting_ranges_id_seq', (SELECT MAX(id) FROM shooting_ranges));
@@ -136,5 +156,8 @@ SELECT setval('members_id_seq', (SELECT MAX(id) FROM members));
 SELECT setval('scores_id_seq', (SELECT MAX(id) FROM scores));
 SELECT setval('registrations_id_seq', (SELECT MAX(id) FROM registrations));
 SELECT setval('tournament_admins_id_seq', (SELECT MAX(id) FROM tournament_admins));
+SELECT setval('tournament_reports_id_seq', (SELECT MAX(id) FROM tournament_reports));
+SELECT setval('report_incentives_id_seq', (SELECT MAX(id) FROM report_incentives));
+SELECT setval('operation_logs_id_seq', (SELECT MAX(id) FROM operation_logs));
 
 COMMIT;
