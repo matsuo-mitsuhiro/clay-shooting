@@ -45,6 +45,24 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      // setup project に依存させない（既存テストは認証不要 or 個別ログイン）
+      testIgnore: ['**/auth.setup.ts', '**/09-visual-auth.spec.ts'],
+    },
+    // VRT Phase 3 用: 運営管理者として 1 度ログインして storageState を保存
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // VRT Phase 3 用: 認証要画面の screenshot 取得
+    {
+      name: 'chromium-auth',
+      testMatch: /09-visual-auth\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/admin.json',
+      },
+      dependencies: ['setup'],
     },
     // モバイルテストは個別に有効化したい時だけ追加
     // {
