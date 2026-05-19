@@ -67,6 +67,10 @@ main     （ユーザーがレビュー後マージ）→ Vercel 本番（clay-s
 - `staging` ブランチへ push されると `migrate-staging.yml` が staging DB に自動適用
 - `main` ブランチへ push されると `migrate-production.yml` が本番 DB に自動適用
 - 適用履歴は `_migrations` テーブルで管理（migration 024 で導入）
+- **VRT 用 Neon branch (`vrt-baseline`) にも migration を反映する**
+  - 新規 migration 追加 PR をマージ → vrt-baseline に手動で `node scripts/vrt-seed.js` 再実行（fixture も含めて再投入）
+  - または `_migrations` を確認して未適用分のみ手動で `psql $VRT_DATABASE_URL -f db/migrations/NNN_xxx.sql`
+  - VRT_DATABASE_URL は GitHub secret に登録済（`gh secret list` で確認）、手元では Neon dashboard から取得
 
 ---
 

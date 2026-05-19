@@ -39,7 +39,8 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: npx playwright test ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
+        # Phase 2 (data 依存 VRT, 08-visual-data.spec.ts) は別 job で走らせるためここでは除外
+        run: npx playwright test --grep-invert "Phase 2: data 依存" ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
         env:
           # CI ではローカル Next.js を起動して smoke test のみ実行
           # （フルテストは staging URL を指定して手動実行）
@@ -76,5 +77,72 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  e2e-data:
+    name: VRT Phase 2 (data 依存)
+    # Phase 1 の auto-commit との競合を避けるため直列化
+    needs: e2e
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # update_snapshots 実行時に commit back するため
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # 直前に push された baseline がある場合に取得するため
+          ref: ${{ github.head_ref || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm install -g npm@11
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Pull latest (auto-commit from prior job may exist)
+        if: ${{ github.event.inputs.update_snapshots == 'true' }}
+        run: git pull --rebase --autostash || true
+
+      - name: Run VRT Phase 2 (data)
+        # 08-visual-data.spec.ts のみ実行
+        run: npx playwright test e2e/08-visual-data.spec.ts ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
+        env:
+          E2E_BASE_URL: ${{ github.event.inputs.base_url }}
+          # Phase 2 は vrt-baseline Neon branch に接続
+          DATABASE_URL: ${{ secrets.VRT_DATABASE_URL }}
+          NEXTAUTH_SECRET: ci-vrt-secret-not-used
+          NEXTAUTH_URL: http://localhost:3000
+          GOOGLE_CLIENT_ID: ci-dummy
+          GOOGLE_CLIENT_SECRET: ci-dummy
+          SYSTEM_ADMIN_EMAILS: ci@example.com
+          EMAIL_USER: ci@example.com
+          EMAIL_PASS: ci-dummy
+
+      - name: Commit updated snapshots
+        if: ${{ always() && github.event.inputs.update_snapshots == 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/*-snapshots/*.png || true
+          if git diff --cached --quiet; then
+            echo "No snapshot changes to commit."
+          else
+            git commit -m "test: update VRT Phase 2 baseline snapshots (CI auto-commit)"
+            git pull --rebase --autostash || true
+            git push
+          fi
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-data
           path: playwright-report/
           retention-days: 7
