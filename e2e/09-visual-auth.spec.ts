@@ -19,16 +19,19 @@ import { test, expect, type Page } from '@playwright/test';
  *   - /admin/1?tab=settings        大会設定タブ（大会情報 + QR + 危険ゾーン）
  *   - /admin/1?tab=apply-settings  申込設定タブ（募集人数・日時・スケジュール）
  *   - /admin/players               選手マスター（VRT 所属 7 名）
+ *   - /admin/1?tab=inspection      記録審査タブ（v3.96 〜、空フォーム + ルール選択）
+ *   - /admin/1?tab=report          大会報告タブ（v3.96 〜、tournament_reports + 奨励金 2 件）
+ *   - /admin/logs?action=score_save 操作ログ（v3.96 〜、score_save 1 行のみ表示 → 動的 login 除外）
  *
  * 動的要素:
  *   - <footer> APP_VERSION → mask
  *   - 日付は fixture で 2099 年に固定 → 「current 大会」判定が常に true
  *   - 「最終保存」表示は info_saved_at / apply_saved_at が NULL のため非表示
+ *   - /admin/logs の filter=score_save は setup project が積む動的 login record を除外する設計
  *
  * 残し（次フェーズ候補）:
- *   - inspection / report タブ（fixture 拡張必要、ペア大会・奨励金集計）
- *   - /admin/logs（operation_logs は動的、毎回ログイン記録で日時が変動）
- *   - /admin/admins, /admin/associations, /admin/shooting-ranges
+ *   - /admin/logs 全件表示（filter なし）— 動的 login record のため別アプローチ要
+ *   - /admin/admins, /admin/associations, /admin/shooting-ranges（system-admin 専用）
  */
 
 const FOOTER_MASK = (page: Page) => [page.locator('footer')];
@@ -106,6 +109,39 @@ test.describe('ビジュアル回帰テスト (Phase 3: 認証要)', () => {
     await expect(page.getByText('サンプル 太郎')).toBeVisible();
     await expect(page).toHaveScreenshot('admin-players.png', {
       mask: FOOTER_MASK(page),
+      fullPage: true,
+    });
+  });
+
+  test('大会詳細 記録審査タブ', async ({ page }) => {
+    await page.goto(`/admin/${TOURNAMENT_ID}?tab=inspection`);
+    // ルール選択セクションがフォームの最上部 → 描画完了の指標
+    await expect(page.getByText('ルール設定')).toBeVisible();
+    await expect(page).toHaveScreenshot('admin-inspection.png', {
+      mask: FOOTER_MASK(page),
+      fullPage: true,
+    });
+  });
+
+  test('大会詳細 大会報告タブ', async ({ page }) => {
+    await page.goto(`/admin/${TOURNAMENT_ID}?tab=report`);
+    // 基本情報セクション + fixture 投入済の備考テキストで描画完了を保証
+    await expect(page.getByText('基本情報')).toBeVisible();
+    await expect(page.getByText('VRT サンプル大会の備考')).toBeVisible();
+    await expect(page).toHaveScreenshot('admin-report.png', {
+      mask: FOOTER_MASK(page),
+      fullPage: true,
+    });
+  });
+
+  test('操作ログ /admin/logs (score_save filter)', async ({ page }) => {
+    // filter で setup project が積む動的 login record を除外 → fixture の score_save 1 行のみ
+    await page.goto('/admin/logs?action=score_save');
+    // 詳細セル（固定文字列）で行描画完了を保証
+    await expect(page.getByText('サンプル 太郎 25', { exact: false })).toBeVisible();
+    await expect(page).toHaveScreenshot('admin-logs-score-save.png', {
+      // 日時セル（td:nth-child(1)）は動的なので mask
+      mask: [page.locator('footer'), page.locator('tbody td:nth-child(1)')],
       fullPage: true,
     });
   });
