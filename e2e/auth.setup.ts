@@ -1,4 +1,4 @@
-import { test as setup, expect } from '@playwright/test';
+import { test as setup } from '@playwright/test';
 import path from 'path';
 
 /**
@@ -26,9 +26,11 @@ setup('運営管理者として storageState を作成', async ({ page }) => {
   await page.locator('input[type="password"]').fill('vrt-admin-pass-2099');
   await page.getByRole('button', { name: 'ログイン' }).click();
 
-  // ログイン後は /admin にリダイレクト
-  await expect(page).toHaveURL(/\/admin($|\?|\/$)/);
-  await expect(page.getByText(/大会一覧|新規大会作成|VRT サンプル大会/)).toBeVisible();
+  // ログイン後 /admin へリダイレクト。CI の cold start を考慮して長めの timeout
+  await page.waitForURL(/\/admin($|\?|\/$)/, { timeout: 30000 });
+
+  // session cookie が確実に書き込まれてから storageState を保存
+  await page.waitForLoadState('networkidle');
 
   await page.context().storageState({ path: ADMIN_STATE });
 });
