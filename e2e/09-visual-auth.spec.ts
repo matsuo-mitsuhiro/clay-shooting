@@ -4,26 +4,31 @@ import { test, expect, type Page } from '@playwright/test';
  * ビジュアル回帰テスト (VRT) Phase 3: 認証要画面
  *
  * 目的:
- *   - 運営管理者ログイン後の中核画面（/admin 大会一覧 + 大会詳細 3 タブ）の baseline 化
+ *   - 運営管理者ログイン後の中核画面（/admin 大会一覧 + 大会詳細タブ群 + マスター画面）の baseline 化
  *
  * 必要環境:
  *   - DATABASE_URL=$VRT_DATABASE_URL（vrt-baseline branch、tournament_admins fixture 入り）
  *   - storageState は `e2e/auth.setup.ts` が事前に作成（setup project 依存）
  *
  * 対象画面（fixture: tournament_id=1 "VRT サンプル大会"）:
- *   - /admin               大会一覧（運営管理者ビュー、VRT サンプル大会 1 件）
- *   - /admin/1?tab=members 選手管理タブ（6 名 + 空席行）
- *   - /admin/1?tab=scores  点数登録タブ（6 名 + R1 スコア）
- *   - /admin/1?tab=results 成績確認タブ（合計順位）
+ *   - /admin                       大会一覧（運営管理者ビュー、VRT サンプル大会 1 件）
+ *   - /admin/1?tab=members         選手管理タブ（6 名 + 空席行）
+ *   - /admin/1?tab=scores          点数登録タブ（6 名 + R1 スコア）
+ *   - /admin/1?tab=results         成績確認タブ（合計順位）
+ *   - /admin/1?tab=registrations   申込管理タブ（申込 2 件）
+ *   - /admin/1?tab=settings        大会設定タブ（大会情報 + QR + 危険ゾーン）
+ *   - /admin/1?tab=apply-settings  申込設定タブ（募集人数・日時・スケジュール）
+ *   - /admin/players               選手マスター（VRT 所属 7 名）
  *
  * 動的要素:
  *   - <footer> APP_VERSION → mask
  *   - 日付は fixture で 2099 年に固定 → 「current 大会」判定が常に true
+ *   - 「最終保存」表示は info_saved_at / apply_saved_at が NULL のため非表示
  *
  * 残し（次フェーズ候補）:
- *   - registrations / settings / apply-settings タブ
- *   - inspection / report タブ（data 依存複雑）
- *   - /admin/players, /admin/logs, /admin/admins
+ *   - inspection / report タブ（fixture 拡張必要、ペア大会・奨励金集計）
+ *   - /admin/logs（operation_logs は動的、毎回ログイン記録で日時が変動）
+ *   - /admin/admins, /admin/associations, /admin/shooting-ranges
  */
 
 const FOOTER_MASK = (page: Page) => [page.locator('footer')];
@@ -61,6 +66,45 @@ test.describe('ビジュアル回帰テスト (Phase 3: 認証要)', () => {
     await page.goto(`/admin/${TOURNAMENT_ID}?tab=results`);
     await expect(page.getByText('サンプル 太郎')).toBeVisible();
     await expect(page).toHaveScreenshot('admin-results.png', {
+      mask: FOOTER_MASK(page),
+      fullPage: true,
+    });
+  });
+
+  test('大会詳細 申込管理タブ', async ({ page }) => {
+    await page.goto(`/admin/${TOURNAMENT_ID}?tab=registrations`);
+    // 申込 fixture の 1 件「サンプル 七郎」で安定表示を保証
+    await expect(page.getByText('サンプル 七郎')).toBeVisible();
+    await expect(page).toHaveScreenshot('admin-registrations.png', {
+      mask: FOOTER_MASK(page),
+      fullPage: true,
+    });
+  });
+
+  test('大会詳細 大会設定タブ', async ({ page }) => {
+    await page.goto(`/admin/${TOURNAMENT_ID}?tab=settings`);
+    // 大会名フィールドに fixture の名前が入っていることで描画完了を担保
+    await expect(page.getByText('QRコード確認')).toBeVisible();
+    await expect(page).toHaveScreenshot('admin-settings.png', {
+      mask: FOOTER_MASK(page),
+      fullPage: true,
+    });
+  });
+
+  test('大会詳細 申込設定タブ', async ({ page }) => {
+    await page.goto(`/admin/${TOURNAMENT_ID}?tab=apply-settings`);
+    await expect(page.getByText('申込設定を保存')).toBeVisible();
+    await expect(page).toHaveScreenshot('admin-apply-settings.png', {
+      mask: FOOTER_MASK(page),
+      fullPage: true,
+    });
+  });
+
+  test('選手マスター /admin/players', async ({ page }) => {
+    await page.goto('/admin/players');
+    // 運営管理者は自所属 (VRT) で自動検索 → player_master 7 名が表示される
+    await expect(page.getByText('サンプル 太郎')).toBeVisible();
+    await expect(page).toHaveScreenshot('admin-players.png', {
       mask: FOOTER_MASK(page),
       fullPage: true,
     });

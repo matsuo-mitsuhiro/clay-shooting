@@ -108,7 +108,16 @@ VALUES
 -- 平文パスワード: vrt-admin-pass-2099（CI 専用、vrt-baseline branch は本番到達不可）
 -- bcryptjs round 10 で生成、lib/auth.ts と互換
 INSERT INTO player_master (member_code, name, affiliation, is_judge, trap_class, skeet_class)
-VALUES ('999999', 'VRT 管理者', 'VRT', FALSE, 'A', 'A');
+VALUES
+  -- 運営管理者本人（tournament_admins と紐付け）
+  ('999999', 'VRT 管理者', 'VRT', FALSE, 'A', 'A'),
+  -- members fixture と整合する選手マスター（/admin/players で VRT 所属を baseline 化するため）
+  ('900001', 'サンプル 太郎', 'VRT', TRUE,  'A',   'A'),
+  ('900002', 'サンプル 次郎', 'VRT', FALSE, 'B',   'B'),
+  ('900003', 'サンプル 三郎', 'VRT', FALSE, 'C',   'C'),
+  ('900004', 'サンプル 四郎', 'VRT', FALSE, 'AA',  'AA'),
+  ('900005', 'サンプル 五郎', 'VRT', TRUE,  'B',   'B'),
+  ('900006', 'サンプル 六郎', 'VRT', FALSE, 'AAA', 'AAA');
 
 INSERT INTO tournament_admins (id, member_code, name, email, password_hash, is_active)
 VALUES (
