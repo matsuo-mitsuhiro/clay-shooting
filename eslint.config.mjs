@@ -39,6 +39,15 @@ export default [
       'react-hooks/rules-of-hooks': 'warn',
       '@next/next/no-html-link-for-pages': 'warn',
       'import/no-anonymous-default-export': 'off',
+      // Tailwind 化（D+ 段階導入）: 新規の inline style={{}} を抑止し Tailwind utility を促す。
+      // 既存 1689 件は warning として残し、触ったファイル単位で段階的に utility 化する。
+      // 詳細は CLAUDE.md「スタイリング方針」参照。
+      'react/forbid-dom-props': ['warn', {
+        forbid: [{
+          propName: 'style',
+          message: 'インライン style ではなく Tailwind utility (bg-bg, text-text, bg-gold, border-border 等) を使ってください。既存箇所は触ったタイミングで段階的に移行してください。',
+        }],
+      }],
     },
   },
 ];
