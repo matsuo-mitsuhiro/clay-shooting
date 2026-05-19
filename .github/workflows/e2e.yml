@@ -39,9 +39,10 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        # Phase 2 (data 依存 VRT, 08-visual-data.spec.ts) は別 job で走らせるためここでは除外
+        # Phase 2 (data 依存) / Phase 3 (認証要) の VRT は別 job で走らせるためここでは除外
+        # --project=chromium で setup project / chromium-auth project の混入を防ぐ
         run: |
-          npx playwright test --grep-invert "Phase 2: data 依存" ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
+          npx playwright test --project=chromium --grep-invert "Phase [23]" ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
         env:
           # CI ではローカル Next.js を起動して smoke test のみ実行
           # （フルテストは staging URL を指定して手動実行）
@@ -113,7 +114,8 @@ jobs:
 
       - name: Run VRT Phase 2 (data)
         # 08-visual-data.spec.ts のみ実行
-        run: npx playwright test e2e/08-visual-data.spec.ts ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
+        # --project=chromium で setup project / chromium-auth project の混入を防ぐ
+        run: npx playwright test --project=chromium e2e/08-visual-data.spec.ts ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
         env:
           E2E_BASE_URL: ${{ github.event.inputs.base_url }}
           # Phase 2 は vrt-baseline Neon branch に接続
@@ -145,5 +147,72 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-data
+          path: playwright-report/
+          retention-days: 7
+
+  e2e-auth:
+    name: VRT Phase 3 auth
+    # Phase 2 auto-commit との競合を避けるため直列化
+    needs: e2e-data
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # 直前 job (e2e-data) が baseline を push している場合に取得するため
+          ref: ${{ github.head_ref || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm install -g npm@11
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Pull latest (auto-commit from prior jobs may exist)
+        if: ${{ github.event.inputs.update_snapshots == 'true' }}
+        run: git pull --rebase --autostash || true
+
+      - name: Run VRT Phase 3 (auth)
+        # auth.setup.ts (setup project) → 09-visual-auth.spec.ts (chromium-auth project)
+        # の依存関係は playwright.config.ts で定義済
+        run: npx playwright test --project=chromium-auth ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
+        env:
+          E2E_BASE_URL: ${{ github.event.inputs.base_url }}
+          # Phase 3 は vrt-baseline Neon branch（tournament_admins fixture 入り）に接続
+          DATABASE_URL: ${{ secrets.VRT_DATABASE_URL }}
+          NEXTAUTH_SECRET: ci-vrt-auth-secret-not-used
+          NEXTAUTH_URL: http://localhost:3000
+          GOOGLE_CLIENT_ID: ci-dummy
+          GOOGLE_CLIENT_SECRET: ci-dummy
+          SYSTEM_ADMIN_EMAILS: ci@example.com
+          EMAIL_USER: ci@example.com
+          EMAIL_PASS: ci-dummy
+
+      - name: Commit updated snapshots
+        if: ${{ always() && github.event.inputs.update_snapshots == 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/*-snapshots/*.png || true
+          if git diff --cached --quiet; then
+            echo "No snapshot changes to commit."
+          else
+            git commit -m "test: update VRT Phase 3 baseline snapshots (CI auto-commit)"
+            git pull --rebase --autostash || true
+            git push
+          fi
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-auth
           path: playwright-report/
           retention-days: 7

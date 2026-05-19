@@ -49,6 +49,8 @@ next-env.d.ts
 /playwright-report/
 /test-results/
 /playwright/.cache/
+# VRT Phase 3 認証 storageState（setup project が毎回生成）
+/e2e/.auth/
 
 # Vercel
 .vercel
