@@ -102,11 +102,30 @@ VALUES
   (1, '900007', 'サンプル 七郎', 'VRT', 'vrt7@example.invalid', 'trap', 'day1', 'C', FALSE, 'active', 'web'),
   (1, '900008', 'サンプル 八郎', 'VRT', 'vrt8@example.invalid', 'trap', 'day1', 'B', FALSE, 'active', 'web');
 
+-- ---------- VRT Phase 3 用: 運営管理者 + 紐付け player_master ----------
+-- 用途: Playwright `auth.setup.ts` がこのアカウントでログイン → storageState 保存 →
+--       認証要画面の VRT spec で再利用
+-- 平文パスワード: vrt-admin-pass-2099（CI 専用、vrt-baseline branch は本番到達不可）
+-- bcryptjs round 10 で生成、lib/auth.ts と互換
+INSERT INTO player_master (member_code, name, affiliation, is_judge, trap_class, skeet_class)
+VALUES ('999999', 'VRT 管理者', 'VRT', FALSE, 'A', 'A');
+
+INSERT INTO tournament_admins (id, member_code, name, email, password_hash, is_active)
+VALUES (
+  1,
+  '999999',
+  'VRT 管理者',
+  'vrt-admin@example.invalid',
+  '$2b$10$STpzSs.kOdDeb4pup9aXy.WixZpXBgKg5cnIbYG83TOuXOq0n/8fy',
+  TRUE
+);
+
 -- ---------- シーケンス調整 ----------
 SELECT setval('tournaments_id_seq', (SELECT MAX(id) FROM tournaments));
 SELECT setval('shooting_ranges_id_seq', (SELECT MAX(id) FROM shooting_ranges));
 SELECT setval('members_id_seq', (SELECT MAX(id) FROM members));
 SELECT setval('scores_id_seq', (SELECT MAX(id) FROM scores));
 SELECT setval('registrations_id_seq', (SELECT MAX(id) FROM registrations));
+SELECT setval('tournament_admins_id_seq', (SELECT MAX(id) FROM tournament_admins));
 
 COMMIT;
