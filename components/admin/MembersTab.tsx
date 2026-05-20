@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { C } from '@/lib/colors';
 import type { Member, ClassType, ScoreStatus, Tournament, Result, UnusedSlot } from '@/lib/types';
 import { PREFECTURES } from '@/lib/prefectures';
 import LoadingOverlay from '@/components/LoadingOverlay';
@@ -1024,45 +1023,31 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
   // Members in selected group
   const groupMembers = dayMembers.filter(m => m.group_number === selectedGroup);
 
-  const selectStyle: React.CSSProperties = {
-    background: C.inputBg,
-    border: `1px solid ${C.border}`,
-    borderRadius: 4,
-    color: C.text,
-    padding: '4px 6px',
-    fontSize: 14,
-    cursor: 'pointer',
-  };
+  const selectClass = 'bg-input-bg border border-border rounded-[4px] text-text px-[6px] py-[4px] text-[14px] cursor-pointer';
 
   const dayLabel = (d: string) => d === 'day1' ? '1日目' : d === 'day2' ? '2日目' : '両日';
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 1400, margin: '0 auto' }}>
+    <div className="px-[16px] py-[20px] max-w-[1400px] mx-auto">
       <LoadingOverlay show={loading || saving} message={loading ? '読み込み中...' : '保存中...'} />
 
       {/* 申込済み・未登録 警告バナー */}
       {unregistered.length > 0 && (
-        <div style={{
-          background: '#7a4a0022',
-          border: '1px solid #d4870a',
-          borderRadius: 8,
-          padding: '14px 18px',
-          marginBottom: 20,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ fontSize: 18 }}>⚠️</span>
-            <span style={{ color: '#d4870a', fontWeight: 700, fontSize: 15 }}>
+        <div className="bg-[#7a4a0022] border border-[#d4870a] rounded-[8px] px-[18px] py-[14px] mb-[20px]">
+          <div className="flex items-center gap-[8px] mb-[10px]">
+            <span className="text-[18px]">⚠️</span>
+            <span className="text-[#d4870a] font-bold text-[15px]">
               申込済みだが選手未登録の方が {unregistered.length} 名います
             </span>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 20px', marginBottom: 10 }}>
+          <div className="flex flex-wrap gap-x-[20px] gap-y-[6px] mb-[10px]">
             {unregistered.map(u => (
-              <span key={u.member_code} style={{ fontSize: 14, color: '#e0a040' }}>
+              <span key={u.member_code} className="text-[14px] text-[#e0a040]">
                 {u.member_code}　{u.name}（{dayLabel(u.participation_day)}）
               </span>
             ))}
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: '#a07840' }}>
+          <p className="m-0 text-[13px] text-[#a07840]">
             選手管理で確認するか、申込管理タブでキャンセル処理してください。
           </p>
         </div>
@@ -1070,38 +1055,27 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
 
       {/* Day Tabs（1日目 / 2日目） — 2日開催時のみ表示 */}
       {hasTwoDays && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-          {([1, 2] as const).map(day => (
-            <button
-              key={day}
-              onClick={() => { setSelectedDay(day); setSelectedGroup(1); setReorderMode(false); setEditing(false); }}
-              style={{
-                background: selectedDay === day ? C.gold : C.surface,
-                color: selectedDay === day ? '#000' : C.muted,
-                border: `1px solid ${selectedDay === day ? C.gold : C.border}`,
-                borderRadius: 6,
-                padding: '7px 18px',
-                fontSize: 16,
-                fontWeight: selectedDay === day ? 700 : 400,
-                cursor: 'pointer',
-              }}
-            >
-              {day}日目
-            </button>
-          ))}
+        <div className="flex gap-[8px] mb-[20px] flex-wrap items-center">
+          {([1, 2] as const).map(day => {
+            const active = selectedDay === day;
+            return (
+              <button
+                key={day}
+                onClick={() => { setSelectedDay(day); setSelectedGroup(1); setReorderMode(false); setEditing(false); }}
+                className={`rounded-[6px] px-[18px] py-[7px] text-[16px] cursor-pointer border ${
+                  active
+                    ? 'bg-gold text-black border-gold font-bold'
+                    : 'bg-surface text-muted border-border font-normal'
+                }`}
+              >
+                {day}日目
+              </button>
+            );
+          })}
           {selectedDay === 2 && (
             <button
               onClick={handleCopyDay1}
-              style={{
-                background: `${C.blue2}22`,
-                color: C.blue2,
-                border: `1px solid ${C.blue2}`,
-                borderRadius: 6,
-                padding: '7px 14px',
-                fontSize: 15,
-                cursor: 'pointer',
-                marginLeft: 8,
-              }}
+              className="bg-[#2a7a9a22] text-blue-2 border border-blue-2 rounded-[6px] px-[14px] py-[7px] text-[15px] cursor-pointer ml-[8px]"
             >
               1日目からコピー
             </button>
@@ -1112,35 +1086,22 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
       {/* Error / Success */}
       <ErrorModal message={error} onClose={() => setError(null)} />
       {success && (
-        <div style={{
-          background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,
-          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 15,
-        }}>{success}</div>
+        <div className="bg-[#27ae6022] border border-green text-green rounded-[6px] px-[12px] py-[8px] mb-[12px] text-[15px]">
+          {success}
+        </div>
       )}
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: C.muted }}>読み込み中...</div>
+        <div className="text-center py-[40px] px-0 text-muted">読み込み中...</div>
       ) : (
         <>
           {/* 射順発表バナー（選手登録済み & 非公開時のみ） */}
           {savedMembers.length > 0 && !tournament?.squad_published_at && (
-            <div style={{
-              background: `${C.gold}18`,
-              border: `1px solid ${C.gold}66`,
-              borderRadius: 6,
-              padding: '8px 14px',
-              marginBottom: 12,
-              fontSize: 14,
-              color: C.text,
-            }}>
+            <div className="bg-[#e8a02018] border border-[#e8a02066] rounded-[6px] px-[14px] py-[8px] mb-[12px] text-[14px] text-text">
               射順の選定が完了したら、
               <button
                 onClick={onNavigateToApplySettings}
-                style={{
-                  background: 'none', border: 'none', padding: 0,
-                  color: C.gold, fontWeight: 700, fontSize: 14,
-                  cursor: 'pointer', textDecoration: 'underline',
-                }}
+                className="bg-transparent border-none p-0 text-gold font-bold text-[14px] cursor-pointer underline"
               >
                 公開してください。
               </button>
@@ -1148,23 +1109,19 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
           )}
 
           {/* Group Tabs */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="flex gap-[6px] mb-[16px] flex-wrap items-center">
             {groupsInDay.map(g => {
               const count = dayMembers.filter(m => m.group_number === g).length;
+              const active = selectedGroup === g;
               return (
                 <button
                   key={g}
                   onClick={() => setSelectedGroup(g)}
-                  style={{
-                    background: selectedGroup === g ? C.surface2 : C.surface,
-                    color: selectedGroup === g ? C.gold : C.muted,
-                    border: `1px solid ${selectedGroup === g ? C.gold : C.border}`,
-                    borderRadius: 5,
-                    padding: '5px 14px',
-                    fontSize: 15,
-                    fontWeight: selectedGroup === g ? 700 : 400,
-                    cursor: 'pointer',
-                  }}
+                  className={`rounded-[5px] px-[14px] py-[5px] text-[15px] cursor-pointer border ${
+                    active
+                      ? 'bg-surface-2 text-gold border-gold font-bold'
+                      : 'bg-surface text-muted border-border font-normal'
+                  }`}
                 >
                   {g}組{count > 0 ? `（${count}名）` : ''}
                 </button>
@@ -1172,58 +1129,32 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
             })}
             <button
               onClick={addGroup}
-              style={{
-                background: 'transparent',
-                color: C.muted,
-                border: `1px dashed ${C.border}`,
-                borderRadius: 5,
-                padding: '5px 12px',
-                fontSize: 15,
-                cursor: 'pointer',
-              }}
+              className="bg-transparent text-muted border border-dashed border-border rounded-[5px] px-[12px] py-[5px] text-[15px] cursor-pointer"
             >
               ＋組を追加
             </button>
           </div>
 
           {/* Members Table */}
-          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
-            <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 600, color: C.text, fontSize: 16 }}>
+          <div className="bg-surface border border-border rounded-[8px] overflow-hidden mb-[16px]">
+            <div className="px-[14px] py-[10px] border-b border-border flex justify-between items-center">
+              <span className="font-semibold text-text text-[16px]">
                 {hasTwoDays ? `${selectedDay}日目 ` : ''}{selectedGroup}組（{groupMembers.length}名）
               </span>
               {/* Edit / Save / Cancel buttons */}
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="flex gap-[8px]">
                 {editing ? (
                   <>
                     <button
                       onClick={cancelEditMode}
-                      style={{
-                        background: C.surface2,
-                        color: C.muted,
-                        border: `1px solid ${C.border}`,
-                        borderRadius: 5,
-                        padding: '5px 14px',
-                        fontSize: 14,
-                        cursor: 'pointer',
-                      }}
+                      className="bg-surface-2 text-muted border border-border rounded-[5px] px-[14px] py-[5px] text-[14px] cursor-pointer"
                     >
                       キャンセル
                     </button>
                     <button
                       onClick={saveEditMode}
                       disabled={saving}
-                      style={{
-                        background: C.gold,
-                        color: '#000',
-                        border: 'none',
-                        borderRadius: 5,
-                        padding: '5px 14px',
-                        fontSize: 14,
-                        fontWeight: 700,
-                        cursor: saving ? 'not-allowed' : 'pointer',
-                        opacity: saving ? 0.7 : 1,
-                      }}
+                      className="bg-gold text-black border-none rounded-[5px] px-[14px] py-[5px] text-[14px] font-bold cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       保存
                     </button>
@@ -1232,47 +1163,35 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                   <button
                     onClick={enterEditMode}
                     disabled={reorderMode}
-                    style={{
-                      background: C.surface2,
-                      color: C.gold,
-                      border: `1px solid ${C.gold}`,
-                      borderRadius: 5,
-                      padding: '5px 14px',
-                      fontSize: 14,
-                      cursor: reorderMode ? 'not-allowed' : 'pointer',
-                      opacity: reorderMode ? 0.5 : 1,
-                    }}
+                    className={`bg-surface-2 text-gold border border-gold rounded-[5px] px-[14px] py-[5px] text-[14px] ${reorderMode ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                   >
                     編集
                   </button>
                 )}
               </div>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 580 }}>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse min-w-[580px]">
                 <thead>
-                  <tr style={{ background: C.surface2 }}>
+                  <tr className="bg-surface-2">
                     {[
-                      { label: '射順', width: 50, sticky: true, left: 0 },
-                      { label: '会員番号', width: 90 },
-                      { label: '氏名（ 🚩審判）', width: undefined, sticky: true, left: 50 },
-                      { label: '賞典外', width: 60 },
-                      { label: '所属協会', width: 140 },
-                      { label: 'クラス', width: 80 },
-                      { label: '成績', width: 80 },
-                      { label: '操作', width: 60 },
+                      { label: '射順', widthClass: 'w-[50px]', sticky: true, leftClass: 'left-0' },
+                      { label: '会員番号', widthClass: 'w-[90px]', sticky: false, leftClass: '' },
+                      { label: '氏名（ 🚩審判）', widthClass: '', sticky: true, leftClass: 'left-[50px]' },
+                      { label: '賞典外', widthClass: 'w-[60px]', sticky: false, leftClass: '' },
+                      { label: '所属協会', widthClass: 'w-[140px]', sticky: false, leftClass: '' },
+                      { label: 'クラス', widthClass: 'w-[80px]', sticky: false, leftClass: '' },
+                      { label: '成績', widthClass: 'w-[80px]', sticky: false, leftClass: '' },
+                      { label: '操作', widthClass: 'w-[60px]', sticky: false, leftClass: '' },
                     ].map((h, i) => (
-                      <th key={i} style={{
-                        padding: '8px 10px',
-                        fontSize: 14,
-                        color: C.muted,
-                        fontWeight: 600,
-                        textAlign: 'left',
-                        borderBottom: `1px solid ${C.border}`,
-                        whiteSpace: 'nowrap',
-                        width: h.width,
-                        ...(h.sticky ? { position: 'sticky' as const, left: h.left, zIndex: 2, background: C.surface2 } : {}),
-                      }}>{h.label}</th>
+                      <th
+                        key={i}
+                        className={`px-[10px] py-[8px] text-[14px] text-muted font-semibold text-left border-b border-border whitespace-nowrap ${h.widthClass} ${
+                          h.sticky ? `sticky ${h.leftClass} z-[2] bg-surface-2` : ''
+                        }`}
+                      >
+                        {h.label}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -1285,54 +1204,64 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                       // 空席行（射順は表示するが氏名列に「空席」と表示）
                       if (!member && isUnused) {
                         rows.push(
-                          <tr key={p} style={{ borderBottom: `1px solid ${C.border}33`, background: '#1a1a1a55' }}>
-                            <td style={{ padding: '6px 10px', color: C.muted, fontSize: 15, position: 'sticky', left: 0, zIndex: 1, background: '#1a1a1a' }}>{p}</td>
-                            <td colSpan={7} style={{ padding: '6px 10px', fontSize: 14, color: C.muted, fontStyle: 'italic', position: 'sticky', left: 50, zIndex: 1, background: '#1a1a1a' }}>
+                          <tr key={p} className="border-b border-b-[#2e334033] bg-[#1a1a1a55]">
+                            <td className="px-[10px] py-[6px] text-muted text-[15px] sticky left-0 z-[1] bg-[#1a1a1a]">{p}</td>
+                            <td colSpan={7} className="px-[10px] py-[6px] text-[14px] text-muted italic sticky left-[50px] z-[1] bg-[#1a1a1a]">
                               空席
                             </td>
                           </tr>
                         );
                         continue;
                       }
+                      const isDQ = member?.member_code
+                        ? (statusMap[member.member_code] === 'disqualified' || statusMap[member.member_code] === 'withdrawn')
+                        : false;
                       rows.push(
-                        <tr key={p} style={{
-                          borderBottom: `1px solid ${C.border}33`,
-                          borderLeft: !member ? `3px solid ${C.gold}` : '3px solid transparent',
-                          background: !member ? `${C.gold}0a` : 'transparent',
-                        }}>
-                          <td style={{ padding: '6px 10px', color: C.muted, fontSize: 15, position: 'sticky', left: 0, zIndex: 1, background: !member ? `${C.gold}0a` : C.surface }}>{p}</td>
+                        <tr
+                          key={p}
+                          className={`border-b border-b-[#2e334033] border-l-[3px] ${
+                            !member ? 'border-l-gold bg-[#e8a0200a]' : 'border-l-transparent bg-transparent'
+                          }`}
+                        >
+                          <td
+                            className={`px-[10px] py-[6px] text-muted text-[15px] sticky left-0 z-[1] ${
+                              !member ? 'bg-[#e8a0200a]' : 'bg-surface'
+                            }`}
+                          >
+                            {p}
+                          </td>
                           {member ? (
                             <>
                               {/* 会員番号（表示のみ・申込管理タブから変更） */}
-                              <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, fontFamily: 'monospace' }}>
+                              <td className="px-[10px] py-[6px] text-[15px] text-text font-mono">
                                 {member.member_code ?? '-'}
                               </td>
-                              <td style={{ padding: '6px 10px', fontSize: 15, color: C.text, fontWeight: 500, position: 'sticky', left: 50, zIndex: 1, background: C.surface }}>
+                              <td className="px-[10px] py-[6px] text-[15px] text-text font-medium sticky left-[50px] z-[1] bg-surface">
                                 {member.name}
-                                {member.is_judge && <span style={{ marginLeft: 6 }}>🚩</span>}
+                                {member.is_judge && <span className="ml-[6px]">🚩</span>}
                               </td>
                               {/* 賞典外 */}
-                              <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                              <td className="px-[6px] py-[4px] text-center">
                                 {editing ? (
                                   <input
                                     type="checkbox"
                                     checked={member.is_non_prize}
                                     onChange={e => updateEditedMember(member.id, 'is_non_prize', e.target.checked)}
-                                    style={{ width: 16, height: 16, cursor: 'pointer', accentColor: C.gold }}
+                                    className="w-[16px] h-[16px] cursor-pointer accent-gold"
                                   />
                                 ) : (
-                                  <span style={{ fontSize: 15, color: member.is_non_prize ? C.gold : C.muted }}>
+                                  <span className={`text-[15px] ${member.is_non_prize ? 'text-gold' : 'text-muted'}`}>
                                     {member.is_non_prize ? '✓' : ''}
                                   </span>
                                 )}
                               </td>
                               {/* 所属協会 */}
-                              <td style={{ padding: '4px 6px' }}>
+                              <td className="px-[6px] py-[4px]">
                                 {editing ? (
                                   <select
                                     value={member.belong ?? ''}
                                     onChange={e => updateEditedMember(member.id, 'belong', e.target.value || null)}
-                                    style={selectStyle}
+                                    className={selectClass}
                                   >
                                     <option value="">---</option>
                                     {associationNames.map(name => (
@@ -1340,56 +1269,48 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                                     ))}
                                   </select>
                                 ) : (
-                                  <span style={{ fontSize: 15, color: C.text }}>{member.belong ?? '-'}</span>
+                                  <span className="text-[15px] text-text">{member.belong ?? '-'}</span>
                                 )}
                               </td>
                               {/* クラス（表示のみ・申込管理タブから変更） */}
-                              <td style={{ padding: '4px 6px' }} title="クラスの変更は「申込管理」タブから行ってください">
+                              <td className="px-[6px] py-[4px]" title="クラスの変更は「申込管理」タブから行ってください">
                                 {member.class ? (
-                                  <span style={{
-                                    background: classBadgeBg(member.class),
-                                    color: classBadgeColor(member.class),
-                                    borderRadius: 4,
-                                    padding: '1px 7px',
-                                    fontSize: 13,
-                                    fontWeight: 700,
-                                  }}>{member.class}</span>
-                                ) : <span style={{ color: C.muted }}>-</span>}
+                                  <span className={`rounded-[4px] px-[7px] py-[1px] text-[13px] font-bold ${classBadgeClass(member.class)}`}>
+                                    {member.class}
+                                  </span>
+                                ) : <span className="text-muted">-</span>}
                               </td>
                               {/* 成績 */}
-                              <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                              <td className="px-[6px] py-[4px] text-center">
                                 {member.member_code ? (
                                   <select
                                     value={statusMap[member.member_code] ?? 'valid'}
                                     onChange={e => handleStatusChange(member.member_code!, e.target.value as ScoreStatus)}
-                                    style={{
-                                      background: C.inputBg,
-                                      border: `1px solid ${(statusMap[member.member_code] === 'disqualified' || statusMap[member.member_code] === 'withdrawn') ? '#e74c3c' : C.border}`,
-                                      borderRadius: 4,
-                                      color: (statusMap[member.member_code] === 'disqualified' || statusMap[member.member_code] === 'withdrawn') ? '#e74c3c' : C.text,
-                                      padding: '4px 6px', fontSize: 13, cursor: 'pointer',
-                                      fontWeight: (statusMap[member.member_code] === 'disqualified' || statusMap[member.member_code] === 'withdrawn') ? 700 : 400,
-                                    }}
+                                    className={`bg-input-bg rounded-[4px] px-[6px] py-[4px] text-[13px] cursor-pointer border ${
+                                      isDQ
+                                        ? 'border-[#e74c3c] text-[#e74c3c] font-bold'
+                                        : 'border-border text-text font-normal'
+                                    }`}
                                   >
                                     <option value="valid">有効</option>
                                     <option value="disqualified">失格</option>
                                     <option value="withdrawn">棄権</option>
                                   </select>
                                 ) : (
-                                  <span style={{ color: C.muted, fontSize: 13 }}>-</span>
+                                  <span className="text-muted text-[13px]">-</span>
                                 )}
                               </td>
-                              <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                              <td className="px-[6px] py-[4px] text-center">
                                 <button
                                   onClick={() => handleDeleteMember(member)}
-                                  style={{ background: 'transparent', color: C.red, border: `1px solid ${C.red}`, borderRadius: 4, padding: '3px 10px', fontSize: 13, cursor: 'pointer' }}
+                                  className="bg-transparent text-red border border-red rounded-[4px] px-[10px] py-[3px] text-[13px] cursor-pointer"
                                 >
                                   削除
                                 </button>
                               </td>
                             </>
                           ) : (
-                            <td colSpan={8} style={{ padding: '6px 10px', fontSize: 15, color: C.gold, position: 'sticky', left: 50, zIndex: 1, background: `${C.gold}0a` }}>
+                            <td colSpan={8} className="px-[10px] py-[6px] text-[15px] text-gold sticky left-[50px] z-[1] bg-[#e8a0200a]">
                               －（空き）
                             </td>
                           )}
@@ -1405,11 +1326,11 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
 
           {/* 選手組替 button */}
           {dayMembers.length > 0 && !editing && (
-            <div style={{ marginTop: 20, marginBottom: 4, display: 'flex', justifyContent: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+            <div className="mt-[20px] mb-[4px] flex justify-start gap-[10px] flex-wrap">
               {!reorderMode ? (
                 <button
                   onClick={enterReorderMode}
-                  style={{ background: C.surface2, color: C.gold, border: `1px solid ${C.gold}`, borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
+                  className="bg-surface-2 text-gold border border-gold rounded-[6px] px-[18px] py-[7px] text-[15px] cursor-pointer font-semibold"
                 >
                   選手組替
                 </button>
@@ -1417,14 +1338,14 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                 <>
                   <button
                     onClick={cancelRandomPreview}
-                    style={{ background: C.surface2, color: C.muted, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
+                    className="bg-surface-2 text-muted border border-border rounded-[6px] px-[18px] py-[7px] text-[15px] cursor-pointer font-semibold"
                   >
                     組替をキャンセル
                   </button>
                   <button
                     onClick={saveRandomPreview}
                     disabled={saving}
-                    style={{ background: C.green, color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+                    className="bg-green text-white border-none rounded-[6px] px-[18px] py-[7px] text-[15px] font-bold cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {saving ? '保存中...' : '組替を保存'}
                   </button>
@@ -1433,13 +1354,13 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                 <>
                   <button
                     onClick={openUnusedModal}
-                    style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 700 }}
+                    className="bg-gold text-black border-none rounded-[6px] px-[18px] py-[7px] text-[15px] cursor-pointer font-bold"
                   >
                     空席設定
                   </button>
                   <button
                     onClick={handleRandomShuffle}
-                    style={{ background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
+                    className="bg-[#e74c3c] text-white border-none rounded-[6px] px-[18px] py-[7px] text-[15px] cursor-pointer font-semibold"
                   >
                     ランダム組替
                   </button>
@@ -1447,15 +1368,15 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
                     <button
                       onClick={handlePreviousDayRankShuffle}
                       disabled={saving}
-                      style={{ background: '#2980b9', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: saving ? 0.7 : 1 }}
+                      className="bg-[#2980b9] text-white border-none rounded-[6px] px-[18px] py-[7px] text-[15px] font-semibold cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {saving ? '処理中...' : '前日の成績順組替'}
                     </button>
                   )}
-                  <div style={{ flex: 1 }} />
+                  <div className="flex-1" />
                   <button
                     onClick={() => setReorderMode(false)}
-                    style={{ background: C.surface2, color: C.muted, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 600 }}
+                    className="bg-surface-2 text-muted border border-border rounded-[6px] px-[18px] py-[7px] text-[15px] cursor-pointer font-semibold"
                   >
                     組替モード終了
                   </button>
@@ -1466,67 +1387,61 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
 
           {/* Reorder Mode */}
           {reorderMode && (
-            <div style={{ marginTop: 12, background: C.surface, border: `1px solid ${C.gold}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
-              <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, background: C.surface2 }}>
-                <span style={{ fontWeight: 600, color: C.gold, fontSize: 16 }}>
+            <div className="mt-[12px] bg-surface border border-gold rounded-[8px] overflow-hidden mb-[16px]">
+              <div className="px-[14px] py-[10px] border-b border-border bg-surface-2">
+                <span className="font-semibold text-gold text-[16px]">
                   選手組替モード {randomPreview ? '— プレビュー中（手動編集ロック）' : '— ⋮⋮ アイコンをクリックして組と射順を変更してください'}
                 </span>
               </div>
               {randomPreview && (
-                <div style={{ padding: '10px 14px', background: '#2a1a00', borderBottom: `1px solid #fbbf24`, color: '#fbbf24', fontSize: 13 }}>
+                <div className="px-[14px] py-[10px] bg-[#2a1a00] border-b border-b-[#fbbf24] text-[#fbbf24] text-[13px]">
                   ⚠️ プレビュー中: ランダム組替の結果を表示しています。「保存」または「キャンセル」を選択してください。
                 </div>
               )}
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse min-w-[420px]">
                   <thead>
-                    <tr style={{ background: C.surface2 }}>
+                    <tr className="bg-surface-2">
                       {['組', '射順', '氏名（ 🚩審判）', '所属協会', 'クラス'].map(h => (
-                        <th key={h} style={{ padding: '7px 10px', fontSize: 13, color: C.muted, fontWeight: 600, textAlign: 'left', borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                        <th key={h} className="px-[10px] py-[7px] text-[13px] text-muted font-semibold text-left border-b border-border">
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {reorderItems.map(slot => (
-                      <tr key={`slot-${slot.group}-${slot.position}`} style={{
-                        borderBottom: `1px solid ${C.border}33`,
-                        background: slot.isUnused ? '#1a1a1a55' : 'transparent',
-                      }}>
-                        <td style={{ padding: '5px 10px', color: C.muted, fontSize: 15 }}>{slot.group}組</td>
-                        <td style={{ padding: '5px 10px', color: C.muted, fontSize: 15 }}>{slot.position}</td>
-                        <td style={{ padding: '5px 10px', color: C.text, fontSize: 15 }}>
+                      <tr
+                        key={`slot-${slot.group}-${slot.position}`}
+                        className={`border-b border-b-[#2e334033] ${slot.isUnused ? 'bg-[#1a1a1a55]' : 'bg-transparent'}`}
+                      >
+                        <td className="px-[10px] py-[5px] text-muted text-[15px]">{slot.group}組</td>
+                        <td className="px-[10px] py-[5px] text-muted text-[15px]">{slot.position}</td>
+                        <td className="px-[10px] py-[5px] text-text text-[15px]">
                           {slot.isUnused ? (
-                            <span style={{ color: C.muted, fontStyle: 'italic' }}>空席</span>
+                            <span className="text-muted italic">空席</span>
                           ) : slot.member ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div className="flex items-center gap-[8px]">
                               <span
                                 onClick={() => openMoveModal(slot)}
                                 title="クリックして組と射順を変更"
-                                style={{
-                                  cursor: randomPreview ? 'not-allowed' : 'pointer',
-                                  color: randomPreview ? '#444' : C.gold,
-                                  fontSize: 18,
-                                  userSelect: 'none',
-                                  padding: '0 4px',
-                                  opacity: randomPreview ? 0.4 : 1,
-                                }}
+                                className={`text-[18px] select-none px-[4px] py-0 ${
+                                  randomPreview
+                                    ? 'cursor-not-allowed text-[#444] opacity-40'
+                                    : 'cursor-pointer text-gold opacity-100'
+                                }`}
                               >⋮⋮</span>
-                              {slot.member.name}{slot.member.is_judge ? <span style={{ marginLeft: 6 }}>🚩</span> : ''}
+                              {slot.member.name}{slot.member.is_judge ? <span className="ml-[6px]">🚩</span> : ''}
                             </div>
-                          ) : <span style={{ color: C.gold }}>－（空き）</span>}
+                          ) : <span className="text-gold">－（空き）</span>}
                         </td>
-                        <td style={{ padding: '5px 10px', color: C.muted, fontSize: 15 }}>{slot.member?.belong ?? (slot.isUnused ? '—' : '-')}</td>
-                        <td style={{ padding: '5px 10px', fontSize: 15 }}>
+                        <td className="px-[10px] py-[5px] text-muted text-[15px]">{slot.member?.belong ?? (slot.isUnused ? '—' : '-')}</td>
+                        <td className="px-[10px] py-[5px] text-[15px]">
                           {slot.member?.class ? (
-                            <span style={{
-                              background: classBadgeBg(slot.member.class),
-                              color: classBadgeColor(slot.member.class),
-                              borderRadius: 4,
-                              padding: '1px 7px',
-                              fontSize: 13,
-                              fontWeight: 700,
-                            }}>{slot.member.class}</span>
-                          ) : (slot.isUnused ? <span style={{ color: C.muted }}>—</span> : '-')}
+                            <span className={`rounded-[4px] px-[7px] py-[1px] text-[13px] font-bold ${classBadgeClass(slot.member.class)}`}>
+                              {slot.member.class}
+                            </span>
+                          ) : (slot.isUnused ? <span className="text-muted">—</span> : '-')}
                         </td>
                       </tr>
                     ))}
@@ -1567,56 +1482,61 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
 
       {/* 両日参加者 削除モーダル */}
       {deleteModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-        }} onClick={() => setDeleteModal(null)}>
-          <div style={{
-            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
-            padding: '24px 28px', maxWidth: 400, width: '90%',
-          }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>
+        <div
+          className="fixed inset-0 bg-[rgba(0,0,0,0.6)] flex items-center justify-center z-[9999]"
+          onClick={() => setDeleteModal(null)}
+        >
+          <div
+            className="bg-surface border border-border rounded-[10px] px-[28px] py-[24px] max-w-[400px] w-[90%]"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="m-0 mb-[16px] text-[17px] text-gold">
               {deleteModal.member.name}（{deleteModal.member.belong ?? '-'}）
             </h3>
-            <p style={{ margin: '0 0 16px', fontSize: 15, color: C.text }}>
+            <p className="m-0 mb-[16px] text-[15px] text-text">
               削除する日を選択してください。
             </p>
             {deleteModal.hasScores && (
-              <p style={{ margin: '0 0 12px', fontSize: 14, color: C.red }}>
+              <p className="m-0 mb-[12px] text-[14px] text-red">
                 ※ 点数データも削除されます
               </p>
             )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-              {(['day1', 'day2', 'both'] as const).map(scope => (
-                <label key={scope} style={{
-                  display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-                  padding: '8px 12px', borderRadius: 6,
-                  background: deleteScope === scope ? `${C.gold}22` : 'transparent',
-                  border: `1px solid ${deleteScope === scope ? C.gold : C.border}`,
-                }}>
-                  <input
-                    type="radio" name="deleteScope" value={scope}
-                    checked={deleteScope === scope}
-                    onChange={() => setDeleteScope(scope)}
-                    style={{ accentColor: C.gold }}
-                  />
-                  <span style={{ fontSize: 15, color: C.text, fontWeight: deleteScope === scope ? 700 : 400 }}>
-                    {scope === 'day1' ? '1日目のみ削除' : scope === 'day2' ? '2日目のみ削除' : '両日削除'}
-                  </span>
-                </label>
-              ))}
+            <div className="flex flex-col gap-[10px] mb-[20px]">
+              {(['day1', 'day2', 'both'] as const).map(scope => {
+                const selected = deleteScope === scope;
+                return (
+                  <label
+                    key={scope}
+                    className={`flex items-center gap-[8px] cursor-pointer px-[12px] py-[8px] rounded-[6px] border ${
+                      selected ? 'bg-[#e8a02022] border-gold' : 'bg-transparent border-border'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="deleteScope"
+                      value={scope}
+                      checked={selected}
+                      onChange={() => setDeleteScope(scope)}
+                      className="accent-gold"
+                    />
+                    <span className={`text-[15px] text-text ${selected ? 'font-bold' : 'font-normal'}`}>
+                      {scope === 'day1' ? '1日目のみ削除' : scope === 'day2' ? '2日目のみ削除' : '両日削除'}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <div className="flex gap-[10px] justify-end">
               <button
                 onClick={() => setDeleteModal(null)}
-                style={{ background: C.surface2, color: C.text, border: `1px solid ${C.border}`, borderRadius: 5, padding: '8px 20px', fontSize: 15, cursor: 'pointer' }}
+                className="bg-surface-2 text-text border border-border rounded-[5px] px-[20px] py-[8px] text-[15px] cursor-pointer"
               >
                 キャンセル
               </button>
               <button
                 onClick={() => executeDelete(deleteModal.member.id, deleteScope)}
                 disabled={saving}
-                style={{ background: C.red, color: '#fff', border: 'none', borderRadius: 5, padding: '8px 20px', fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+                className="bg-red text-white border-none rounded-[5px] px-[20px] py-[8px] text-[15px] font-bold cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {saving ? '削除中...' : '削除'}
               </button>
@@ -1631,7 +1551,7 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
           onOk={simpleConfirm.onOk}
           onCancel={() => setSimpleConfirm(null)}
           okLabel="削除"
-          okColor={C.red}
+          okColor="#ff4d4d"
         />
       )}
 
@@ -1639,11 +1559,14 @@ export default function MembersTab({ tournamentId, tournament, onNavigateToApply
   );
 }
 
-function classBadgeBg(c: ClassType): string {
-  return { AAA: '#9b59b633', AA: '#e74c3c33', A: `${C.gold}33`, B: '#3498db33', C: '#2ecc7133' }[c] ?? '';
-}
-function classBadgeColor(c: ClassType): string {
-  return { AAA: '#9b59b6', AA: '#e74c3c', A: C.gold, B: '#3498db', C: '#2ecc71' }[c] ?? C.muted;
+function classBadgeClass(c: ClassType): string {
+  return {
+    AAA: 'bg-[#9b59b633] text-[#9b59b6]',
+    AA: 'bg-[#e74c3c33] text-[#e74c3c]',
+    A: 'bg-[#e8a02033] text-gold',
+    B: 'bg-[#3498db33] text-[#3498db]',
+    C: 'bg-[#2ecc7133] text-[#2ecc71]',
+  }[c] ?? 'text-muted';
 }
 
 // ============================================================
@@ -1721,42 +1644,38 @@ function MoveModal({
   onConfirm: () => void;
 }) {
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-    }} onClick={onCancel}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
-        padding: '24px 32px', minWidth: 360, maxWidth: 480, width: '90%',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-      }}>
-        <h3 style={{ margin: '0 0 18px', fontSize: 17, color: C.gold, borderBottom: `1px solid ${C.border}`, paddingBottom: 10 }}>
+    <div
+      className="fixed inset-0 bg-[rgba(0,0,0,0.65)] flex items-center justify-center z-[9999]"
+      onClick={onCancel}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="bg-surface border border-border rounded-[12px] px-[32px] py-[24px] min-w-[360px] max-w-[480px] w-[90%] shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+      >
+        <h3 className="m-0 mb-[18px] text-[17px] text-gold border-b border-border pb-[10px]">
           選手の組・射順を変更
         </h3>
 
         {/* 現在 */}
-        <div style={{ background: C.surface2, padding: '10px 14px', borderRadius: 6, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ color: C.muted, fontSize: 13, fontWeight: 600, minWidth: 40 }}>現在</span>
-          <span style={{ color: C.gold, fontSize: 15, fontWeight: 600 }}>{slot.group}組</span>
-          <span style={{ color: C.muted, fontSize: 14 }}>射順</span>
-          <span style={{ color: C.gold, fontSize: 15, fontWeight: 600 }}>{slot.position}</span>
-          <span style={{ color: C.muted, fontSize: 14 }}>·</span>
-          <span style={{ color: C.text, fontSize: 15, fontWeight: 600 }}>
+        <div className="bg-surface-2 px-[14px] py-[10px] rounded-[6px] mb-[12px] flex items-center gap-[14px]">
+          <span className="text-muted text-[13px] font-semibold min-w-[40px]">現在</span>
+          <span className="text-gold text-[15px] font-semibold">{slot.group}組</span>
+          <span className="text-muted text-[14px]">射順</span>
+          <span className="text-gold text-[15px] font-semibold">{slot.position}</span>
+          <span className="text-muted text-[14px]">·</span>
+          <span className="text-text text-[15px] font-semibold">
             {slot.member?.name}
-            {slot.member?.is_judge ? <span style={{ color: C.gold, marginLeft: 6 }}>⚑</span> : ''}
+            {slot.member?.is_judge ? <span className="text-gold ml-[6px]">⚑</span> : ''}
           </span>
         </div>
 
         {/* 変更 */}
-        <div style={{ background: '#1a1500', padding: '10px 14px', borderRadius: 6, marginBottom: 18, border: `1px solid ${C.gold}66`, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: C.muted, fontSize: 13, fontWeight: 600, minWidth: 40 }}>変更</span>
+        <div className="bg-[#1a1500] px-[14px] py-[10px] rounded-[6px] mb-[18px] border border-[#e8a02066] flex items-center gap-[12px]">
+          <span className="text-muted text-[13px] font-semibold min-w-[40px]">変更</span>
           <select
             value={targetGroup}
             onChange={e => onChangeGroup(Number(e.target.value))}
-            style={{
-              background: C.inputBg, color: C.text, border: `1px solid ${C.border}`,
-              borderRadius: 6, padding: '8px 12px', fontSize: 14, cursor: 'pointer',
-            }}
+            className="bg-input-bg text-text border border-border rounded-[6px] px-[12px] py-[8px] text-[14px] cursor-pointer"
           >
             {Array.from({ length: maxGroup }, (_, i) => i + 1).map(g => (
               <option key={g} value={g}>{g}組</option>
@@ -1765,10 +1684,7 @@ function MoveModal({
           <select
             value={targetPosition}
             onChange={e => onChangePosition(Number(e.target.value))}
-            style={{
-              background: C.inputBg, color: C.text, border: `1px solid ${C.border}`,
-              borderRadius: 6, padding: '8px 12px', fontSize: 14, cursor: 'pointer',
-            }}
+            className="bg-input-bg text-text border border-border rounded-[6px] px-[12px] py-[8px] text-[14px] cursor-pointer"
           >
             {Array.from({ length: POSITIONS }, (_, i) => i + 1).map(p => (
               <option key={p} value={p}>{p}</option>
@@ -1776,15 +1692,19 @@ function MoveModal({
           </select>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
-          <button onClick={onCancel} style={{
-            background: C.surface2, color: C.text, border: `1px solid ${C.border}`,
-            borderRadius: 6, padding: '8px 18px', fontSize: 14, cursor: 'pointer',
-          }}>キャンセル</button>
-          <button onClick={onConfirm} style={{
-            background: C.green, color: '#fff', border: 'none',
-            borderRadius: 6, padding: '8px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-          }}>決定</button>
+        <div className="flex gap-[10px] justify-end border-t border-border pt-[14px]">
+          <button
+            onClick={onCancel}
+            className="bg-surface-2 text-text border border-border rounded-[6px] px-[18px] py-[8px] text-[14px] cursor-pointer"
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={onConfirm}
+            className="bg-green text-white border-none rounded-[6px] px-[22px] py-[8px] text-[14px] font-bold cursor-pointer"
+          >
+            決定
+          </button>
         </div>
       </div>
     </div>
@@ -1806,22 +1726,21 @@ function UnusedSlotsModal({
   saving: boolean;
 }) {
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-    }} onClick={onCancel}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12,
-        padding: '28px 36px', minWidth: 480, maxWidth: 680, width: '90%',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-      }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: 16, color: C.gold, borderBottom: `1px solid ${C.border}`, paddingBottom: 10 }}>
+    <div
+      className="fixed inset-0 bg-[rgba(0,0,0,0.65)] flex items-center justify-center z-[9999]"
+      onClick={onCancel}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="bg-surface border border-border rounded-[12px] px-[36px] py-[28px] min-w-[480px] max-w-[680px] w-[90%] shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+      >
+        <h3 className="m-0 mb-[20px] text-[16px] text-gold border-b border-border pb-[10px]">
           空席に設定したい射順を選択してください（{day}日目）
         </h3>
 
         {Array.from({ length: groupCount }, (_, gi) => gi + 1).map(g => (
-          <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12, flexWrap: 'wrap' }}>
-            <span style={{ width: 56, color: '#aaa', fontSize: 14, fontWeight: 600 }}>{g}組</span>
+          <div key={g} className="flex items-center gap-[14px] mb-[12px] flex-wrap">
+            <span className="w-[56px] text-[#aaa] text-[14px] font-semibold">{g}組</span>
             {Array.from({ length: POSITIONS }, (_, pi) => pi + 1).map(p => {
               const key = `${g}-${p}`;
               const selected = draft.has(key);
@@ -1829,31 +1748,33 @@ function UnusedSlotsModal({
                 <button
                   key={p}
                   onClick={() => onToggle(g, p)}
-                  style={{
-                    width: 38, height: 38, borderRadius: '50%',
-                    border: `2px solid ${selected ? '#ef4444' : '#555'}`,
-                    background: selected ? '#ef4444' : 'transparent',
-                    color: selected ? '#fff' : '#aaa',
-                    cursor: 'pointer',
-                    fontSize: 14,
-                    transition: 'all 0.15s',
-                  }}
-                >{p}</button>
+                  className={`w-[38px] h-[38px] rounded-full border-2 text-[14px] cursor-pointer transition-all duration-150 ${
+                    selected
+                      ? 'border-[#ef4444] bg-[#ef4444] text-white'
+                      : 'border-[#555] bg-transparent text-[#aaa]'
+                  }`}
+                >
+                  {p}
+                </button>
               );
             })}
           </div>
         ))}
 
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: `1px solid ${C.border}`, paddingTop: 16, marginTop: 20 }}>
-          <button onClick={onCancel} style={{
-            background: C.surface2, color: C.text, border: `1px solid ${C.border}`,
-            borderRadius: 6, padding: '8px 18px', fontSize: 14, cursor: 'pointer',
-          }}>閉じる</button>
-          <button onClick={onSave} disabled={saving} style={{
-            background: C.gold, color: '#000', border: 'none',
-            borderRadius: 6, padding: '8px 22px', fontSize: 14, fontWeight: 700,
-            cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
-          }}>{saving ? '保存中...' : '保存'}</button>
+        <div className="flex gap-[10px] justify-end border-t border-border pt-[16px] mt-[20px]">
+          <button
+            onClick={onCancel}
+            className="bg-surface-2 text-text border border-border rounded-[6px] px-[18px] py-[8px] text-[14px] cursor-pointer"
+          >
+            閉じる
+          </button>
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className="bg-gold text-black border-none rounded-[6px] px-[22px] py-[8px] text-[14px] font-bold cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {saving ? '保存中...' : '保存'}
+          </button>
         </div>
       </div>
     </div>
