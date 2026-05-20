@@ -1,2 +1,2 @@
 /** アプリバージョン — 更新のたびにここを変更する */
-export const APP_VERSION = '3.96.6';
+export const APP_VERSION = '3.96.7';
