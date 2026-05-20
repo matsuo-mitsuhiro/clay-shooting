@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
-import { C } from '@/lib/colors';
 import { ErrorModal } from '@/components/ModalDialog';
 import type { Tournament, Association } from '@/lib/types';
 
@@ -76,6 +75,12 @@ const filterScheduleTime = (time: Date) => {
   if (h === 12 && m > 0) return false;
   return m % 10 === 0;
 };
+
+// --- Tailwind class constants (lib/colors.ts と @theme を経由したカラー) ---
+const inputClass = 'w-full bg-input-bg border border-border rounded-[5px] text-text px-2.5 py-2 text-[16px] box-border';
+const labelClass = 'block text-[14px] text-muted mb-[5px]';
+const dpInputClass = `${inputClass} cursor-pointer`;
+const sectionClass = 'bg-surface border border-border rounded-lg p-5 mb-5';
 
 export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }: Props) {
   const [applyForm, setApplyForm] = useState<{
@@ -333,74 +338,50 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    background: C.inputBg,
-    border: `1px solid ${C.border}`,
-    borderRadius: 5,
-    color: C.text,
-    padding: '8px 10px',
-    fontSize: 16,
-    boxSizing: 'border-box',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: 14,
-    color: C.muted,
-    marginBottom: 5,
-  };
-
-  const requiredMark = <span style={{ color: C.red }}>*</span>;
+  const requiredMark = <span className="text-red">*</span>;
 
   // 日時ピッカー用（カレンダー＋時刻: readOnly でクリック操作）
-  const dpDateTimeInput = <input style={{ ...inputStyle, cursor: 'pointer' }} readOnly />;
+  const dpDateTimeInput = <input className={dpInputClass} readOnly />;
 
   // 時刻ピッカー用（手動入力可能: readOnly なし）
-  const dpTimeInput = <input style={{ ...inputStyle, cursor: 'pointer' }} />;
+  const dpTimeInput = <input className={dpInputClass} />;
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
+    <div className="px-4 py-5 max-w-[700px] mx-auto">
       {/* Error Modal */}
       {applyError && (
         <ErrorModal message={applyError} onClose={() => setApplyError(null)} />
       )}
       {success && (
-        <div style={{
-          background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,
-          borderRadius: 6, padding: '8px 12px', marginBottom: 16, fontSize: 15,
-        }}>{success}</div>
+        <div className="bg-[#27ae6022] border border-green text-green rounded-md px-3 py-2 mb-4 text-[15px]">{success}</div>
       )}
 
       {/* Apply Settings Section */}
-      <section style={{
-        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-        padding: '20px', marginBottom: 20,
-      }}>
-        <h3 style={{ margin: '0 0 4px', fontSize: 17, color: C.gold }}>申込設定</h3>
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: C.muted }}>
+      <section className={sectionClass}>
+        <h3 className="m-0 mb-1 text-[17px] text-gold">申込設定</h3>
+        <p className="m-0 mb-4 text-[13px] text-muted">
           {requiredMark} 注意書き以外はすべて必須です
         </p>
         <form onSubmit={handleSaveApply}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="grid grid-cols-2 gap-[14px]">
 
             {/* 募集人数 */}
             <div>
-              <label style={labelStyle}>募集人数 {requiredMark}</label>
+              <label className={labelClass}>募集人数 {requiredMark}</label>
               <input
                 type="number"
                 min={1}
                 value={applyForm.max_participants}
                 onChange={e => setApplyForm(f => ({ ...f, max_participants: e.target.value }))}
                 placeholder="例: 60"
-                style={inputStyle}
+                className={inputClass}
               />
             </div>
             <div>{/* spacer */}</div>
 
             {/* 募集開始日時（1時間刻み） */}
             <div>
-              <label style={labelStyle}>募集開始日時 {requiredMark}</label>
+              <label className={labelClass}>募集開始日時 {requiredMark}</label>
               <DatePicker
                 selected={applyForm.apply_start_at}
                 onChange={(date: Date | null) => setApplyForm(f => ({ ...f, apply_start_at: date }))}
@@ -417,7 +398,7 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
 
             {/* 募集終了日時（1時間刻み） */}
             <div>
-              <label style={labelStyle}>募集終了日時 {requiredMark}</label>
+              <label className={labelClass}>募集終了日時 {requiredMark}</label>
               <DatePicker
                 selected={applyForm.apply_end_at}
                 onChange={(date: Date | null) => setApplyForm(f => ({ ...f, apply_end_at: date }))}
@@ -434,7 +415,7 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
 
             {/* キャンセル可能日時（1時間刻み） */}
             <div>
-              <label style={labelStyle}>キャンセル可能日時 {requiredMark}</label>
+              <label className={labelClass}>キャンセル可能日時 {requiredMark}</label>
               <DatePicker
                 selected={applyForm.cancel_end_at}
                 onChange={(date: Date | null) => setApplyForm(f => ({ ...f, cancel_end_at: date }))}
@@ -451,15 +432,15 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
             <div>{/* spacer */}</div>
 
             {/* --- 当日スケジュール --- */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <p style={{ margin: '4px 0 10px', fontSize: 13, color: C.muted }}>
+            <div className="col-span-2">
+              <p className="mt-1 mb-2.5 mx-0 text-[13px] text-muted">
                 ※ 射撃場開門時間を選択すると、受付・クレー・競技開始が自動設定されます（後から修正可）
               </p>
             </div>
 
             {/* 射撃場開門時間 */}
             <div>
-              <label style={labelStyle}>射撃場開門時間 {requiredMark}</label>
+              <label className={labelClass}>射撃場開門時間 {requiredMark}</label>
               <DatePicker
                 selected={applyForm.gate_open_time}
                 onChange={handleGateOpenChange}
@@ -477,7 +458,7 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
 
             {/* 受付開始時間 */}
             <div>
-              <label style={labelStyle}>受付開始時間 {requiredMark}</label>
+              <label className={labelClass}>受付開始時間 {requiredMark}</label>
               <DatePicker
                 selected={applyForm.reception_start_time}
                 onChange={handleReceptionChange}
@@ -495,7 +476,7 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
 
             {/* テストクレー放出時間 */}
             <div>
-              <label style={labelStyle}>テストクレー放出時間 {requiredMark}</label>
+              <label className={labelClass}>テストクレー放出時間 {requiredMark}</label>
               <DatePicker
                 selected={applyForm.practice_clay_time}
                 onChange={handleClayChange}
@@ -513,7 +494,7 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
 
             {/* 競技開始時間 */}
             <div>
-              <label style={labelStyle}>競技開始時間 {requiredMark}</label>
+              <label className={labelClass}>競技開始時間 {requiredMark}</label>
               <DatePicker
                 selected={applyForm.competition_start_time}
                 onChange={(date: Date | null) => setApplyForm(f => ({ ...f, competition_start_time: date }))}
@@ -530,46 +511,42 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
             </div>
 
             {/* 中止のお知らせ方法 */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>中止のお知らせ方法（400文字以内）{requiredMark}</label>
+            <div className="col-span-2">
+              <label className={labelClass}>中止のお知らせ方法（400文字以内）{requiredMark}</label>
               <textarea
                 value={applyForm.cancellation_notice}
                 onChange={e => setApplyForm(f => ({ ...f, cancellation_notice: e.target.value }))}
                 maxLength={400}
                 rows={4}
                 placeholder="大会中止のお知らせ方法を入力してください。"
-                style={{ ...inputStyle, resize: 'vertical', height: 'auto' }}
+                className={`${inputClass} resize-y h-auto`}
               />
             </div>
 
             {/* 注意書き（任意） */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>注意書き（400文字以内）</label>
+            <div className="col-span-2">
+              <label className={labelClass}>注意書き（400文字以内）</label>
               <textarea
                 value={applyForm.notes}
                 onChange={e => setApplyForm(f => ({ ...f, notes: e.target.value }))}
                 maxLength={400}
                 rows={4}
                 placeholder="参加者への注意事項などを入力"
-                style={{ ...inputStyle, resize: 'vertical', height: 'auto' }}
+                className={`${inputClass} resize-y h-auto`}
               />
             </div>
           </div>
 
-          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div className="mt-4 flex items-center gap-4 flex-wrap">
             <button
               type="submit"
               disabled={savingApply}
-              style={{
-                background: C.gold, color: '#000', border: 'none', borderRadius: 5,
-                padding: '9px 24px', fontWeight: 700, fontSize: 16,
-                cursor: savingApply ? 'not-allowed' : 'pointer', opacity: savingApply ? 0.7 : 1,
-              }}
+              className={`bg-gold text-black border-none rounded-[5px] px-6 py-[9px] font-bold text-[16px] ${savingApply ? 'cursor-not-allowed opacity-70' : 'cursor-pointer opacity-100'}`}
             >
               {savingApply ? '保存中...' : '申込設定を保存'}
             </button>
             {tournament.apply_saved_by && tournament.apply_saved_at && (
-              <span style={{ fontSize: 13, color: C.muted }}>
+              <span className="text-[13px] text-muted">
                 最終保存: {tournament.apply_saved_by} {formatSavedAt(tournament.apply_saved_at)}
               </span>
             )}
@@ -578,33 +555,22 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
       </section>
 
       {/* 射順発表 */}
-      <section style={{
-        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-        padding: '20px', marginBottom: 20,
-      }}>
-        <h3 style={{ margin: '0 0 12px', fontSize: 17, color: C.gold }}>射順発表</h3>
-        <div style={{ marginBottom: 14 }}>
-          <span style={{
-            background: squadPublishedAt ? `${C.green}22` : C.surface2,
-            color: squadPublishedAt ? C.green : C.muted,
-            border: `1px solid ${squadPublishedAt ? C.green : C.border}`,
-            borderRadius: 4, padding: '3px 12px', fontSize: 13, fontWeight: 700,
-          }}>
+      <section className={sectionClass}>
+        <h3 className="m-0 mb-3 text-[17px] text-gold">射順発表</h3>
+        <div className="mb-[14px]">
+          <span className={`${squadPublishedAt ? 'bg-[#27ae6022] text-green border-green' : 'bg-surface-2 text-muted border-border'} border rounded px-3 py-[3px] text-[13px] font-bold`}>
             {squadPublishedAt ? `公開中（${formatSavedAt(squadPublishedAt)}）` : '非公開'}
           </span>
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
-            <label style={{ fontSize: 14, color: C.muted }}>コメント（組一覧の前に表示されます）</label>
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+            <label className="text-[14px] text-muted">コメント（組一覧の前に表示されます）</label>
             {previousComment && previousComment !== squadComment && (
               <button
                 type="button"
                 onClick={() => setSquadComment(previousComment)}
-                style={{
-                  background: 'transparent', color: C.gold, border: `1px solid ${C.gold}`,
-                  borderRadius: 4, padding: '2px 10px', fontSize: 12, cursor: 'pointer',
-                }}
+                className="bg-transparent text-gold border border-gold rounded px-2.5 py-0.5 text-[12px] cursor-pointer"
               >
                 前回のコメントを使用
               </button>
@@ -614,25 +580,17 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
             value={squadComment}
             onChange={e => setSquadComment(e.target.value)}
             rows={3}
-            style={{
-              width: '100%', background: '#1a1a2e', border: `1px solid ${C.border}`,
-              borderRadius: 5, color: C.text, padding: '8px 10px', fontSize: 15,
-              boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit',
-            }}
+            className="w-full bg-[#1a1a2e] border border-border rounded-[5px] text-text px-2.5 py-2 text-[15px] box-border resize-y font-[inherit]"
             placeholder="コメントを入力（空欄でも可）"
           />
         </div>
 
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div className="flex gap-3 flex-wrap">
           <button
             type="button"
             onClick={() => handleSquadPublish('publish')}
             disabled={squadSaving}
-            style={{
-              background: C.green, color: '#000', border: 'none', borderRadius: 5,
-              padding: '9px 24px', fontWeight: 700, fontSize: 15,
-              cursor: squadSaving ? 'not-allowed' : 'pointer', opacity: squadSaving ? 0.7 : 1,
-            }}
+            className={`bg-green text-black border-none rounded-[5px] px-6 py-[9px] font-bold text-[15px] ${squadSaving ? 'cursor-not-allowed opacity-70' : 'cursor-pointer opacity-100'}`}
           >
             {squadSaving ? '処理中...' : squadPublishedAt ? '再公開（更新）' : '公開する'}
           </button>
@@ -641,11 +599,7 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
               type="button"
               onClick={() => handleSquadPublish('unpublish')}
               disabled={squadSaving}
-              style={{
-                background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
-                borderRadius: 5, padding: '9px 24px', fontSize: 15,
-                cursor: squadSaving ? 'not-allowed' : 'pointer', opacity: squadSaving ? 0.7 : 1,
-              }}
+              className={`bg-transparent text-muted border border-border rounded-[5px] px-6 py-[9px] text-[15px] ${squadSaving ? 'cursor-not-allowed opacity-70' : 'cursor-pointer opacity-100'}`}
             >
               非公開にする
             </button>
@@ -655,20 +609,12 @@ export default function ApplySettingsTab({ tournamentId, tournament, onUpdated }
             <button
               type="button"
               onClick={handleCopySquadUrl}
-              style={{
-                background: squadUrlCopied ? `${C.green}33` : 'transparent',
-                color: squadUrlCopied ? C.green : C.gold,
-                border: `1px solid ${squadUrlCopied ? C.green : C.gold}`,
-                borderRadius: 5, padding: '9px 24px', fontSize: 15,
-                cursor: 'pointer', fontWeight: 600,
-              }}
+              className={`${squadUrlCopied ? 'bg-[#27ae6033] text-green border-green' : 'bg-transparent text-gold border-gold'} border rounded-[5px] px-6 py-[9px] text-[15px] cursor-pointer font-semibold`}
             >
               {squadUrlCopied ? '✓ コピー済' : '🔗 射順URLをコピー'}
             </button>
           ) : (
-            <span style={{
-              alignSelf: 'center', color: C.muted, fontSize: 14, fontStyle: 'italic',
-            }}>
+            <span className="self-center text-muted text-[14px] italic">
               射順URL: 準備中
             </span>
           )}
