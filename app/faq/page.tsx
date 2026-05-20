@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { C } from '@/lib/colors';
 import ContactButton from '@/components/ContactButton';
 import Footer from '@/components/Footer';
 
@@ -53,36 +52,36 @@ export default function FaqPage() {
     const parts = text.split(new RegExp(`(${word})`, 'gi'));
     return parts.map((p, i) =>
       p.toLowerCase() === word.toLowerCase()
-        ? <mark key={i} style={{ background: `${C.gold}55`, color: C.text, borderRadius: 2, padding: '0 2px' }}>{p}</mark>
+        ? <mark key={i} className="bg-[#e8a02055] text-text rounded-[2px] px-[2px] py-0">{p}</mark>
         : p
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif' }}>
-      <header style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '16px 20px' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+    <div className="min-h-screen bg-bg text-text font-[Arial,sans-serif]">
+      <header className="bg-surface border-b border-border px-5 py-4">
+        <div className="max-w-[800px] mx-auto flex items-center justify-between gap-3">
           <div>
-            <h1 style={{ margin: '0 0 4px', fontSize: 22, color: C.gold, fontWeight: 700 }}>よくある質問（Q&A）</h1>
-            <p style={{ margin: 0, fontSize: 13, color: C.muted }}>クレー射撃大会運営システム</p>
+            <h1 className="mt-0 mb-1 text-[22px] text-gold font-bold">よくある質問（Q&A）</h1>
+            <p className="m-0 text-[13px] text-muted">クレー射撃大会運営システム</p>
           </div>
           <ContactButton />
         </div>
       </header>
 
-      <main style={{ maxWidth: 800, margin: '0 auto', padding: '28px 16px' }}>
+      <main className="max-w-[800px] mx-auto px-4 py-7">
         {/* 検索バー */}
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <form onSubmit={handleSearch} className="flex gap-2 mb-5">
           <input
             type="text"
             value={inputWord}
             onChange={e => setInputWord(e.target.value)}
             placeholder="キーワードで検索..."
-            style={{ flex: 1, background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, padding: '10px 14px', fontSize: 15, outline: 'none' }}
+            className="flex-1 bg-input-bg border border-border rounded-[6px] text-text px-[14px] py-[10px] text-[15px] outline-none"
           />
           <button
             type="submit"
-            style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 6, padding: '10px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+            className="bg-gold text-black border-0 rounded-[6px] px-5 py-[10px] text-[15px] font-bold cursor-pointer whitespace-nowrap"
           >
             検索
           </button>
@@ -90,7 +89,7 @@ export default function FaqPage() {
             <button
               type="button"
               onClick={() => { setInputWord(''); setSearchWord(''); setSelectedCategory(''); fetchFaq('', ''); }}
-              style={{ background: C.surface2, color: C.muted, border: `1px solid ${C.border}`, borderRadius: 6, padding: '10px 14px', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              className="bg-surface-2 text-muted border border-border rounded-[6px] px-[14px] py-[10px] text-[14px] cursor-pointer whitespace-nowrap"
             >
               クリア
             </button>
@@ -98,10 +97,14 @@ export default function FaqPage() {
         </form>
 
         {/* カテゴリタブ */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+        <div className="flex gap-2 mb-6 flex-wrap">
           <button
             onClick={() => handleCategory('')}
-            style={{ background: selectedCategory === '' ? C.gold : C.surface2, color: selectedCategory === '' ? '#000' : C.muted, border: `1px solid ${selectedCategory === '' ? C.gold : C.border}`, borderRadius: 20, padding: '6px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            className={`rounded-[20px] px-4 py-[6px] text-[13px] font-semibold cursor-pointer border ${
+              selectedCategory === ''
+                ? 'bg-gold text-black border-gold'
+                : 'bg-surface-2 text-muted border-border'
+            }`}
           >
             すべて
           </button>
@@ -109,7 +112,11 @@ export default function FaqPage() {
             <button
               key={cat}
               onClick={() => handleCategory(cat)}
-              style={{ background: selectedCategory === cat ? C.gold : C.surface2, color: selectedCategory === cat ? '#000' : C.muted, border: `1px solid ${selectedCategory === cat ? C.gold : C.border}`, borderRadius: 20, padding: '6px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              className={`rounded-[20px] px-4 py-[6px] text-[13px] font-semibold cursor-pointer border ${
+                selectedCategory === cat
+                  ? 'bg-gold text-black border-gold'
+                  : 'bg-surface-2 text-muted border-border'
+              }`}
             >
               {cat}
             </button>
@@ -118,30 +125,32 @@ export default function FaqPage() {
 
         {/* 検索結果情報 */}
         {searchWord && (
-          <p style={{ color: C.muted, fontSize: 13, marginBottom: 16 }}>
+          <p className="text-muted text-[13px] mb-4">
             「{searchWord}」の検索結果：{items.length} 件
           </p>
         )}
 
         {/* Q&Aリスト */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 48, color: C.muted }}>読み込み中...</div>
+          <div className="text-center p-12 text-muted">読み込み中...</div>
         ) : items.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 48, color: C.muted }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+          <div className="text-center p-12 text-muted">
+            <div className="text-[32px] mb-3">🔍</div>
             <p>該当するQ&Aが見つかりません</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {items.map(item => (
               <div
                 key={item.id}
-                style={{ background: C.surface, border: `1px solid ${openId === item.id ? C.gold + '66' : C.border}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.2s' }}
+                className={`bg-surface rounded-[10px] overflow-hidden transition-colors border ${
+                  openId === item.id ? 'border-[#e8a02066]' : 'border-border'
+                }`}
               >
                 {/* タイトル行 */}
                 {item.title && (
-                  <div style={{ padding: '14px 20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: C.gold, fontWeight: 700, fontSize: 15 }}>
+                  <div className="pt-[14px] px-5 pb-0 flex items-center gap-2">
+                    <span className="text-gold font-bold text-[15px]">
                       {highlight(item.title, searchWord)}
                     </span>
                   </div>
@@ -150,30 +159,32 @@ export default function FaqPage() {
                 {/* 質問行 */}
                 <button
                   onClick={() => setOpenId(openId === item.id ? null : item.id)}
-                  style={{ width: '100%', background: 'transparent', border: 'none', padding: item.title ? '8px 20px 16px' : '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 12, textAlign: 'left' }}
+                  className={`w-full bg-transparent border-0 cursor-pointer flex items-start gap-3 text-left ${
+                    item.title ? 'pt-2 px-5 pb-4' : 'px-5 py-4'
+                  }`}
                 >
-                  <span style={{ color: C.gold, fontWeight: 700, fontSize: 18, lineHeight: 1.4, flexShrink: 0 }}>Q</span>
-                  <span style={{ color: C.text, fontSize: 15, lineHeight: 1.6, flex: 1 }}>
+                  <span className="text-gold font-bold text-[18px] leading-[1.4] shrink-0">Q</span>
+                  <span className="text-text text-[15px] leading-[1.6] flex-1">
                     {highlight(item.question, searchWord)}
                   </span>
-                  <span style={{ color: C.muted, fontSize: 18, flexShrink: 0, marginTop: 2 }}>
+                  <span className="text-muted text-[18px] shrink-0 mt-[2px]">
                     {openId === item.id ? '▲' : '▼'}
                   </span>
                 </button>
 
                 {/* 回答（展開時） */}
                 {openId === item.id && (
-                  <div style={{ borderTop: `1px solid ${C.border}`, padding: '16px 20px', display: 'flex', gap: 12 }}>
-                    <span style={{ color: C.blue2, fontWeight: 700, fontSize: 18, lineHeight: 1.4, flexShrink: 0 }}>A</span>
-                    <p style={{ margin: 0, color: C.text, fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', flex: 1 }}>
+                  <div className="border-t border-border px-5 py-4 flex gap-3">
+                    <span className="text-blue-2 font-bold text-[18px] leading-[1.4] shrink-0">A</span>
+                    <p className="m-0 text-text text-[15px] leading-[1.8] whitespace-pre-wrap flex-1">
                       {highlight(item.answer, searchWord)}
                     </p>
                   </div>
                 )}
 
                 {/* カテゴリバッジ */}
-                <div style={{ padding: '0 20px 12px', display: 'flex', justifyContent: 'flex-end' }}>
-                  <span style={{ background: `${C.gold}22`, color: C.gold, border: `1px solid ${C.gold}44`, borderRadius: 4, padding: '2px 8px', fontSize: 11 }}>
+                <div className="pt-0 px-5 pb-3 flex justify-end">
+                  <span className="bg-[#e8a02022] text-gold border border-[#e8a02044] rounded-[4px] px-2 py-[2px] text-[11px]">
                     {item.category}
                   </span>
                 </div>
