@@ -2,27 +2,11 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { C } from '@/lib/colors';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import Footer from '@/components/Footer';
 
-const inputStyle: React.CSSProperties = {
-  background: '#0d0f14',
-  border: `1px solid ${C.border}`,
-  borderRadius: 6,
-  color: C.text,
-  padding: '10px 14px',
-  fontSize: 15,
-  width: '100%',
-  boxSizing: 'border-box',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 13,
-  color: C.muted,
-  marginBottom: 6,
-};
+const inputClass = 'w-full bg-input-bg border border-border rounded-[6px] text-text px-[14px] py-[10px] text-[15px] box-border';
+const labelClass = 'block text-[13px] text-muted mb-[6px]';
 
 function SupportContent() {
   const searchParams = useSearchParams();
@@ -89,51 +73,51 @@ function SupportContent() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column' }}>
+    <div className="min-h-screen bg-bg text-text font-[Arial,sans-serif] flex flex-col">
       <LoadingOverlay show={submitting} message="送信中..." />
-      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px' }}>
-        <div style={{ width: '100%', maxWidth: 520 }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <h1 style={{ margin: '0 0 6px', fontSize: 22, color: C.gold, fontWeight: 700 }}>クレー射撃大会運営システム</h1>
-          <p style={{ margin: 0, fontSize: 13, color: C.muted }}>お問い合わせフォーム</p>
+      <div className="flex-1 flex items-start justify-center px-4 py-10">
+        <div className="w-full max-w-[520px]">
+        <div className="text-center mb-8">
+          <h1 className="mt-0 mb-[6px] text-[22px] text-gold font-bold">クレー射撃大会運営システム</h1>
+          <p className="m-0 text-[13px] text-muted">お問い合わせフォーム</p>
         </div>
 
         {tokenStatus === 'invalid' && (
-          <div style={{ background: C.surface, border: `2px solid ${C.red}`, borderRadius: 12, padding: 32, textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-            <p style={{ color: '#e74c3c', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{tokenError}</p>
-            <p style={{ color: C.muted, fontSize: 13 }}>システム管理者にお問い合わせください。</p>
+          <div className="bg-surface border-2 border-red rounded-[12px] p-8 text-center">
+            <div className="text-[40px] mb-4">⚠️</div>
+            <p className="text-[#e74c3c] text-[16px] font-semibold mb-2">{tokenError}</p>
+            <p className="text-muted text-[13px]">システム管理者にお問い合わせください。</p>
           </div>
         )}
 
         {tokenStatus === 'valid' && !submitted && (
-          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 32 }}>
-            <h2 style={{ margin: '0 0 20px', fontSize: 18, color: C.gold }}>質問フォーム</h2>
+          <div className="bg-surface border border-border rounded-[12px] p-8">
+            <h2 className="mt-0 mb-5 text-[18px] text-gold">質問フォーム</h2>
             <form onSubmit={handleSubmit}>
               {/* ハニーポット（非表示） */}
               <input
                 type="text"
                 value={honeypot}
                 onChange={e => setHoneypot(e.target.value)}
-                style={{ display: 'none' }}
+                className="hidden"
                 tabIndex={-1}
                 autoComplete="off"
               />
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>会員番号 <span style={{ color: '#e74c3c' }}>*</span></label>
-                <input style={inputStyle} value={memberCode} onChange={e => setMemberCode(e.target.value)} placeholder="例: 12345" required />
+              <div className="mb-4">
+                <label className={labelClass}>会員番号 <span className="text-[#e74c3c]">*</span></label>
+                <input className={inputClass} value={memberCode} onChange={e => setMemberCode(e.target.value)} placeholder="例: 12345" required />
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>氏名 <span style={{ color: '#e74c3c' }}>*</span></label>
-                <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="例: 山田 太郎" required />
+              <div className="mb-4">
+                <label className={labelClass}>氏名 <span className="text-[#e74c3c]">*</span></label>
+                <input className={inputClass} value={name} onChange={e => setName(e.target.value)} placeholder="例: 山田 太郎" required />
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>所属協会</label>
+              <div className="mb-4">
+                <label className={labelClass}>所属協会</label>
                 <select
-                  style={{ ...inputStyle, cursor: 'pointer' }}
+                  className={`${inputClass} cursor-pointer`}
                   value={affiliation}
                   onChange={e => setAffiliation(e.target.value)}
                 >
@@ -143,10 +127,10 @@ function SupportContent() {
               </div>
 
 
-              <div style={{ marginBottom: 20 }}>
-                <label style={labelStyle}>質問内容 <span style={{ color: '#e74c3c' }}>*</span></label>
+              <div className="mb-5">
+                <label className={labelClass}>質問内容 <span className="text-[#e74c3c]">*</span></label>
                 <textarea
-                  style={{ ...inputStyle, minHeight: 140, resize: 'vertical', lineHeight: 1.6 }}
+                  className={`${inputClass} min-h-[140px] resize-y leading-[1.6]`}
                   value={body}
                   onChange={e => setBody(e.target.value)}
                   placeholder="ご質問内容を入力してください"
@@ -155,7 +139,7 @@ function SupportContent() {
               </div>
 
               {submitError && (
-                <div style={{ background: `${C.red}22`, border: `1px solid ${C.red}`, color: '#e74c3c', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 14 }}>
+                <div className="bg-[#ff4d4d22] border border-red text-[#e74c3c] rounded-[6px] px-[14px] py-[10px] mb-4 text-[14px]">
                   ⚠ {submitError}
                 </div>
               )}
@@ -163,7 +147,7 @@ function SupportContent() {
               <button
                 type="submit"
                 disabled={submitting}
-                style={{ width: '100%', background: C.gold, color: '#000', border: 'none', borderRadius: 8, padding: '12px', fontSize: 16, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1 }}
+                className="w-full bg-gold text-black border-0 rounded-[8px] p-3 text-[16px] font-bold cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
               >
                 質問を送信する
               </button>
@@ -172,23 +156,23 @@ function SupportContent() {
         )}
 
         {submitted && (
-          <div style={{ background: C.surface, border: `2px solid ${C.green}`, borderRadius: 12, padding: 40, textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-            <h2 style={{ margin: '0 0 12px', fontSize: 20, color: '#2ecc71' }}>質問を送信しました</h2>
-            <p style={{ color: C.muted, fontSize: 14, marginBottom: 8 }}>ご質問の確認メールをお送りしました。</p>
-            <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>
+          <div className="bg-surface border-2 border-green rounded-[12px] p-10 text-center">
+            <div className="text-[48px] mb-4">✅</div>
+            <h2 className="mt-0 mb-3 text-[20px] text-[#2ecc71]">質問を送信しました</h2>
+            <p className="text-muted text-[14px] mb-2">ご質問の確認メールをお送りしました。</p>
+            <p className="text-muted text-[13px] mb-6">
               jpn.clayshooting@gmail.com からメールをお送りしました。<br />
               見当たらない場合は、迷惑メールフォルダを探してください。
             </p>
-            <p style={{ color: C.muted, fontSize: 13 }}>
+            <p className="text-muted text-[13px]">
               回答が届きましたら、ご登録のメールアドレスにお知らせします。
             </p>
           </div>
         )}
 
-        <div style={{ marginTop: 24, textAlign: 'center' }}>
-          <p style={{ color: C.muted, fontSize: 13, marginBottom: 8 }}>よくある質問はこちらで検索できます</p>
-          <a href="/faq" style={{ color: C.gold, fontSize: 14, textDecoration: 'underline' }}>Q&A一覧を見る →</a>
+        <div className="mt-6 text-center">
+          <p className="text-muted text-[13px] mb-2">よくある質問はこちらで検索できます</p>
+          <a href="/faq" className="text-gold text-[14px] underline">Q&A一覧を見る →</a>
         </div>
         </div>
       </div>
