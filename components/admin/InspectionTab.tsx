@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
-import { C } from '@/lib/colors';
 import type { Tournament, ClassType } from '@/lib/types';
 import { AlertModal, ErrorModal } from '@/components/ModalDialog';
 
@@ -26,6 +25,16 @@ const CLASS_DIVISION_OPTIONS: { value: string; label: string }[] = [
 ];
 
 const ALL_CLASSES: ClassType[] = ['AAA', 'AA', 'A', 'B', 'C'];
+
+// --- Tailwind class constants (lib/colors.ts と @theme を経由したカラー) ---
+const cardClass = 'bg-surface border border-border rounded-[10px] px-5 py-6 mb-4';
+const sectionTitleClass = 'text-[15px] font-bold text-gold mb-[14px] pb-1.5 border-b border-border';
+const labelClass = 'block text-[13px] text-muted mb-1';
+const inputClass = 'w-full px-2.5 py-2 text-[14px] text-text bg-input-bg border border-border rounded-md outline-none box-border';
+const selectClass = `${inputClass} cursor-pointer`;
+const readOnlyClass = 'w-full px-2.5 py-2 text-[14px] text-muted bg-surface-2 border border-border rounded-md outline-none box-border cursor-default';
+const gridClass = 'grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-y-3 gap-x-4';
+const exportBtnClass = 'px-6 py-2.5 text-[14px] font-bold text-text bg-surface-2 border border-gold rounded-lg cursor-pointer';
 
 export default function InspectionTab({ tournamentId, tournament, onUpdated }: Props) {
   const [form, setForm] = useState({
@@ -179,86 +188,18 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
     }
   };
 
-  // --- styles ---
-  const cardStyle: React.CSSProperties = {
-    background: C.surface,
-    border: `1px solid ${C.border}`,
-    borderRadius: 10,
-    padding: '24px 20px',
-    marginBottom: 16,
-  };
-
-  const sectionTitleStyle: React.CSSProperties = {
-    fontSize: 15,
-    fontWeight: 700,
-    color: C.gold,
-    marginBottom: 14,
-    paddingBottom: 6,
-    borderBottom: `1px solid ${C.border}`,
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: 13,
-    color: C.muted,
-    marginBottom: 4,
-    display: 'block',
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '8px 10px',
-    fontSize: 14,
-    color: C.text,
-    background: C.inputBg,
-    border: `1px solid ${C.border}`,
-    borderRadius: 6,
-    outline: 'none',
-    boxSizing: 'border-box',
-  };
-
-  const selectStyle: React.CSSProperties = {
-    ...inputStyle,
-    cursor: 'pointer',
-  };
-
-  const gridStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-    gap: '12px 16px',
-  };
-
-  const fieldWrapStyle: React.CSSProperties = {
-    marginBottom: 0,
-  };
-
-  const readOnlyStyle: React.CSSProperties = {
-    ...inputStyle,
-    background: C.surface2,
-    cursor: 'default',
-    color: C.muted,
-  };
-
-  const exportBtnStyle: React.CSSProperties = {
-    padding: '10px 24px',
-    fontSize: 14,
-    fontWeight: 700,
-    color: C.text,
-    background: C.surface2,
-    border: `1px solid ${C.gold}`,
-    borderRadius: 8,
-    cursor: 'pointer',
-  };
+  const downloadDisabled = generating || (form.class_division === 'divided' && selectedClasses.length === 0);
 
   return (
     <div>
-      <div style={{ padding: '20px', pointerEvents: showExcelDialog ? 'none' as const : 'auto' as const }}>
+      <div className={`p-5${showExcelDialog ? ' pointer-events-none' : ''}`}>
       {/* ルール */}
-      <div style={cardStyle}>
-        <div style={sectionTitleStyle}>ルール設定</div>
-        <div style={fieldWrapStyle}>
-          <label style={labelStyle}>ルール</label>
+      <div className={cardClass}>
+        <div className={sectionTitleClass}>ルール設定</div>
+        <div>
+          <label className={labelClass}>ルール</label>
           <select
-            style={selectStyle}
+            className={selectClass}
             value={form.rule_type}
             onChange={e => handleChange('rule_type', e.target.value)}
           >
@@ -270,31 +211,31 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
       </div>
 
       {/* 環境情報 */}
-      <div style={cardStyle}>
-        <div style={sectionTitleStyle}>環境情報</div>
-        <div style={gridStyle}>
-          <div style={fieldWrapStyle}>
-            <label style={labelStyle}>天候</label>
+      <div className={cardClass}>
+        <div className={sectionTitleClass}>環境情報</div>
+        <div className={gridClass}>
+          <div>
+            <label className={labelClass}>天候</label>
             <input
-              style={inputStyle}
+              className={inputClass}
               value={form.weather}
               placeholder="例: 晴れ"
               onChange={e => handleChange('weather', e.target.value)}
             />
           </div>
-          <div style={fieldWrapStyle}>
-            <label style={labelStyle}>気温</label>
+          <div>
+            <label className={labelClass}>気温</label>
             <input
-              style={inputStyle}
+              className={inputClass}
               value={form.temperature}
               placeholder="例: 18℃"
               onChange={e => handleChange('temperature', e.target.value)}
             />
           </div>
-          <div style={fieldWrapStyle}>
-            <label style={labelStyle}>風速</label>
+          <div>
+            <label className={labelClass}>風速</label>
             <input
-              style={inputStyle}
+              className={inputClass}
               value={form.wind_speed}
               placeholder="例: 3m/s"
               onChange={e => handleChange('wind_speed', e.target.value)}
@@ -304,37 +245,37 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
       </div>
 
       {/* 審査担当者 */}
-      <div style={cardStyle}>
-        <div style={sectionTitleStyle}>審査担当者</div>
-        <div style={gridStyle}>
-          <div style={fieldWrapStyle}>
-            <label style={labelStyle}>審査委員長</label>
+      <div className={cardClass}>
+        <div className={sectionTitleClass}>審査担当者</div>
+        <div className={gridClass}>
+          <div>
+            <label className={labelClass}>審査委員長</label>
             <input
-              style={inputStyle}
+              className={inputClass}
               value={form.chief_judge}
               onChange={e => handleChange('chief_judge', e.target.value)}
             />
           </div>
-          <div style={fieldWrapStyle}>
-            <label style={labelStyle}>大会運営責任者</label>
+          <div>
+            <label className={labelClass}>大会運営責任者</label>
             <input
-              style={inputStyle}
+              className={inputClass}
               value={form.operation_manager}
               onChange={e => handleChange('operation_manager', e.target.value)}
             />
           </div>
-          <div style={fieldWrapStyle}>
-            <label style={labelStyle}>記録責任者</label>
+          <div>
+            <label className={labelClass}>記録責任者</label>
             <input
-              style={inputStyle}
+              className={inputClass}
               value={form.record_manager}
               onChange={e => handleChange('record_manager', e.target.value)}
             />
           </div>
-          <div style={fieldWrapStyle}>
-            <label style={labelStyle}>セット確認者</label>
+          <div>
+            <label className={labelClass}>セット確認者</label>
             <input
-              style={inputStyle}
+              className={inputClass}
               value={form.set_checker}
               onChange={e => handleChange('set_checker', e.target.value)}
             />
@@ -343,29 +284,29 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
       </div>
 
       {/* 射場設定 */}
-      <div style={cardStyle}>
-        <div style={sectionTitleStyle}>射場設定</div>
-        <div style={gridStyle}>
-          <div style={fieldWrapStyle}>
-            <label style={labelStyle}>使用クレー名</label>
+      <div className={cardClass}>
+        <div className={sectionTitleClass}>射場設定</div>
+        <div className={gridClass}>
+          <div>
+            <label className={labelClass}>使用クレー名</label>
             <input
-              style={inputStyle}
+              className={inputClass}
               value={form.clay_name}
               onChange={e => handleChange('clay_name', e.target.value)}
             />
           </div>
-          <div style={fieldWrapStyle}>
-            <label style={labelStyle}>トラップセットNo.</label>
+          <div>
+            <label className={labelClass}>トラップセットNo.</label>
             <input
-              style={readOnlyStyle}
+              className={readOnlyClass}
               value={`1日目: ${tournament.day1_set ?? '未設定'} / 2日目: ${tournament.day2_set ?? '未設定'}`}
               readOnly
             />
           </div>
-          <div style={fieldWrapStyle}>
-            <label style={labelStyle}>クラス分け</label>
+          <div>
+            <label className={labelClass}>クラス分け</label>
             <select
-              style={selectStyle}
+              className={selectClass}
               value={form.class_division}
               onChange={e => handleChange('class_division', e.target.value)}
             >
@@ -380,32 +321,22 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
       {/* エラー / 成功メッセージ */}
       <ErrorModal message={error} onClose={() => setError(null)} />
       {success && (
-        <div style={{ color: '#2ecc71', fontSize: 14, marginBottom: 12 }}>保存しました</div>
+        <div className="text-[#2ecc71] text-[14px] mb-3">保存しました</div>
       )}
 
       {/* ボタン行 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-4 flex-wrap">
         {/* 保存ボタン */}
         <button
           onClick={handleSave}
           disabled={saving}
-          style={{
-            padding: '10px 32px',
-            fontSize: 15,
-            fontWeight: 700,
-            color: '#fff',
-            background: saving ? C.muted : C.gold,
-            border: 'none',
-            borderRadius: 8,
-            cursor: saving ? 'default' : 'pointer',
-            opacity: saving ? 0.7 : 1,
-          }}
+          className={`px-8 py-2.5 text-[15px] font-bold text-white border-none rounded-lg ${saving ? 'bg-muted cursor-default opacity-70' : 'bg-gold cursor-pointer opacity-100'}`}
         >
           {saving ? '保存中...' : '保存'}
         </button>
 
         {/* Excel ダウンロードボタン */}
-        <button onClick={openExcelDialog} style={exportBtnStyle}>
+        <button onClick={openExcelDialog} className={exportBtnClass}>
           大会記録審査表 Excel
         </button>
       </div>
@@ -414,32 +345,17 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
       {/* ===== Excel作成ダイアログ ===== */}
       {showExcelDialog && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[1000]"
           onClick={e => { if (e.target === e.currentTarget) setShowExcelDialog(false); }}
         >
-          <div style={{
-            background: C.surface,
-            border: `1px solid ${C.border}`,
-            borderRadius: 12,
-            padding: '28px 24px',
-            width: 380,
-            maxWidth: '95vw',
-          }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 19, fontWeight: 700, color: C.gold }}>
+          <div className="bg-surface border border-border rounded-xl px-6 py-7 w-[380px] max-w-[95vw]">
+            <h3 className="m-0 mb-5 text-[19px] font-bold text-gold">
               大会記録審査表 Excel
             </h3>
 
             {/* 作成日 */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ ...labelStyle, fontSize: 15, marginBottom: 6 }}>作成日</label>
+            <div className="mb-4">
+              <label className="block text-[15px] text-muted mb-1.5">作成日</label>
               <DatePicker
                 selected={excelDate}
                 onChange={(date: Date | null) => { if (date) setExcelDate(date); }}
@@ -447,45 +363,33 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
                 locale={ja}
                 wrapperClassName=""
                 customInput={
-                  <input style={{ ...inputStyle, fontSize: 16, width: 180, cursor: 'pointer' }} readOnly />
+                  <input className="w-[180px] px-2.5 py-2 text-[16px] text-text bg-input-bg border border-border rounded-md outline-none box-border cursor-pointer" readOnly />
                 }
               />
             </div>
 
             {/* 注意書き */}
-            <p style={{
-              margin: '0 0 16px',
-              fontSize: 14,
-              lineHeight: 1.6,
-              color: C.muted,
-            }}>
+            <p className="m-0 mb-4 text-[14px] leading-[1.6] text-muted">
               ※Excelダウンロード後に点数を修正する場合は、必ず、点数登録を修正してから、再度、ダウンロードしてください。Excel側では、点数の修正は絶対にしないでください。
             </p>
 
             {/* クラス選択 (クラス分けありの場合のみ) */}
             {form.class_division === 'divided' && availableClasses.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ ...labelStyle, marginBottom: 8 }}>
+              <div className="mb-4">
+                <label className="block text-[13px] text-muted mb-2">
                   作成するクラスを選択してください。
                 </label>
-                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                <div className="flex gap-5 flex-wrap">
                   {availableClasses.map(cls => (
                     <label
                       key={cls}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        cursor: 'pointer',
-                        fontSize: 15,
-                        color: C.text,
-                      }}
+                      className="flex items-center gap-1.5 cursor-pointer text-[15px] text-text"
                     >
                       <input
                         type="checkbox"
                         checked={selectedClasses.includes(cls)}
                         onChange={() => toggleClass(cls)}
-                        style={{ width: 16, height: 16, accentColor: C.gold }}
+                        className="w-4 h-4 accent-gold"
                       />
                       {cls}
                     </label>
@@ -495,36 +399,17 @@ export default function InspectionTab({ tournamentId, tournament, onUpdated }: P
             )}
 
             {/* ボタン */}
-            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={handleGenerateExcel}
-                disabled={generating || (form.class_division === 'divided' && selectedClasses.length === 0)}
-                style={{
-                  padding: '10px 28px',
-                  fontSize: 17,
-                  fontWeight: 700,
-                  color: '#000',
-                  background: generating ? C.muted : C.gold,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: generating ? 'default' : 'pointer',
-                  opacity: (generating || (form.class_division === 'divided' && selectedClasses.length === 0)) ? 0.5 : 1,
-                }}
+                disabled={downloadDisabled}
+                className={`px-7 py-2.5 text-[17px] font-bold text-black border-none rounded-lg ${generating ? 'bg-muted cursor-default' : 'bg-gold cursor-pointer'} ${downloadDisabled ? 'opacity-50' : 'opacity-100'}`}
               >
                 {generating ? 'ダウンロード中...' : 'ダウンロード'}
               </button>
               <button
                 onClick={() => setShowExcelDialog(false)}
-                style={{
-                  padding: '10px 28px',
-                  fontSize: 17,
-                  fontWeight: 600,
-                  color: C.muted,
-                  background: 'transparent',
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                }}
+                className="px-7 py-2.5 text-[17px] font-semibold text-muted bg-transparent border border-border rounded-lg cursor-pointer"
               >
                 キャンセル
               </button>
