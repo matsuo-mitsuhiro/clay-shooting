@@ -7,7 +7,6 @@ import { QRCodeSVG } from 'qrcode.react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ja } from 'date-fns/locale';
-import { C } from '@/lib/colors';
 import type { Tournament, EventType, Association, ShootingRange } from '@/lib/types';
 import { ConfirmModal, AlertModal, PromptModal, ErrorModal } from '@/components/ModalDialog';
 
@@ -39,6 +38,11 @@ function formatSavedAt(s: string | null): string {
   const mi = String(d.getMinutes()).padStart(2, '0');
   return `${y}/${mo}/${dd} ${h}:${mi}`;
 }
+
+const inputClass = 'w-full bg-input-bg border border-border rounded-[5px] text-text px-[10px] py-[8px] text-[16px] box-border';
+const labelClass = 'block text-[14px] text-muted mb-[5px]';
+const sectionClass = 'bg-surface border border-border rounded-[8px] p-5 mb-5';
+const sectionHeadingClass = 'mt-0 mb-4 text-[17px] text-gold';
 
 export default function SettingsTab({ tournamentId, tournament, onUpdated }: Props) {
   const router = useRouter();
@@ -201,7 +205,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
         }
         setConfirmModal({
           message: 'メンバー・点数・申込データを全て削除します。この操作は取り消せません。本当に実行しますか？',
-          okLabel: 'リセット', okColor: C.red,
+          okLabel: 'リセット', okColor: '#ff4d4d',
           onOk: async () => {
             setConfirmModal(null);
             setError(null);
@@ -232,7 +236,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
   function handleDelete() {
     setConfirmModal({
       message: 'この大会のすべてのデータが削除されますが良いですか？\nこの操作は取り消せません。',
-      okLabel: '削除', okColor: C.red,
+      okLabel: '削除', okColor: '#ff4d4d',
       onOk: async () => {
         setConfirmModal(null);
         setError(null);
@@ -273,55 +277,33 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
     setTimeout(() => setInviteCopied(false), 2000);
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    background: C.inputBg,
-    border: `1px solid ${C.border}`,
-    borderRadius: 5,
-    color: C.text,
-    padding: '8px 10px',
-    fontSize: 16,
-    boxSizing: 'border-box',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: 14,
-    color: C.muted,
-    marginBottom: 5,
-  };
-
-  const requiredMark = <span style={{ color: C.red }}>*</span>;
+  const requiredMark = <span className="text-red">*</span>;
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
+    <div className="px-4 py-5 max-w-[700px] mx-auto">
       {/* Error / Success */}
       <ErrorModal message={error} onClose={() => setError(null)} />
       {success && (
-        <div style={{
-          background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,
-          borderRadius: 6, padding: '8px 12px', marginBottom: 16, fontSize: 15,
-        }}>{success}</div>
+        <div className="bg-[#27ae6022] border border-green text-green rounded-[6px] px-3 py-2 mb-4 text-[15px]">
+          {success}
+        </div>
       )}
 
       {/* Tournament Info Form */}
-      <section style={{
-        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-        padding: '20px', marginBottom: 20,
-      }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>大会情報</h3>
-        <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>
-          大会ID: <span style={{ color: C.text, fontFamily: 'monospace' }}>{tournamentId}</span>
-          <span style={{ marginLeft: 8, opacity: 0.6 }}>（編集不可）</span>
+      <section className={sectionClass}>
+        <h3 className={sectionHeadingClass}>大会情報</h3>
+        <div className="text-[13px] text-muted mb-3">
+          大会ID: <span className="text-text font-mono">{tournamentId}</span>
+          <span className="ml-2 opacity-60">（編集不可）</span>
         </div>
         <form onSubmit={handleSave}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="grid grid-cols-2 gap-[14px]">
             <div>
-              <label style={labelStyle}>主催</label>
+              <label className={labelClass}>主催</label>
               <select
                 value={form.organizer_cd}
                 onChange={e => handleOrganizerChange(Number(e.target.value))}
-                style={inputStyle}
+                className={inputClass}
               >
                 <option value={0}>— 選択 —</option>
                 {associations.map(o => (
@@ -329,21 +311,21 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 ))}
               </select>
             </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>大会名 {requiredMark}</label>
+            <div className="col-span-full">
+              <label className={labelClass}>大会名 {requiredMark}</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                style={inputStyle}
+                className={inputClass}
               />
             </div>
             <div>
-              <label style={labelStyle}>射撃場名</label>
+              <label className={labelClass}>射撃場名</label>
               <select
                 value={form.venue}
                 onChange={e => setForm(f => ({ ...f, venue: e.target.value }))}
-                style={inputStyle}
+                className={inputClass}
               >
                 <option value="">— 未選択 —</option>
                 {venueOptions.map(r => (
@@ -352,29 +334,29 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
               </select>
             </div>
             <div>
-              <label style={labelStyle}>種目</label>
+              <label className={labelClass}>種目</label>
               <select
                 value={form.event_type}
                 onChange={e => setForm(f => ({ ...f, event_type: e.target.value as EventType }))}
-                style={inputStyle}
+                className={inputClass}
               >
                 <option value="trap">トラップ</option>
                 <option value="skeet">スキート</option>
               </select>
             </div>
             <div>
-              <label style={labelStyle}>1日目</label>
+              <label className={labelClass}>1日目</label>
               <DatePicker
                 selected={form.day1_date ? new Date(form.day1_date) : null}
                 onChange={(date: Date | null) => setForm(f => ({ ...f, day1_date: date ? date.toISOString().slice(0, 10) : '' }))}
                 dateFormat="yyyy/MM/dd"
                 locale={ja}
                 placeholderText="日付を選択"
-                customInput={<input style={{ ...inputStyle, cursor: 'pointer' }} readOnly />}
+                customInput={<input className={`${inputClass} cursor-pointer`} readOnly />}
               />
             </div>
             <div>
-              <label style={labelStyle}>2日目</label>
+              <label className={labelClass}>2日目</label>
               <DatePicker
                 selected={form.day2_date ? new Date(form.day2_date) : null}
                 onChange={(date: Date | null) => setForm(f => ({ ...f, day2_date: date ? date.toISOString().slice(0, 10) : '' }))}
@@ -382,10 +364,10 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                 locale={ja}
                 placeholderText="日付を選択"
                 isClearable
-                customInput={<input style={{ ...inputStyle, cursor: 'pointer' }} readOnly />}
+                customInput={<input className={`${inputClass} cursor-pointer`} readOnly />}
               />
               {validateDates(form.day1_date, form.day2_date) === 'error' && (
-                <div style={{ color: '#e74c3c', fontSize: 13, marginTop: 4 }}>
+                <div className="text-[#e74c3c] text-[13px] mt-1">
                   2日目の日付は1日目より後にしか設定できません。
                 </div>
               )}
@@ -393,43 +375,38 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
             {form.event_type !== 'skeet' && (
               <>
                 <div>
-                  <label style={labelStyle}>1日目セット番号</label>
+                  <label className={labelClass}>1日目セット番号</label>
                   <input
                     type="text"
                     value={form.day1_set}
                     onChange={e => setForm(f => ({ ...f, day1_set: e.target.value }))}
                     placeholder="例: 1番セット"
-                    style={inputStyle}
+                    className={inputClass}
                   />
                 </div>
                 <div>
-                  <label style={labelStyle}>2日目セット番号</label>
+                  <label className={labelClass}>2日目セット番号</label>
                   <input
                     type="text"
                     value={form.day2_set}
                     onChange={e => setForm(f => ({ ...f, day2_set: e.target.value }))}
                     placeholder="例: 1番セット"
-                    style={inputStyle}
+                    className={inputClass}
                   />
                 </div>
               </>
             )}
           </div>
-          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div className="mt-4 flex items-center gap-4 flex-wrap">
             <button
               type="submit"
               disabled={saving || validateDates(form.day1_date, form.day2_date) === 'error'}
-              style={{
-                background: C.gold, color: '#000', border: 'none', borderRadius: 5,
-                padding: '9px 24px', fontWeight: 700, fontSize: 16,
-                cursor: (saving || validateDates(form.day1_date, form.day2_date) === 'error') ? 'not-allowed' : 'pointer',
-                opacity: (saving || validateDates(form.day1_date, form.day2_date) === 'error') ? 0.7 : 1,
-              }}
+              className="bg-gold text-black border-0 rounded-[5px] px-6 py-[9px] font-bold text-[16px] cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
             >
               {saving ? '保存中...' : '保存'}
             </button>
             {tournament.info_saved_by && tournament.info_saved_at && (
-              <span style={{ fontSize: 13, color: C.muted }}>
+              <span className="text-[13px] text-muted">
                 最終保存: {tournament.info_saved_by} {formatSavedAt(tournament.info_saved_at)}
               </span>
             )}
@@ -438,11 +415,8 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
       </section>
 
       {/* QR Code Section */}
-      <section style={{
-        background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-        padding: '20px', marginBottom: 20,
-      }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 17, color: C.gold }}>QRコード確認</h3>
+      <section className={sectionClass}>
+        <h3 className={sectionHeadingClass}>QRコード確認</h3>
         {origin ? (() => {
           const qrTabs: { key: 'viewer' | 'admin' | 'apply' | 'invite'; label: string; url?: string }[] = [
             { key: 'viewer', label: '閲覧用Top', url: `${origin}/` },
@@ -454,67 +428,57 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
           return (
             <div>
               {/* タブ */}
-              <div style={{ display: 'flex', gap: 4, marginBottom: 20 }}>
-                {qrTabs.map(t => (
-                  <button
-                    key={t.key}
-                    onClick={() => { setQrTab(t.key); setQrCopied(false); }}
-                    style={{
-                      background: qrTab === t.key ? C.surface2 : 'transparent',
-                      color: qrTab === t.key ? C.gold : C.muted,
-                      border: `1px solid ${qrTab === t.key ? C.gold : C.border}`,
-                      borderRadius: 5, padding: '7px 18px', fontSize: 14,
-                      fontWeight: qrTab === t.key ? 700 : 400, cursor: 'pointer',
-                      flex: 1,
-                    }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+              <div className="flex gap-1 mb-5">
+                {qrTabs.map(t => {
+                  const active = qrTab === t.key;
+                  return (
+                    <button
+                      key={t.key}
+                      onClick={() => { setQrTab(t.key); setQrCopied(false); }}
+                      className={`rounded-[5px] px-[18px] py-[7px] text-[14px] cursor-pointer flex-1 border ${
+                        active
+                          ? 'bg-surface-2 text-gold border-gold font-bold'
+                          : 'bg-transparent text-muted border-border font-normal'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
               </div>
               {/* コンテンツ */}
               {qrTab === 'invite' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <div className="flex flex-col items-center gap-3">
                   {!inviteToken ? (
                     <button
                       onClick={handleIssueInvite}
                       disabled={inviteLoading}
-                      style={{
-                        background: `${C.blue2}22`, color: C.blue2, border: `1px solid ${C.blue2}`,
-                        borderRadius: 6, padding: '9px 20px', fontWeight: 700, fontSize: 15,
-                        cursor: inviteLoading ? 'not-allowed' : 'pointer', opacity: inviteLoading ? 0.7 : 1,
-                      }}
+                      className="bg-[#2a7a9a22] text-blue-2 border border-blue-2 rounded-[6px] px-5 py-[9px] font-bold text-[15px] cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {inviteLoading ? '発行中...' : '📱 招待QRコードを発行'}
                     </button>
                   ) : (
                     <>
-                      <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
+                      <div className="bg-white p-3 rounded-[8px]">
                         <QRCodeSVG value={getInviteUrl(inviteToken)} size={160} />
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', maxWidth: 480 }}>
+                      <div className="flex items-center gap-2 w-full max-w-[480px]">
                         <input
                           readOnly
                           value={getInviteUrl(inviteToken)}
-                          style={{ ...inputStyle, fontSize: 11, flex: 1 }}
+                          className={`${inputClass} !text-[11px] flex-1`}
                         />
                         <button
                           onClick={() => handleCopyInviteUrl(inviteToken)}
-                          style={{
-                            background: inviteCopied ? '#2ecc7133' : C.surface2,
-                            color: inviteCopied ? '#2ecc71' : C.text,
-                            border: `1px solid ${C.border}`, borderRadius: 5,
-                            padding: '8px 14px', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap',
-                          }}
+                          className={`border border-border rounded-[5px] px-[14px] py-[8px] text-[13px] cursor-pointer whitespace-nowrap ${
+                            inviteCopied ? 'bg-[#2ecc7133] text-[#2ecc71]' : 'bg-surface-2 text-text'
+                          }`}
                         >
                           {inviteCopied ? '✓ コピー済み' : 'URLをコピー'}
                         </button>
                       </div>
-                      <div style={{
-                        background: `${C.gold}11`, border: `1px solid ${C.gold}44`, borderRadius: 6,
-                        padding: '10px 16px', maxWidth: 480, width: '100%',
-                      }}>
-                        <p style={{ margin: 0, fontSize: 13, color: C.muted, lineHeight: 1.8 }}>
+                      <div className="bg-[#e8a02011] border border-[#e8a02044] rounded-[6px] px-4 py-[10px] max-w-[480px] w-full">
+                        <p className="m-0 text-[13px] text-muted leading-[1.8]">
                           ⚠️ 使用期限24時間、利用者は1名に限定します。<br />
                           複数名を登録する場合は人数分、QRコードを発行してください。<br />
                           他府県所属の選手にも招待QRによって運営管理者になることはできますが、利用できるのは選手が所属する協会の大会のみです。
@@ -522,10 +486,7 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                       </div>
                       <button
                         onClick={() => { setInviteToken(null); setInviteCopied(false); }}
-                        style={{
-                          background: 'transparent', color: C.muted, border: `1px solid ${C.border}`,
-                          borderRadius: 5, padding: '6px 16px', fontSize: 13, cursor: 'pointer',
-                        }}
+                        className="bg-transparent text-muted border border-border rounded-[5px] px-4 py-[6px] text-[13px] cursor-pointer"
                       >
                         再発行する場合はこちら
                       </button>
@@ -533,21 +494,21 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
                   )}
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                  <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="bg-white p-3 rounded-[8px]">
                     <QRCodeSVG value={activeTab.url!} size={160} />
                   </div>
                   <a
                     href={activeTab.url!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ margin: 0, fontSize: 12, color: '#3498db', textAlign: 'center', wordBreak: 'break-all', textDecoration: 'underline' }}
+                    className="m-0 text-[12px] text-[#3498db] text-center break-all underline"
                   >
                     {activeTab.url}
                   </a>
                   <button
                     onClick={() => { navigator.clipboard.writeText(activeTab.url!); setQrCopied(true); setTimeout(() => setQrCopied(false), 2000); }}
-                    style={{ background: C.gold, color: '#000', border: 'none', borderRadius: 5, padding: '8px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                    className="bg-gold text-black border-0 rounded-[5px] px-6 py-[8px] text-[14px] font-bold cursor-pointer"
                   >
                     {qrCopied ? 'コピーしました！' : 'URLをコピー'}
                   </button>
@@ -556,53 +517,43 @@ export default function SettingsTab({ tournamentId, tournament, onUpdated }: Pro
             </div>
           );
         })() : (
-          <p style={{ color: C.muted, fontSize: 15 }}>読み込み中...</p>
+          <p className="text-muted text-[15px]">読み込み中...</p>
         )}
       </section>
 
       {/* Danger Zone */}
-      <section style={{
-        background: `${C.red}11`, border: `1px solid ${C.red}66`, borderRadius: 8, padding: '20px',
-      }}>
-        <h3 style={{ margin: '0 0 8px', fontSize: 17, color: C.red }}>危険ゾーン</h3>
-        <p style={{ margin: '0 0 16px', fontSize: 15, color: C.muted }}>
+      <section className="bg-[#ff4d4d11] border border-[#ff4d4d66] rounded-[8px] p-5">
+        <h3 className="mt-0 mb-2 text-[17px] text-red">危険ゾーン</h3>
+        <p className="mt-0 mb-4 text-[15px] text-muted">
           以下の操作は取り消せません。十分注意して実行してください。
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div className="flex items-center gap-4 flex-wrap mb-4">
           <div>
-            <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>メンバー・点数・申込をリセット</p>
-            <p style={{ margin: 0, fontSize: 14, color: C.muted }}>大会情報・QRコードは保持されます</p>
+            <p className="mt-0 mb-1 text-[15px] text-text font-semibold">メンバー・点数・申込をリセット</p>
+            <p className="m-0 text-[14px] text-muted">大会情報・QRコードは保持されます</p>
           </div>
           <button
             onClick={handleReset}
             disabled={resetting}
-            style={{
-              background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
-              borderRadius: 5, padding: '8px 18px', fontSize: 16, fontWeight: 600,
-              cursor: resetting ? 'not-allowed' : 'pointer', opacity: resetting ? 0.7 : 1, whiteSpace: 'nowrap',
-            }}
+            className="bg-transparent text-red border border-red rounded-[5px] px-[18px] py-[8px] text-[16px] font-semibold cursor-pointer whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-70"
           >
             {resetting ? 'リセット中...' : 'リセット実行'}
           </button>
           {tournament.reset_by && tournament.reset_at && (
-            <span style={{ fontSize: 13, color: C.muted }}>
+            <span className="text-[13px] text-muted">
               最終リセット: {tournament.reset_by} {formatSavedAt(tournament.reset_at)}
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', paddingTop: 16, borderTop: `1px solid ${C.red}33` }}>
+        <div className="flex items-center gap-4 flex-wrap pt-4 border-t border-[#ff4d4d33]">
           <div>
-            <p style={{ margin: '0 0 4px', fontSize: 15, color: C.text, fontWeight: 600 }}>大会を削除</p>
-            <p style={{ margin: 0, fontSize: 14, color: C.muted }}>この大会のすべてのデータ（選手・点数・申込）を削除します</p>
+            <p className="mt-0 mb-1 text-[15px] text-text font-semibold">大会を削除</p>
+            <p className="m-0 text-[14px] text-muted">この大会のすべてのデータ（選手・点数・申込）を削除します</p>
           </div>
           <button
             onClick={handleDelete}
             disabled={deleting}
-            style={{
-              background: C.red, color: '#fff', border: `1px solid ${C.red}`,
-              borderRadius: 5, padding: '8px 18px', fontSize: 16, fontWeight: 600,
-              cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1, whiteSpace: 'nowrap',
-            }}
+            className="bg-red text-white border border-red rounded-[5px] px-[18px] py-[8px] text-[16px] font-semibold cursor-pointer whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-70"
           >
             {deleting ? '削除中...' : '大会を削除'}
           </button>
