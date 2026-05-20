@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { C } from '@/lib/colors';
 import { ErrorModal } from '@/components/ModalDialog';
 import type { Member, Score, ScoreStatus, Tournament } from '@/lib/types';
 
@@ -28,6 +27,10 @@ const emptyScoreEntry = (): ScoreEntry => ({
   status: 'valid',
 });
 
+// --- Tailwind class constants (lib/colors.ts と @theme を経由したカラー) ---
+const overlayClass = 'fixed inset-0 bg-black/70 flex items-center justify-center z-[1000]';
+const thBaseClass = 'px-2.5 py-[7px] text-[14px] text-muted font-semibold border-b border-border whitespace-nowrap';
+
 // ---- NumPad ----
 // variant='score': keys 0-9, max 25, 赤色閾値23
 // variant='cb':    keys 1-6 only, max 6
@@ -41,9 +44,7 @@ function NumPad({ member, value, onChange, onConfirm, onClose, variant = 'score'
   variant?: 'score' | 'cb' | 'fr';
 }) {
   const maxVal = variant === 'cb' ? 6 : variant === 'fr' ? 99 : 25;
-  const numColor = variant === 'score' && value !== '' && Number(value) >= 23
-    ? '#e74c3c'
-    : '#3498db';
+  const isRed = variant === 'score' && value !== '' && Number(value) >= 23;
 
   const roundLabel =
     variant === 'cb' ? 'CB' :
@@ -66,47 +67,35 @@ function NumPad({ member, value, onChange, onConfirm, onClose, variant = 'score'
   const defaultKeys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', 'C', '決定'];
 
   const keys = variant === 'cb' ? cbKeys : defaultKeys;
-  const gridCols = variant === 'cb' ? 4 : 3;
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-    }}>
-      <div style={{
-        background: C.surface, border: `1px solid ${C.border}`,
-        borderRadius: 12, padding: 20, minWidth: variant === 'cb' ? 260 : 220,
-        position: 'relative',
-      }}>
+    <div className={overlayClass}>
+      <div className={`relative bg-surface border border-border rounded-xl p-5 ${variant === 'cb' ? 'min-w-[260px]' : 'min-w-[220px]'}`}>
         <button
           onClick={onClose}
-          style={{ position: 'absolute', top: 10, right: 10, background: 'transparent', border: 'none', color: C.muted, fontSize: 20, cursor: 'pointer' }}
+          className="absolute top-[10px] right-[10px] bg-transparent border-none text-muted text-[20px] cursor-pointer"
         >×</button>
-        <div style={{ textAlign: 'center', marginBottom: 12 }}>
-          <div style={{ fontSize: 17, color: C.text, fontWeight: 600 }}>{member.name}</div>
-          <div style={{ fontSize: 13, color: C.muted, marginBottom: 4 }}>
+        <div className="text-center mb-3">
+          <div className="text-[17px] text-text font-semibold">{member.name}</div>
+          <div className="text-[13px] text-muted mb-1">
             {roundLabel}
-            {variant === 'cb' && <span style={{ fontSize: 11, marginLeft: 6 }}>(1〜6)</span>}
-            {variant === 'fr' && <span style={{ fontSize: 11, marginLeft: 6 }}>(1〜99)</span>}
+            {variant === 'cb' && <span className="text-[11px] ml-1.5">(1〜6)</span>}
+            {variant === 'fr' && <span className="text-[11px] ml-1.5">(1〜99)</span>}
           </div>
-          <div style={{
-            fontSize: 36, fontWeight: 700, color: numColor,
-            minHeight: 50, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <div className={`text-[36px] font-bold min-h-[50px] flex items-center justify-center ${isRed ? 'text-[#e74c3c]' : 'text-[#3498db]'}`}>
             {value === '' ? '　' : value}
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${gridCols}, 1fr)`, gap: 8 }}>
+        <div className={`grid gap-2 ${variant === 'cb' ? 'grid-cols-4' : 'grid-cols-3'}`}>
           {keys.map(k => (
             <button
               key={k}
               onClick={() => handleKey(k)}
-              style={{
-                background: k === '決定' ? C.gold : C.surface2,
-                color: k === '決定' ? '#000' : C.text,
-                border: `1px solid ${k === '決定' ? C.gold : C.border}`,
-                borderRadius: 6, padding: '14px 8px', fontSize: 17, fontWeight: 600, cursor: 'pointer',
-              }}
+              className={`rounded-md px-2 py-3.5 text-[17px] font-semibold cursor-pointer border ${
+                k === '決定'
+                  ? 'bg-gold text-black border-gold'
+                  : 'bg-surface-2 text-text border-border'
+              }`}
             >{k}</button>
           ))}
         </div>
@@ -341,19 +330,12 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
 
       {/* 保存確認ダイアログ */}
       {saveConfirm && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-        }}>
-          <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: 12, padding: '32px 28px', minWidth: 280,
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 18, color: C.text, fontWeight: 600, marginBottom: 28 }}>
+        <div className={overlayClass}>
+          <div className="bg-surface border border-border rounded-xl px-7 py-8 min-w-[280px] text-center">
+            <div className="text-[18px] text-text font-semibold mb-7">
               {saveConfirm.groupNum}組{saveConfirm.fieldLabel}を保存しますか？
             </div>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <div className="flex gap-3 justify-center">
               <button
                 onClick={async () => {
                   const gn = saveConfirm.groupNum;
@@ -361,10 +343,7 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                   setSaveConfirm(null);
                   await handleSaveGroup(gn, fld);
                 }}
-                style={{
-                  background: C.gold, color: '#000', border: 'none',
-                  borderRadius: 6, padding: '10px 28px', fontSize: 16, fontWeight: 700, cursor: 'pointer',
-                }}
+                className="bg-gold text-black border-none rounded-md px-7 py-2.5 text-[16px] font-bold cursor-pointer"
               >
                 はい
               </button>
@@ -377,11 +356,7 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                   groupMems.forEach(m => updateField(m.member_code!, saveConfirm.field, ''));
                   setSaveConfirm(null);
                 }}
-                style={{
-                  background: 'transparent', color: C.muted,
-                  border: `1px solid ${C.border}`, borderRadius: 6,
-                  padding: '10px 28px', fontSize: 16, cursor: 'pointer',
-                }}
+                className="bg-transparent text-muted border border-border rounded-md px-7 py-2.5 text-[16px] cursor-pointer"
               >
                 クリア
               </button>
@@ -390,34 +365,30 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
         </div>
       )}
 
-      <div style={{ padding: '20px 16px', maxWidth: 1060, margin: '0 auto', pointerEvents: anyModalOpen ? 'none' as const : 'auto' as const }}>
+      <div className={`px-4 py-5 max-w-[1060px] mx-auto ${anyModalOpen ? 'pointer-events-none' : 'pointer-events-auto'}`}>
       {/* Day Tabs — 2日開催時のみ表示 */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        {hasTwoDays && ([1, 2] as const).map(day => (
-          <button
-            key={day}
-            onClick={() => { setSelectedDay(day); setGroupFilter('all'); }}
-            style={{
-              background: selectedDay === day ? (day === 1 ? C.gold : C.blue2) : C.surface,
-              color: selectedDay === day ? (day === 1 ? '#000' : '#fff') : C.muted,
-              border: `1px solid ${selectedDay === day ? (day === 1 ? C.gold : C.blue2) : C.border}`,
-              borderRadius: 6,
-              padding: '7px 18px',
-              fontSize: 16,
-              fontWeight: selectedDay === day ? 700 : 400,
-              cursor: 'pointer',
-            }}
-          >
-            {day}日目 (R{day === 1 ? '1-4' : '5-8'})
-          </button>
-        ))}
+      <div className="flex gap-2 mb-5 flex-wrap items-center">
+        {hasTwoDays && ([1, 2] as const).map(day => {
+          const active = selectedDay === day;
+          return (
+            <button
+              key={day}
+              onClick={() => { setSelectedDay(day); setGroupFilter('all'); }}
+              className={`rounded-md px-[18px] py-[7px] text-[16px] border cursor-pointer ${
+                active
+                  ? (day === 1
+                      ? 'bg-gold text-black border-gold font-bold'
+                      : 'bg-blue-2 text-white border-blue-2 font-bold')
+                  : 'bg-surface text-muted border-border font-normal'
+              }`}
+            >
+              {day}日目 (R{day === 1 ? '1-4' : '5-8'})
+            </button>
+          );
+        })}
         <button
           onClick={fetchData}
-          style={{
-            background: 'transparent', color: C.muted,
-            border: `1px solid ${C.border}`, borderRadius: 6,
-            padding: '7px 12px', fontSize: 15, cursor: 'pointer',
-          }}
+          className="bg-transparent text-muted border border-border rounded-md px-3 py-[7px] text-[15px] cursor-pointer"
         >
           ↺ 再読込
         </button>
@@ -426,34 +397,28 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
       {/* Error / Success */}
       <ErrorModal message={error} onClose={() => setError(null)} />
       {success && (
-        <div style={{
-          background: `${C.green}22`, border: `1px solid ${C.green}`, color: C.green,
-          borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 15,
-        }}>{success}</div>
+        <div className="bg-[#27ae6022] border border-green text-green rounded-md px-3 py-2 mb-3 text-[15px]">
+          {success}
+        </div>
       )}
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: C.muted }}>読み込み中...</div>
+        <div className="text-center py-10 text-muted">読み込み中...</div>
       ) : dayMembers.length === 0 ? (
-        <div style={{
-          background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
-          padding: '40px 24px', textAlign: 'center', color: C.muted,
-        }}>
+        <div className="bg-surface border border-border rounded-lg px-6 py-10 text-center text-muted">
           {selectedDay}日目の選手が登録されていません。先に選手管理で登録を行ってください。
         </div>
       ) : (
         <>
           {/* Group Filter */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div className="flex gap-1.5 mb-4 flex-wrap">
             <button
               onClick={() => setGroupFilter('all')}
-              style={{
-                background: groupFilter === 'all' ? C.surface2 : C.surface,
-                color: groupFilter === 'all' ? C.gold : C.muted,
-                border: `1px solid ${groupFilter === 'all' ? C.gold : C.border}`,
-                borderRadius: 5, padding: '5px 14px', fontSize: 15,
-                fontWeight: groupFilter === 'all' ? 700 : 400, cursor: 'pointer',
-              }}
+              className={`rounded-[5px] px-3.5 py-[5px] text-[15px] cursor-pointer border ${
+                groupFilter === 'all'
+                  ? 'bg-surface-2 text-gold border-gold font-bold'
+                  : 'bg-surface text-muted border-border font-normal'
+              }`}
             >
               全組
             </button>
@@ -461,13 +426,11 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
               <button
                 key={g}
                 onClick={() => setGroupFilter(g)}
-                style={{
-                  background: groupFilter === g ? C.surface2 : C.surface,
-                  color: groupFilter === g ? C.gold : C.muted,
-                  border: `1px solid ${groupFilter === g ? C.gold : C.border}`,
-                  borderRadius: 5, padding: '5px 14px', fontSize: 15,
-                  fontWeight: groupFilter === g ? 700 : 400, cursor: 'pointer',
-                }}
+                className={`rounded-[5px] px-3.5 py-[5px] text-[15px] cursor-pointer border ${
+                  groupFilter === g
+                    ? 'bg-surface-2 text-gold border-gold font-bold'
+                    : 'bg-surface text-muted border-border font-normal'
+                }`}
               >
                 {g}組
               </button>
@@ -478,45 +441,33 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
           {filteredGroups.map(groupNum => {
             const gMembers = dayMembers.filter(m => m.group_number === groupNum);
             return (
-              <div key={groupNum} style={{
-                background: C.surface, border: `1px solid ${C.border}`,
-                borderRadius: 8, overflow: 'hidden', marginBottom: 20,
-              }}>
-                <div style={{
-                  padding: '10px 14px', borderBottom: `1px solid ${C.border}`,
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  background: C.surface2,
-                }}>
-                  <span style={{ fontWeight: 600, color: C.text, fontSize: 16 }}>
+              <div key={groupNum} className="bg-surface border border-border rounded-lg overflow-hidden mb-5">
+                <div className="px-3.5 py-2.5 border-b border-border flex justify-between items-center bg-surface-2">
+                  <span className="font-semibold text-text text-[16px]">
                     {hasTwoDays ? `${selectedDay}日目 ` : ''}{groupNum}組
                   </span>
                   <button
                     onClick={() => handleSaveGroup(groupNum)}
                     disabled={saving === groupNum}
-                    style={{
-                      background: selectedDay === 1 ? C.gold : C.blue2,
-                      color: selectedDay === 1 ? '#000' : '#fff',
-                      border: 'none', borderRadius: 5,
-                      padding: '6px 16px', fontSize: 15, fontWeight: 700,
-                      cursor: saving === groupNum ? 'not-allowed' : 'pointer',
-                      opacity: saving === groupNum ? 0.7 : 1,
-                    }}
+                    className={`border-none rounded-[5px] px-4 py-1.5 text-[15px] font-bold ${
+                      selectedDay === 1 ? 'bg-gold text-black' : 'bg-blue-2 text-white'
+                    } ${saving === groupNum ? 'cursor-not-allowed opacity-70' : 'cursor-pointer opacity-100'}`}
                   >
                     {saving === groupNum ? '保存中...' : 'この組の点数を保存'}
                   </button>
                 </div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse min-w-[680px]">
                     <thead>
-                      <tr style={{ background: `${C.surface2}88` }}>
-                        <th style={{ ...thStyle, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: C.surface2 }}>氏名（ 🚩審判）</th>
-                        <th style={thStyle}>所属協会</th>
+                      <tr className="bg-[#22262f88]">
+                        <th className={`${thBaseClass} text-left sticky left-0 z-[2] bg-surface-2`}>氏名（ 🚩審判）</th>
+                        <th className={`${thBaseClass} text-center`}>所属協会</th>
                         {roundLabels.map(l => (
-                          <th key={l} style={thStyle}>{l}</th>
+                          <th key={l} className={`${thBaseClass} text-center`}>{l}</th>
                         ))}
-                        <th style={thStyle}>小計</th>
-                        <th style={{ ...thStyle, color: '#e67e22' }}>CB</th>
-                        <th style={{ ...thStyle, color: '#9b59b6' }}>FR</th>
+                        <th className={`${thBaseClass} text-center`}>小計</th>
+                        <th className={`${thBaseClass} text-center !text-[#e67e22]`}>CB</th>
+                        <th className={`${thBaseClass} text-center !text-[#9b59b6]`}>FR</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -529,113 +480,87 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
                         return (
                           <tr
                             key={m.id}
-                            style={{
-                              borderBottom: `1px solid ${C.border}33`,
-                              background: isDQ ? '#e74c3c08' : 'transparent',
-                            }}
+                            className={`border-b border-[#2e334033] ${isDQ ? 'bg-[#e74c3c08]' : 'bg-transparent'}`}
                           >
                             {/* 氏名（審判フラグは氏名の後ろに表示） */}
-                            <td style={{ padding: '6px 10px', fontSize: 15, color: isDQ ? '#e74c3c' : C.text, whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: isDQ ? '#1a1d24' : C.surface }}>
+                            <td className={`px-2.5 py-1.5 text-[15px] whitespace-nowrap sticky left-0 z-[1] bg-surface ${isDQ ? 'text-[#e74c3c]' : 'text-text'}`}>
                               {m.position}. {m.name}
-                              {m.is_judge && <span style={{ marginLeft: 6 }}>🚩</span>}
+                              {m.is_judge && <span className="ml-1.5">🚩</span>}
                               {!code && (
-                                <span style={{ fontSize: 13, color: C.red, marginLeft: 6 }}>(会員番号なし)</span>
+                                <span className="text-[13px] text-red ml-1.5">(会員番号なし)</span>
                               )}
                             </td>
 
                             {/* 所属協会 */}
-                            <td style={{ padding: '6px 10px', fontSize: 13, color: C.muted, whiteSpace: 'nowrap' }}>
+                            <td className="px-2.5 py-1.5 text-[13px] text-muted whitespace-nowrap">
                               {m.belong ?? '-'}
                             </td>
 
                             {/* ラウンド点数 */}
                             {rounds.map(r => (
-                              <td key={r} style={{ padding: '4px 6px', textAlign: 'center' }}>
+                              <td key={r} className="px-1.5 py-1 text-center">
                                 {code ? (
                                   <button
                                     onClick={() => openNumpad(m, r)}
                                     disabled={isDQ}
-                                    style={{
-                                      background: C.inputBg,
-                                      border: `1px solid ${isInvalid(entry[r]) ? C.red : C.border}`,
-                                      borderRadius: 4,
-                                      color: entry[r] !== '' && Number(entry[r]) >= 23 ? '#e74c3c' : isDQ ? C.muted : C.text,
-                                      padding: '6px 8px',
-                                      fontSize: 15,
-                                      width: 66,
-                                      textAlign: 'center',
-                                      cursor: isDQ ? 'not-allowed' : 'pointer',
-                                      fontWeight: entry[r] !== '' && Number(entry[r]) >= 23 ? 700 : 400,
-                                      opacity: isDQ ? 0.5 : 1,
-                                    }}
+                                    className={`bg-input-bg rounded-[4px] px-2 py-1.5 text-[15px] w-[66px] text-center border ${
+                                      isInvalid(entry[r]) ? 'border-red' : 'border-border'
+                                    } ${
+                                      entry[r] !== '' && Number(entry[r]) >= 23
+                                        ? 'text-[#e74c3c] font-bold'
+                                        : isDQ ? 'text-muted font-normal' : 'text-text font-normal'
+                                    } ${isDQ ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
                                   >
                                     {entry[r] === '' ? '　' : entry[r]}
                                   </button>
                                 ) : (
-                                  <span style={{ color: C.muted, fontSize: 13 }}>-</span>
+                                  <span className="text-muted text-[13px]">-</span>
                                 )}
                               </td>
                             ))}
 
                             {/* 小計 */}
-                            <td style={{
-                              padding: '6px 10px', textAlign: 'center', fontSize: 15,
-                              color: subtotal !== '-' ? C.text : C.muted, fontWeight: 600,
-                            }}>
+                            <td className={`px-2.5 py-1.5 text-center text-[15px] font-semibold ${
+                              subtotal !== '-' ? 'text-text' : 'text-muted'
+                            }`}>
                               {subtotal}
                             </td>
 
                             {/* CB */}
-                            <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                            <td className="px-1.5 py-1 text-center">
                               {code ? (
                                 <button
                                   onClick={() => openNumpad(m, 'cb')}
                                   disabled={isDQ}
-                                  style={{
-                                    background: entry.cb !== '' ? `#e67e2222` : C.inputBg,
-                                    border: `1px solid ${entry.cb !== '' ? '#e67e22' : C.border}`,
-                                    borderRadius: 4,
-                                    color: entry.cb !== '' ? '#e67e22' : isDQ ? C.muted : C.text,
-                                    padding: '6px 8px',
-                                    fontSize: 15,
-                                    width: 54,
-                                    textAlign: 'center',
-                                    cursor: isDQ ? 'not-allowed' : 'pointer',
-                                    fontWeight: entry.cb !== '' ? 700 : 400,
-                                    opacity: isDQ ? 0.5 : 1,
-                                  }}
+                                  className={`rounded-[4px] px-2 py-1.5 text-[15px] w-[54px] text-center border ${
+                                    entry.cb !== ''
+                                      ? 'bg-[#e67e2222] border-[#e67e22] text-[#e67e22] font-bold'
+                                      : `bg-input-bg border-border font-normal ${isDQ ? 'text-muted' : 'text-text'}`
+                                  } ${isDQ ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
                                 >
                                   {entry.cb === '' ? '　' : entry.cb}
                                 </button>
                               ) : (
-                                <span style={{ color: C.muted, fontSize: 13 }}>-</span>
+                                <span className="text-muted text-[13px]">-</span>
                               )}
                             </td>
 
                             {/* FR */}
-                            <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                            <td className="px-1.5 py-1 text-center">
                               {code ? (
                                 <button
                                   onClick={() => openNumpad(m, 'fr')}
                                   disabled={isDQ}
-                                  style={{
-                                    background: entry.fr !== '' ? `#9b59b622` : C.inputBg,
-                                    border: `1px solid ${entry.fr !== '' ? '#9b59b6' : C.border}`,
-                                    borderRadius: 4,
-                                    color: entry.fr !== '' ? '#9b59b6' : isDQ ? C.muted : C.text,
-                                    padding: '6px 8px',
-                                    fontSize: 15,
-                                    width: 54,
-                                    textAlign: 'center',
-                                    cursor: isDQ ? 'not-allowed' : 'pointer',
-                                    fontWeight: entry.fr !== '' ? 700 : 400,
-                                    opacity: isDQ ? 0.5 : 1,
-                                  }}
+                                  className={`rounded-[4px] px-2 py-1.5 text-[15px] w-[54px] text-center border ${
+                                    entry.fr !== ''
+                                      ? 'bg-[#9b59b622] border-[#9b59b6] text-[#9b59b6] font-bold'
+                                      : `bg-input-bg border-border font-normal ${isDQ ? 'text-muted' : 'text-text'}`
+                                  } ${isDQ ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
                                 >
                                   {entry.fr === '' ? '　' : entry.fr}
                                 </button>
                               ) : (
-                                <span style={{ color: C.muted, fontSize: 13 }}>-</span>
+                                <span className="text-muted text-[13px]">-</span>
                               )}
                             </td>
                           </tr>
@@ -653,13 +578,3 @@ export default function ScoresTab({ tournamentId, tournament }: Props) {
     </div>
   );
 }
-
-const thStyle: React.CSSProperties = {
-  padding: '7px 10px',
-  fontSize: 14,
-  color: C.muted,
-  fontWeight: 600,
-  textAlign: 'center',
-  borderBottom: `1px solid ${C.border}`,
-  whiteSpace: 'nowrap',
-};
